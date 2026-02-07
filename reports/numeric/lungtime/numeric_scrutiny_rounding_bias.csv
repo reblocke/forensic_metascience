@@ -1,0 +1,2 @@
+trial_id,digits_x,n_values,bias_up,bias_down,abs_bias_gap,anomaly_flag
+lungtime_c01_s41591_025_04181,0,2,0,0,0,FALSE

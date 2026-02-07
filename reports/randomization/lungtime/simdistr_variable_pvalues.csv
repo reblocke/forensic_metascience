@@ -1,0 +1,18 @@
+trial_name,variable_id,simdistr_pvalue,variable,level
+lungtime_c01_s41591_025_04181,1,0.03855,Sex,Male
+lungtime_c01_s41591_025_04181,2,0.3817,Smoking history,Smoker
+lungtime_c01_s41591_025_04181,3,0.6505,ECOG PS,0
+lungtime_c01_s41591_025_04181,4,0.4697,Histology,Squamous
+lungtime_c01_s41591_025_04181,5,0.765,Stage,IIIC
+lungtime_c01_s41591_025_04181,6,0.4625,Brain metastasis,Yes
+lungtime_c01_s41591_025_04181,7,0.7657,Liver metastasis,Yes
+lungtime_c01_s41591_025_04181,8,0.6169,PD-L1 TPS,<1%
+lungtime_c01_s41591_025_04181,9,0.2952,PD-L1 TPS,1–49%
+lungtime_c01_s41591_025_04181,10,0.5162,PD-L1 TPS,≥50%
+lungtime_c01_s41591_025_04181,11,0.05265,PD-L1 TPS,Unknown
+lungtime_c01_s41591_025_04181,12,0.0254,ICIs,Sintilimab
+lungtime_c01_s41591_025_04181,13,0.9241,Tumor burden,≥80 mm
+lungtime_c01_s41591_025_04181,14,0.6733,LDH,≤1 ULN
+lungtime_c01_s41591_025_04181,15,0.5006,LIPI score,Low risk
+lungtime_c01_s41591_025_04181,16,0.2804,LIPI score,Medium risk
+lungtime_c01_s41591_025_04181,17,0.5569,LIPI score,High risk

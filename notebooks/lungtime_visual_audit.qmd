@@ -1,0 +1,128 @@
+---
+title: "LungTIME-C01 Visual Forensics Audit"
+format:
+  pdf:
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Scope
+
+This report summarizes text-driven visual-forensics heuristics from figure-caption extraction.
+It also reports pilot human-in-the-loop plot digitization coverage.
+
+## Load Outputs
+
+```{r}
+repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
+report_dir <- file.path(repo_root, "reports", "visual", "lungtime")
+
+required <- c("visual_row_results.csv", "visual_summary.csv", "visual_digitized_values.csv")
+missing <- required[!file.exists(file.path(report_dir, required))]
+if (length(missing) > 0) {
+  stop("Missing files: ", paste(missing, collapse = ", "))
+}
+
+row_results <- read.csv(file.path(report_dir, "visual_row_results.csv"), check.names = FALSE)
+summary_tbl <- read.csv(file.path(report_dir, "visual_summary.csv"), check.names = FALSE)
+digitized <- read.csv(file.path(report_dir, "visual_digitized_values.csv"), check.names = FALSE)
+
+compact_character <- function(x, width = 44) {
+  x <- as.character(x)
+  x[is.na(x)] <- ""
+  too_long <- nchar(x) > width
+  x[too_long] <- paste0(substr(x[too_long], 1, width - 3), "...")
+  x
+}
+
+compact_df <- function(df, cols = NULL, n = 25, char_width = 44) {
+  out <- df
+  if (!is.null(cols)) {
+    keep <- intersect(cols, names(out))
+    out <- out[, keep, drop = FALSE]
+  }
+  if (nrow(out) > n) {
+    out <- utils::head(out, n)
+  }
+  is_char_like <- vapply(out, function(col) is.character(col) || is.factor(col), logical(1))
+  out[is_char_like] <- lapply(out[is_char_like], compact_character, width = char_width)
+  out
+}
+```
+
+## Interpretation Key
+
+- `n_figure_mentions`: number of caption-like figure mentions extracted from PDF text.
+- `n_duplicate_pairs`: number of near-duplicate caption pairs above similarity threshold.
+- `near_duplicate_rate`: duplicate-pair burden relative to extracted figure mentions.
+- `n_numbering_gaps`: count of missing figure numbers between observed min and max.
+- `numbering_gap_flag`: quick signal that sequence gaps exist in extracted numbering.
+- `n_digitized_figures`: unique figures with digitized point data.
+- `n_digitized_series`: unique digitized series across included figures.
+- `n_digitized_points`: total extracted points available for downstream analyses.
+- `digitization_ready`: whether non-empty digitized data are available in this run.
+
+Digitization values come from manual `metaDigitise` calibration/click workflows and should be treated as measurement data with operator uncertainty.
+
+```{r}
+knitr::kable(summary_tbl, digits = 4)
+```
+
+## Plot Digitization Coverage
+
+```{r}
+knitr::kable(summary_tbl[, c(
+  "trial_id",
+  "n_digitized_figures",
+  "n_digitized_series",
+  "n_digitized_points",
+  "digitization_ready"
+)], digits = 4)
+```
+
+```{r}
+if (nrow(digitized) > 0) {
+  knitr::kable(
+    compact_df(
+      digitized,
+      cols = c(
+        "study_id", "figure_id", "panel_id", "series_id",
+        "x_value", "y_value", "x_unit", "y_unit",
+        "extract_confidence", "source_image"
+      ),
+      n = 25,
+      char_width = 38
+    ),
+    digits = 4
+  )
+} else {
+  cat("No digitized plot values available yet (pilot capture not completed).")
+}
+```
+
+## Row-Level Checks
+
+```{r}
+knitr::kable(
+  compact_df(
+    row_results,
+    cols = c(
+      "trial_id",
+      "n_figure_mentions",
+      "n_duplicate_pairs",
+      "n_numbering_gaps",
+      "numbering_gaps",
+      "n_digitized_figures",
+      "n_digitized_series",
+      "n_digitized_points",
+      "digitization_ready"
+    ),
+    n = 20,
+    char_width = 36
+  )
+)
+```

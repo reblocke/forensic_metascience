@@ -1,0 +1,86 @@
+---
+title: "LungTIME-C01 Registration Congruence Audit"
+format:
+  pdf:
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Scope
+
+This report compares manuscript and protocol claims for trial registration and methods congruence.
+
+## Load Outputs
+
+```{r}
+repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
+report_dir <- file.path(repo_root, "reports", "registration", "lungtime")
+
+required <- c("registration_row_results.csv", "registration_summary.csv")
+missing <- required[!file.exists(file.path(report_dir, required))]
+if (length(missing) > 0) {
+  stop("Missing files: ", paste(missing, collapse = ", "))
+}
+
+row_results <- read.csv(file.path(report_dir, "registration_row_results.csv"), check.names = FALSE)
+summary_tbl <- read.csv(file.path(report_dir, "registration_summary.csv"), check.names = FALSE)
+
+compact_character <- function(x, width = 44) {
+  x <- as.character(x)
+  x[is.na(x)] <- ""
+  too_long <- nchar(x) > width
+  x[too_long] <- paste0(substr(x[too_long], 1, width - 3), "...")
+  x
+}
+
+compact_df <- function(df, cols = NULL, n = 20, char_width = 44) {
+  out <- df
+  if (!is.null(cols)) {
+    keep <- intersect(cols, names(out))
+    out <- out[, keep, drop = FALSE]
+  }
+  if (nrow(out) > n) {
+    out <- utils::head(out, n)
+  }
+  is_char_like <- vapply(out, function(col) is.character(col) || is.factor(col), logical(1))
+  out[is_char_like] <- lapply(out[is_char_like], compact_character, width = char_width)
+  out
+}
+```
+
+## Interpretation Key
+
+- `n_claims`: number of report-versus-protocol claims checked.
+- `n_mismatch`: number of claims where extracted values do not match.
+- `mismatch_rate`: mismatch burden across claims.
+- `n_missing`: claims with missing extracted value from report or protocol.
+- `missing_rate`: missingness burden that can reduce confidence in congruence checks.
+
+```{r}
+knitr::kable(summary_tbl, digits = 4)
+```
+
+## Claim-Level Table
+
+```{r}
+knitr::kable(
+  compact_df(
+    row_results,
+    cols = c(
+      "claim",
+      "report_value",
+      "protocol_value",
+      "match_status",
+      "evidence_page_report",
+      "evidence_page_protocol",
+      "extract_confidence"
+    ),
+    n = 25,
+    char_width = 40
+  )
+)
+```

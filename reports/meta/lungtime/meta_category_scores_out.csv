@@ -1,0 +1,5 @@
+category,metric,raw_value,anomaly_score,weight
+randomization,fisher_recalc,0.859243124612855,0.140756875387145,1
+numeric,median_abs_percent_delta,0.0333333333333385,0.01666666666666925,1
+registration,mismatch_rate,0.25,0.25,0.8
+visual,near_duplicate_rate,NA,0,0.8

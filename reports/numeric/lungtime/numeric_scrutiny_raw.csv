@@ -1,0 +1,3 @@
+x,n,consistency,probability,case_id,source_unit
+61,105,TRUE,0,case_0001,"Age (year, median, range) [early_tod]"
+60,105,TRUE,0,case_0002,"Age (year, median, range) [late_tod]"

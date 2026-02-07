@@ -1,0 +1,87 @@
+trial_id,method,source_unit,metric,value_numeric,p_value,anomaly_flag,severity,details
+lungtime_c01_s41591_025_04181,rounding_consistency,Sex / Male / early_tod,abs_percent_delta,0.0238095238095183,NA,FALSE,low,reported_percent=90.5; computed_percent=90.4762
+lungtime_c01_s41591_025_04181,rounding_consistency,Sex / Male / late_tod,abs_percent_delta,0.0238095238095183,NA,FALSE,low,reported_percent=90.5; computed_percent=90.4762
+lungtime_c01_s41591_025_04181,rounding_consistency,Sex / Female / early_tod,abs_percent_delta,0.0238095238095237,NA,FALSE,low,reported_percent=9.5; computed_percent=9.5238
+lungtime_c01_s41591_025_04181,rounding_consistency,Sex / Female / late_tod,abs_percent_delta,0.0238095238095237,NA,FALSE,low,reported_percent=9.5; computed_percent=9.5238
+lungtime_c01_s41591_025_04181,rounding_consistency,Smoking history / Smoker / early_tod,abs_percent_delta,0,NA,FALSE,low,reported_percent=80; computed_percent=80
+lungtime_c01_s41591_025_04181,rounding_consistency,Smoking history / Smoker / late_tod,abs_percent_delta,0.0428571428571444,NA,FALSE,low,reported_percent=82.9; computed_percent=82.8571
+lungtime_c01_s41591_025_04181,rounding_consistency,Smoking history / Never smoked / early_tod,abs_percent_delta,0,NA,FALSE,low,reported_percent=20; computed_percent=20
+lungtime_c01_s41591_025_04181,rounding_consistency,Smoking history / Never smoked / late_tod,abs_percent_delta,0.0428571428571409,NA,FALSE,low,reported_percent=17.1; computed_percent=17.1429
+lungtime_c01_s41591_025_04181,rounding_consistency,ECOG PS / 0 / early_tod,abs_percent_delta,0.009523809523813,NA,FALSE,low,reported_percent=36.2; computed_percent=36.1905
+lungtime_c01_s41591_025_04181,rounding_consistency,ECOG PS / 0 / late_tod,abs_percent_delta,0.0238095238095255,NA,FALSE,low,reported_percent=30.5; computed_percent=30.4762
+lungtime_c01_s41591_025_04181,rounding_consistency,ECOG PS / 1 / early_tod,abs_percent_delta,0.009523809523813,NA,FALSE,low,reported_percent=63.8; computed_percent=63.8095
+lungtime_c01_s41591_025_04181,rounding_consistency,ECOG PS / 1 / late_tod,abs_percent_delta,0.0238095238095183,NA,FALSE,low,reported_percent=69.5; computed_percent=69.5238
+lungtime_c01_s41591_025_04181,rounding_consistency,Histology / Squamous / early_tod,abs_percent_delta,0.0428571428571444,NA,FALSE,low,reported_percent=57.1; computed_percent=57.1429
+lungtime_c01_s41591_025_04181,rounding_consistency,Histology / Squamous / late_tod,abs_percent_delta,0.0333333333333385,NA,FALSE,low,reported_percent=53.3; computed_percent=53.3333
+lungtime_c01_s41591_025_04181,rounding_consistency,Histology / Adenocarcinoma / early_tod,abs_percent_delta,0.0428571428571444,NA,FALSE,low,reported_percent=42.9; computed_percent=42.8571
+lungtime_c01_s41591_025_04181,rounding_consistency,Histology / Adenocarcinoma / late_tod,abs_percent_delta,0.0333333333333385,NA,FALSE,low,reported_percent=46.7; computed_percent=46.6667
+lungtime_c01_s41591_025_04181,rounding_consistency,Stage / IIIC / early_tod,abs_percent_delta,0.0428571428571409,NA,FALSE,low,reported_percent=22.9; computed_percent=22.8571
+lungtime_c01_s41591_025_04181,rounding_consistency,Stage / IIIC / late_tod,abs_percent_delta,0.0095238095238094,NA,FALSE,low,reported_percent=16.2; computed_percent=16.1905
+lungtime_c01_s41591_025_04181,rounding_consistency,Stage / IV / early_tod,abs_percent_delta,0.0428571428571444,NA,FALSE,low,reported_percent=77.1; computed_percent=77.1429
+lungtime_c01_s41591_025_04181,rounding_consistency,Stage / IV / late_tod,abs_percent_delta,0.009523809523813,NA,FALSE,low,reported_percent=83.8; computed_percent=83.8095
+lungtime_c01_s41591_025_04181,rounding_consistency,Brain metastasis / Yes / early_tod,abs_percent_delta,0.0190476190476189,NA,FALSE,low,reported_percent=12.4; computed_percent=12.381
+lungtime_c01_s41591_025_04181,rounding_consistency,Brain metastasis / Yes / late_tod,abs_percent_delta,0.9380952380952364,NA,TRUE,medium,reported_percent=14.3; computed_percent=15.2381
+lungtime_c01_s41591_025_04181,rounding_consistency,Brain metastasis / No / early_tod,abs_percent_delta,0.9190476190476176,NA,TRUE,medium,reported_percent=86.7; computed_percent=87.619
+lungtime_c01_s41591_025_04181,rounding_consistency,Brain metastasis / No / late_tod,abs_percent_delta,0.0380952380952379,NA,FALSE,low,reported_percent=84.8; computed_percent=84.7619
+lungtime_c01_s41591_025_04181,rounding_consistency,Liver metastasis / Yes / early_tod,abs_percent_delta,0.0142857142857142,NA,FALSE,low,reported_percent=5.7; computed_percent=5.7143
+lungtime_c01_s41591_025_04181,rounding_consistency,Liver metastasis / Yes / late_tod,abs_percent_delta,0.0238095238095237,NA,FALSE,low,reported_percent=9.5; computed_percent=9.5238
+lungtime_c01_s41591_025_04181,rounding_consistency,Liver metastasis / No / early_tod,abs_percent_delta,0.0142857142857053,NA,FALSE,low,reported_percent=94.3; computed_percent=94.2857
+lungtime_c01_s41591_025_04181,rounding_consistency,Liver metastasis / No / late_tod,abs_percent_delta,0.0238095238095183,NA,FALSE,low,reported_percent=90.5; computed_percent=90.4762
+lungtime_c01_s41591_025_04181,rounding_consistency,PD-L1 TPS / <1% / early_tod,abs_percent_delta,0.047619047619051,NA,FALSE,low,reported_percent=39; computed_percent=39.0476
+lungtime_c01_s41591_025_04181,rounding_consistency,PD-L1 TPS / <1% / late_tod,abs_percent_delta,0.0380952380952379,NA,FALSE,low,reported_percent=44.8; computed_percent=44.7619
+lungtime_c01_s41591_025_04181,rounding_consistency,PD-L1 TPS / 1–49% / early_tod,abs_percent_delta,0.0238095238095255,NA,FALSE,low,reported_percent=29.5; computed_percent=29.5238
+lungtime_c01_s41591_025_04181,rounding_consistency,PD-L1 TPS / 1–49% / late_tod,abs_percent_delta,0.1190476190476204,NA,FALSE,low,reported_percent=27.5; computed_percent=27.619
+lungtime_c01_s41591_025_04181,rounding_consistency,PD-L1 TPS / ≥50% / early_tod,abs_percent_delta,0.0380952380952379,NA,FALSE,low,reported_percent=24.8; computed_percent=24.7619
+lungtime_c01_s41591_025_04181,rounding_consistency,PD-L1 TPS / ≥50% / late_tod,abs_percent_delta,0.0476190476190474,NA,FALSE,low,reported_percent=21; computed_percent=20.9524
+lungtime_c01_s41591_025_04181,rounding_consistency,PD-L1 TPS / Unknown / early_tod,abs_percent_delta,0.0333333333333332,NA,FALSE,low,reported_percent=6.7; computed_percent=6.6667
+lungtime_c01_s41591_025_04181,rounding_consistency,PD-L1 TPS / Unknown / late_tod,abs_percent_delta,0.0333333333333332,NA,FALSE,low,reported_percent=6.7; computed_percent=6.6667
+lungtime_c01_s41591_025_04181,rounding_consistency,ICIs / Sintilimab / early_tod,abs_percent_delta,0.0428571428571444,NA,FALSE,low,reported_percent=77.1; computed_percent=77.1429
+lungtime_c01_s41591_025_04181,rounding_consistency,ICIs / Sintilimab / late_tod,abs_percent_delta,0.0428571428571444,NA,FALSE,low,reported_percent=77.1; computed_percent=77.1429
+lungtime_c01_s41591_025_04181,rounding_consistency,ICIs / Pembrolizumab / early_tod,abs_percent_delta,0.0428571428571409,NA,FALSE,low,reported_percent=22.9; computed_percent=22.8571
+lungtime_c01_s41591_025_04181,rounding_consistency,ICIs / Pembrolizumab / late_tod,abs_percent_delta,0.0428571428571409,NA,FALSE,low,reported_percent=22.9; computed_percent=22.8571
+lungtime_c01_s41591_025_04181,rounding_consistency,Tumor burden / ≥80 mm / early_tod,abs_percent_delta,0.0333333333333385,NA,FALSE,low,reported_percent=53.3; computed_percent=53.3333
+lungtime_c01_s41591_025_04181,rounding_consistency,Tumor burden / ≥80 mm / late_tod,abs_percent_delta,0.047619047619051,NA,FALSE,low,reported_percent=41; computed_percent=40.9524
+lungtime_c01_s41591_025_04181,rounding_consistency,Tumor burden / <80 mm / early_tod,abs_percent_delta,0.0333333333333385,NA,FALSE,low,reported_percent=46.7; computed_percent=46.6667
+lungtime_c01_s41591_025_04181,rounding_consistency,Tumor burden / <80 mm / late_tod,abs_percent_delta,0.047619047619051,NA,FALSE,low,reported_percent=59; computed_percent=59.0476
+lungtime_c01_s41591_025_04181,rounding_consistency,LDH / ≤1 ULN / early_tod,abs_percent_delta,0.0380952380952379,NA,FALSE,low,reported_percent=75.2; computed_percent=75.2381
+lungtime_c01_s41591_025_04181,rounding_consistency,LDH / ≤1 ULN / late_tod,abs_percent_delta,0.0238095238095183,NA,FALSE,low,reported_percent=69.5; computed_percent=69.5238
+lungtime_c01_s41591_025_04181,rounding_consistency,LDH / >1 ULN / early_tod,abs_percent_delta,0.0380952380952379,NA,FALSE,low,reported_percent=24.8; computed_percent=24.7619
+lungtime_c01_s41591_025_04181,rounding_consistency,LDH / >1 ULN / late_tod,abs_percent_delta,0.0238095238095255,NA,FALSE,low,reported_percent=30.5; computed_percent=30.4762
+lungtime_c01_s41591_025_04181,rounding_consistency,LIPI score / Low risk / early_tod,abs_percent_delta,0,NA,FALSE,low,reported_percent=60; computed_percent=60
+lungtime_c01_s41591_025_04181,rounding_consistency,LIPI score / Low risk / late_tod,abs_percent_delta,0.0380952380952379,NA,FALSE,low,reported_percent=55.2; computed_percent=55.2381
+lungtime_c01_s41591_025_04181,rounding_consistency,LIPI score / Medium risk / early_tod,abs_percent_delta,0.0333333333333385,NA,FALSE,low,reported_percent=33.3; computed_percent=33.3333
+lungtime_c01_s41591_025_04181,rounding_consistency,LIPI score / Medium risk / late_tod,abs_percent_delta,0.0619047619047563,NA,FALSE,low,reported_percent=35.3; computed_percent=35.2381
+lungtime_c01_s41591_025_04181,rounding_consistency,LIPI score / High risk / early_tod,abs_percent_delta,0.0333333333333332,NA,FALSE,low,reported_percent=6.7; computed_percent=6.6667
+lungtime_c01_s41591_025_04181,rounding_consistency,LIPI score / High risk / late_tod,abs_percent_delta,0.0238095238095237,NA,FALSE,low,reported_percent=9.5; computed_percent=9.5238
+lungtime_c01_s41591_025_04181,scrutiny_grim_map,"Age (year, median, range) [early_tod]",grim_inconsistency_flag,0,0,FALSE,low,case_0001
+lungtime_c01_s41591_025_04181,scrutiny_grim_map,"Age (year, median, range) [late_tod]",grim_inconsistency_flag,0,0,FALSE,low,case_0002
+lungtime_c01_s41591_025_04181,scrutiny_duplicates,"Age (year, median, range) [early_tod]",duplicate_fields_count,2,NA,TRUE,medium,x_dup=FALSE; sd_dup=TRUE; n_dup=TRUE
+lungtime_c01_s41591_025_04181,scrutiny_duplicates,"Age (year, median, range) [late_tod]",duplicate_fields_count,2,NA,TRUE,medium,x_dup=FALSE; sd_dup=TRUE; n_dup=TRUE
+lungtime_c01_s41591_025_04181,scrutiny_rounding_bias,digits_0,abs_bias_gap,0,NA,FALSE,low,n_values=2; bias_up=0; bias_down=0
+lungtime_c01_s41591_025_04181,rsprite2_stub,Brain metastasis / No,abs_percent_between_arms,1.9000000000000057,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=86.7; percent_b=84.8
+lungtime_c01_s41591_025_04181,rsprite2_stub,Brain metastasis / Yes,abs_percent_between_arms,1.9000000000000004,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=12.4; percent_b=14.3
+lungtime_c01_s41591_025_04181,rsprite2_stub,ECOG PS / 0,abs_percent_between_arms,5.700000000000003,NA,TRUE,low,group_a=early_tod; group_b=late_tod; percent_a=36.2; percent_b=30.5
+lungtime_c01_s41591_025_04181,rsprite2_stub,ECOG PS / 1,abs_percent_between_arms,5.700000000000003,NA,TRUE,low,group_a=early_tod; group_b=late_tod; percent_a=63.8; percent_b=69.5
+lungtime_c01_s41591_025_04181,rsprite2_stub,Histology / Adenocarcinoma,abs_percent_between_arms,3.800000000000004,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=42.9; percent_b=46.7
+lungtime_c01_s41591_025_04181,rsprite2_stub,Histology / Squamous,abs_percent_between_arms,3.800000000000004,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=57.1; percent_b=53.3
+lungtime_c01_s41591_025_04181,rsprite2_stub,ICIs / Pembrolizumab,abs_percent_between_arms,0,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=22.9; percent_b=22.9
+lungtime_c01_s41591_025_04181,rsprite2_stub,ICIs / Sintilimab,abs_percent_between_arms,0,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=77.1; percent_b=77.1
+lungtime_c01_s41591_025_04181,rsprite2_stub,LDH / >1 ULN,abs_percent_between_arms,5.699999999999999,NA,TRUE,low,group_a=early_tod; group_b=late_tod; percent_a=24.8; percent_b=30.5
+lungtime_c01_s41591_025_04181,rsprite2_stub,LDH / ≤1 ULN,abs_percent_between_arms,5.700000000000003,NA,TRUE,low,group_a=early_tod; group_b=late_tod; percent_a=75.2; percent_b=69.5
+lungtime_c01_s41591_025_04181,rsprite2_stub,LIPI score / High risk,abs_percent_between_arms,2.8,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=6.7; percent_b=9.5
+lungtime_c01_s41591_025_04181,rsprite2_stub,LIPI score / Low risk,abs_percent_between_arms,4.799999999999997,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=60; percent_b=55.2
+lungtime_c01_s41591_025_04181,rsprite2_stub,LIPI score / Medium risk,abs_percent_between_arms,2,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=33.3; percent_b=35.3
+lungtime_c01_s41591_025_04181,rsprite2_stub,Liver metastasis / No,abs_percent_between_arms,3.799999999999997,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=94.3; percent_b=90.5
+lungtime_c01_s41591_025_04181,rsprite2_stub,Liver metastasis / Yes,abs_percent_between_arms,3.8,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=5.7; percent_b=9.5
+lungtime_c01_s41591_025_04181,rsprite2_stub,PD-L1 TPS / 1–49%,abs_percent_between_arms,2,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=29.5; percent_b=27.5
+lungtime_c01_s41591_025_04181,rsprite2_stub,PD-L1 TPS / <1%,abs_percent_between_arms,5.799999999999997,NA,TRUE,low,group_a=early_tod; group_b=late_tod; percent_a=39; percent_b=44.8
+lungtime_c01_s41591_025_04181,rsprite2_stub,PD-L1 TPS / Unknown,abs_percent_between_arms,0,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=6.7; percent_b=6.7
+lungtime_c01_s41591_025_04181,rsprite2_stub,PD-L1 TPS / ≥50%,abs_percent_between_arms,3.8000000000000007,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=24.8; percent_b=21
+lungtime_c01_s41591_025_04181,rsprite2_stub,Sex / Female,abs_percent_between_arms,0,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=9.5; percent_b=9.5
+lungtime_c01_s41591_025_04181,rsprite2_stub,Sex / Male,abs_percent_between_arms,0,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=90.5; percent_b=90.5
+lungtime_c01_s41591_025_04181,rsprite2_stub,Smoking history / Never smoked,abs_percent_between_arms,2.8999999999999986,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=20; percent_b=17.1
+lungtime_c01_s41591_025_04181,rsprite2_stub,Smoking history / Smoker,abs_percent_between_arms,2.9000000000000057,NA,FALSE,low,group_a=early_tod; group_b=late_tod; percent_a=80; percent_b=82.9
+lungtime_c01_s41591_025_04181,rsprite2_stub,Stage / IIIC,abs_percent_between_arms,6.699999999999999,NA,TRUE,low,group_a=early_tod; group_b=late_tod; percent_a=22.9; percent_b=16.2
+lungtime_c01_s41591_025_04181,rsprite2_stub,Stage / IV,abs_percent_between_arms,6.700000000000003,NA,TRUE,low,group_a=early_tod; group_b=late_tod; percent_a=77.1; percent_b=83.8
+lungtime_c01_s41591_025_04181,rsprite2_stub,Tumor burden / <80 mm,abs_percent_between_arms,12.299999999999995,NA,TRUE,high,group_a=early_tod; group_b=late_tod; percent_a=46.7; percent_b=59
+lungtime_c01_s41591_025_04181,rsprite2_stub,Tumor burden / ≥80 mm,abs_percent_between_arms,12.299999999999995,NA,TRUE,high,group_a=early_tod; group_b=late_tod; percent_a=53.3; percent_b=41

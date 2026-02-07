@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Data (keep raw sample under version control; ignore everything else)
+data/raw/*
+!data/raw/sample.csv
+data/processed/*
+data/generated/*
+
+# Reports
+reports/figures/*
+reports/diagnostics/*
+
+# OS
+.DS_Store

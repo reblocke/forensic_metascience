@@ -1,0 +1,4 @@
+package,installed,version,objective,executed,execution_note
+scrutiny,TRUE,0.6.1,GRIM/GRIMMER/DEBIT/duplication/rounding-bias checks,TRUE,grim= ok ; grimmer= No GRIMMER-eligible rows. ; debit= No DEBIT-eligible rows. ; duplicates= ok ; rounding_bias= ok ; seq= disabled
+rsprite2,FALSE,NA,SPRITE-style proportion and distribution plausibility checks,FALSE,Package execution not yet implemented in this runner.
+statcheck,TRUE,1.5.0,Recompute p-values from reported statistics and compare consistency,TRUE,ok

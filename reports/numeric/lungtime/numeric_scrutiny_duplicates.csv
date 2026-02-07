@@ -1,0 +1,3 @@
+case_id,trial_id,source_unit,variable,level,group,x,sd,n,x_dup,sd_dup,n_dup,x_n,sd_n,n_n
+case_0001,lungtime_c01_s41591_025_04181,"Age (year, median, range) [early_tod]","Age (year, median, range)",all,early_tod,61,,105,FALSE,TRUE,TRUE,1,2,2
+case_0002,lungtime_c01_s41591_025_04181,"Age (year, median, range) [late_tod]","Age (year, median, range)",all,late_tod,60,,105,FALSE,TRUE,TRUE,1,2,2

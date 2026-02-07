@@ -1,0 +1,5 @@
+trial_id,claim,report_value,protocol_value,match_status,evidence_page_report,evidence_page_protocol,extract_confidence,report_norm,protocol_norm,is_missing_report,is_missing_protocol,mismatch_flag
+lungtime,registry_id_overlap,NCT05549037,NA,FALSE,1,11,medium,nct05549037,nan,FALSE,FALSE,TRUE
+lungtime,allocation_ratio,1:1,1:1,TRUE,1,9,medium,1:1,1:1,FALSE,FALSE,FALSE
+lungtime,randomization_phrase,present,present,TRUE,2,6,high,present,present,FALSE,FALSE,FALSE
+lungtime,blinding_phrase,present,present,TRUE,2,6,medium,present,present,FALSE,FALSE,FALSE

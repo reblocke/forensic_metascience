@@ -1,0 +1,2 @@
+trial_id,n_figure_mentions,n_duplicate_pairs,near_duplicate_rate,n_numbering_gaps,numbering_gap_flag,n_digitized_figures,n_digitized_series,n_digitized_points,digitization_ready
+lungtime,0,0,NA,0,FALSE,0,0,0,FALSE

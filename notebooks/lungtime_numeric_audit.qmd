@@ -1,0 +1,276 @@
+---
+title: "LungTIME-C01 Numeric Integrity Audit"
+format:
+  pdf:
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Scope
+
+This report summarizes numeric-integrity checks aligned with Heathers' data-technique family:
+
+- internal rounding consistency for count-percent table cells
+- `scrutiny` GRIM / GRIMMER / DEBIT and duplicate-value checks
+- rounding-bias diagnostics for reported decimal patterns
+- statistical-consistency checks via `statcheck`
+
+## Load Outputs
+
+```{r}
+repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
+report_dir <- file.path(repo_root, "reports", "numeric", "lungtime")
+
+required <- c(
+  "numeric_row_results.csv",
+  "numeric_summary.csv",
+  "numeric_package_status.csv",
+  "numeric_scrutiny_grim_raw.csv",
+  "numeric_scrutiny_grim_audit.csv",
+  "numeric_scrutiny_grimmer_raw.csv",
+  "numeric_scrutiny_grimmer_audit.csv",
+  "numeric_scrutiny_debit_raw.csv",
+  "numeric_scrutiny_debit_audit.csv",
+  "numeric_scrutiny_duplicates.csv",
+  "numeric_scrutiny_rounding_bias.csv",
+  "numeric_statcheck_raw.csv",
+  "numeric_standardized_results.csv"
+)
+missing <- required[!file.exists(file.path(report_dir, required))]
+if (length(missing) > 0) {
+  stop("Missing files: ", paste(missing, collapse = ", "))
+}
+
+row_results <- read.csv(file.path(report_dir, "numeric_row_results.csv"), check.names = FALSE)
+summary_tbl <- read.csv(file.path(report_dir, "numeric_summary.csv"), check.names = FALSE)
+pkg_status <- read.csv(file.path(report_dir, "numeric_package_status.csv"), check.names = FALSE)
+grim_raw <- read.csv(file.path(report_dir, "numeric_scrutiny_grim_raw.csv"), check.names = FALSE)
+grim_audit <- read.csv(file.path(report_dir, "numeric_scrutiny_grim_audit.csv"), check.names = FALSE)
+grimmer_raw <- read.csv(file.path(report_dir, "numeric_scrutiny_grimmer_raw.csv"), check.names = FALSE)
+grimmer_audit <- read.csv(file.path(report_dir, "numeric_scrutiny_grimmer_audit.csv"), check.names = FALSE)
+debit_raw <- read.csv(file.path(report_dir, "numeric_scrutiny_debit_raw.csv"), check.names = FALSE)
+debit_audit <- read.csv(file.path(report_dir, "numeric_scrutiny_debit_audit.csv"), check.names = FALSE)
+duplicates_raw <- read.csv(file.path(report_dir, "numeric_scrutiny_duplicates.csv"), check.names = FALSE)
+rounding_bias <- read.csv(file.path(report_dir, "numeric_scrutiny_rounding_bias.csv"), check.names = FALSE)
+statcheck_raw <- read.csv(file.path(report_dir, "numeric_statcheck_raw.csv"), check.names = FALSE)
+standardized <- read.csv(file.path(report_dir, "numeric_standardized_results.csv"), check.names = FALSE)
+
+compact_character <- function(x, width = 48) {
+  x <- as.character(x)
+  x[is.na(x)] <- ""
+  too_long <- nchar(x) > width
+  x[too_long] <- paste0(substr(x[too_long], 1, width - 3), "...")
+  x
+}
+
+compact_df <- function(df, cols = NULL, n = 20, char_width = 48) {
+  out <- df
+  if (!is.null(cols)) {
+    keep <- intersect(cols, names(out))
+    out <- out[, keep, drop = FALSE]
+  }
+  if (nrow(out) > n) {
+    out <- utils::head(out, n)
+  }
+  is_char_like <- vapply(out, function(col) is.character(col) || is.factor(col), logical(1))
+  out[is_char_like] <- lapply(out[is_char_like], compact_character, width = char_width)
+  out
+}
+
+render_table <- function(df, note, cols = NULL, n = 20, digits = 4, char_width = 48) {
+  if (nrow(df) > 0) {
+    knitr::kable(compact_df(df, cols = cols, n = n, char_width = char_width), digits = digits)
+  } else {
+    cat(note)
+  }
+}
+```
+
+## Section 4 Summary Metrics Key
+
+These are screening indicators from Heathers' data-techniques framework, not proof of misconduct.
+
+- `n_rows`: number of categorical count-percent cells checked for arithmetic consistency.
+- `n_rounding_flags`: rows with `|reported_percent - computed_percent| >= 0.2`.
+- `rounding_flag_rate`: `n_rounding_flags / n_rows`; larger values suggest widespread reporting drift.
+- `median_abs_percent_delta`, `max_abs_percent_delta`: typical and worst discrepancy magnitude.
+- `scrutiny_cases_n`: total canonical rows prepared for scrutiny-family methods.
+- `grim_cases`, `grim_incons_cases`: testable rows and inconsistency count from `scrutiny::grim_map`.
+- `grimmer_cases`, `grimmer_incons_cases`: testable rows and inconsistency count from `scrutiny::grimmer_map`.
+- `debit_cases`, `debit_incons_cases`: binary-proportion rows testable by DEBIT and their inconsistency count.
+- `duplicate_flag_rows`: rows with at least one duplicated field (`x`, `sd`, or `n`) in duplicate checks.
+- `rounding_bias_groups`: `(trial_id, digits_x)` groups assessed for directional rounding imbalance.
+- `statcheck_cases`, `statcheck_errors`, `statcheck_decision_errors`: parsed test rows, any inconsistencies, and significance-changing inconsistencies.
+- `scrutiny_seq_enabled`: whether optional sequence-space checks were executed.
+
+Empty method tables can mean "no eligible rows", "package unavailable", or execution failure; inspect `numeric_package_status.csv` execution notes for attribution.
+
+```{r}
+if (nrow(summary_tbl) > 0) {
+  summary_long <- data.frame(
+    metric = names(summary_tbl),
+    value = as.character(summary_tbl[1, ]),
+    stringsAsFactors = FALSE
+  )
+  knitr::kable(summary_long)
+} else {
+  cat("No summary rows available.")
+}
+```
+
+## Package Availability
+
+```{r}
+render_table(
+  pkg_status,
+  "No package-status output.",
+  cols = c("package", "installed", "version", "objective", "executed", "execution_note"),
+  n = 20,
+  char_width = 42
+)
+```
+
+## GRIM Results
+
+```{r}
+render_table(
+  grim_audit,
+  "No GRIM audit output (package unavailable or no GRIM-eligible rows).",
+  n = 20
+)
+```
+
+```{r}
+render_table(
+  grim_raw,
+  "No GRIM row-level output.",
+  cols = c("case_id", "source_unit", "x", "n", "consistency", "probability"),
+  n = 20
+)
+```
+
+## GRIMMER Results
+
+```{r}
+render_table(
+  grimmer_audit,
+  "No GRIMMER audit output (package unavailable or no GRIMMER-eligible rows).",
+  n = 20
+)
+```
+
+```{r}
+render_table(
+  grimmer_raw,
+  "No GRIMMER row-level output.",
+  cols = c("case_id", "variable", "level", "group", "x", "sd", "n", "consistency", "reason"),
+  n = 20,
+  char_width = 36
+)
+```
+
+## DEBIT Results
+
+```{r}
+render_table(
+  debit_audit,
+  "No DEBIT audit output (package unavailable or no DEBIT-eligible rows).",
+  n = 20
+)
+```
+
+```{r}
+render_table(
+  debit_raw,
+  "No DEBIT row-level output.",
+  cols = c("case_id", "source_unit", "x", "sd", "n", "consistency", "rounding"),
+  n = 20,
+  char_width = 40
+)
+```
+
+## Duplication And Rounding-Bias Results
+
+```{r}
+render_table(
+  duplicates_raw,
+  "No duplicate-check rows available.",
+  cols = c("case_id", "variable", "level", "group", "x_dup", "sd_dup", "n_dup", "x_n", "sd_n", "n_n"),
+  n = 20,
+  char_width = 36
+)
+```
+
+```{r}
+render_table(
+  rounding_bias,
+  "No rounding-bias groups available.",
+  cols = c("trial_id", "digits_x", "n_values", "bias_up", "bias_down", "abs_bias_gap", "anomaly_flag"),
+  n = 20
+)
+```
+
+## Statcheck Results
+
+```{r}
+if (nrow(statcheck_raw) > 0) {
+  statcheck_ranked <- statcheck_raw[order(statcheck_raw$error, decreasing = TRUE), ]
+  knitr::kable(
+    compact_df(
+      statcheck_ranked,
+      cols = c(
+        "source", "test_type", "df1", "df2", "test_value",
+        "reported_p", "computed_p", "error", "decision_error"
+      ),
+      n = 20,
+      char_width = 36
+    ),
+    digits = 4
+  )
+} else {
+  cat("No statcheck output (package unavailable or no parseable report text).")
+}
+```
+
+## Standardized Output Snapshot
+
+```{r}
+render_table(
+  standardized,
+  "No standardized rows available.",
+  cols = c(
+    "trial_id", "method", "metric", "value_numeric",
+    "p_value", "anomaly_flag", "severity", "details"
+  ),
+  n = 20,
+  digits = 4,
+  char_width = 40
+)
+```
+
+## Largest Rounding Deltas
+
+```{r}
+ranked <- row_results[order(-row_results$abs_percent_delta, na.last = TRUE), ]
+knitr::kable(head(ranked[, c(
+  "variable", "level", "group", "reported_percent", "computed_percent", "abs_percent_delta"
+)], 15), digits = 4)
+```
+
+## Diagnostics
+
+```{r}
+hist(
+  row_results$abs_percent_delta,
+  breaks = 10,
+  col = "gray80",
+  border = "white",
+  main = "Absolute Percent Delta Distribution",
+  xlab = "|reported_percent - computed_percent|"
+)
+abline(v = 0.2, col = "red", lwd = 2, lty = 2)
+```
