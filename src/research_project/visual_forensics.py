@@ -160,9 +160,7 @@ def detect_figure_numbering_gaps(visual_checks: pd.DataFrame) -> list[int]:
     return sorted(full.difference(numbers))
 
 
-def _require_columns(
-    frame: pd.DataFrame, required_columns: list[str], context: str
-) -> None:
+def _require_columns(frame: pd.DataFrame, required_columns: list[str], context: str) -> None:
     missing = sorted(set(required_columns).difference(frame.columns))
     if missing:
         raise ValueError(f"Missing required columns for {context}: {missing}")

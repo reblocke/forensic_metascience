@@ -61,9 +61,7 @@ def build_numeric_table(table1_long: pd.DataFrame) -> pd.DataFrame:
     if missing:
         raise ValueError(f"Missing required columns for numeric integrity: {sorted(missing)}")
 
-    categorical = table1_long[
-        table1_long["var_type"] == "categorical_count_percent"
-    ].copy()
+    categorical = table1_long[table1_long["var_type"] == "categorical_count_percent"].copy()
     categorical = categorical.rename(columns={"value": "count", "percent": "reported_percent"})
     categorical["computed_percent"] = categorical.apply(
         lambda row: compute_percent_from_count(row["count"], row["n_group"]),
@@ -324,9 +322,7 @@ def build_scrutiny_cases(
         return pd.DataFrame(columns=SCRUTINY_CASE_COLUMNS)
 
     scrutiny_cases = scrutiny_cases.reset_index(drop=True)
-    scrutiny_cases["case_id"] = [
-        f"case_{index + 1:04d}" for index in range(len(scrutiny_cases))
-    ]
+    scrutiny_cases["case_id"] = [f"case_{index + 1:04d}" for index in range(len(scrutiny_cases))]
     scrutiny_cases["source_pdf"] = scrutiny_cases["source_pdf"].fillna(source_pdf)
     scrutiny_cases["level"] = scrutiny_cases["level"].replace("", "all")
     return scrutiny_cases[SCRUTINY_CASE_COLUMNS]

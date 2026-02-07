@@ -16,8 +16,7 @@ def _import_pdf_libraries() -> tuple[object, object]:
         from pypdf import PdfReader
     except ImportError as exc:
         message = (
-            "Missing PDF dependencies. Install with: "
-            "python3 -m pip install --user pypdf pdfplumber"
+            "Missing PDF dependencies. Install with: python3 -m pip install --user pypdf pdfplumber"
         )
         raise RuntimeError(message) from exc
     return pdfplumber, PdfReader
@@ -75,9 +74,7 @@ def _derive_metadata(
 
     allocation_ratio = "1:1" if n_early == n_late else f"{n_early}:{n_late}"
 
-    method_text = (
-        "computer-generated random number table by independent statistician"
-    )
+    method_text = "computer-generated random number table by independent statistician"
     stratification = "none (without stratification)"
     concealment = "sequentially numbered, opaque, sealed envelopes"
     blinding = "open-label for treatment assignment; BIRC blinded for endpoint review"

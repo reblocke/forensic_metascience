@@ -27,9 +27,7 @@ SUMMARY_COLUMNS = [
     "extract_confidence",
 ]
 
-_MEAN_SD_PATTERN = re.compile(
-    r"^\s*(-?\d+(?:\.\d+)?)\s*\(\s*(-?\d+(?:\.\d+)?)\s*\)\s*$"
-)
+_MEAN_SD_PATTERN = re.compile(r"^\s*(-?\d+(?:\.\d+)?)\s*\(\s*(-?\d+(?:\.\d+)?)\s*\)\s*$")
 _KEYWORDS_MEAN_SD = ("mean", "sd", "std", "standard deviation", "deviation")
 
 
@@ -160,8 +158,7 @@ def main() -> None:
                             current_level = "all"
                         elif has_mean_sd_like:
                             keyword_hit = any(
-                                keyword in normalized_label.lower()
-                                for keyword in _KEYWORDS_MEAN_SD
+                                keyword in normalized_label.lower() for keyword in _KEYWORDS_MEAN_SD
                             )
                             if keyword_hit or current_variable is None:
                                 current_variable = normalized_label

@@ -20,14 +20,7 @@ MANIFEST_COLUMNS = [
 def manifest_path(repo_root: Path, study_id: str) -> Path:
     """Return the canonical manifest path for a study."""
 
-    return (
-        repo_root
-        / "data"
-        / "processed"
-        / "manifests"
-        / study_id
-        / "forensics_manifest.csv"
-    )
+    return repo_root / "data" / "processed" / "manifests" / study_id / "forensics_manifest.csv"
 
 
 def load_manifest(path: Path) -> pd.DataFrame:

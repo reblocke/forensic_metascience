@@ -73,9 +73,7 @@ def parse_median_range(cell_value: str) -> tuple[float | None, float | None, flo
 
     cleaned = clean_cell(cell_value)
     cleaned = cleaned.replace("−", "-").replace("–", "-")
-    pattern = (
-        r"(-?\d+(?:\.\d+)?)\s*\(\s*(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)\s*\)"
-    )
+    pattern = r"(-?\d+(?:\.\d+)?)\s*\(\s*(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)\s*\)"
     match = re.search(pattern, cleaned)
     if not match:
         return None, None, None
@@ -128,7 +126,7 @@ def parse_table1_long(
         normalized_variable = normalize_variable_name(raw_label)
         p_value = parse_float(p_value_text)
 
-        is_variable_header = (value_early == "" and value_late == "")
+        is_variable_header = value_early == "" and value_late == ""
         if is_variable_header:
             current_variable = normalized_variable
             variable_order += 1
