@@ -122,6 +122,33 @@ quarto render notebooks
   - `registration` (report-versus-protocol congruence checks)
   - `visual` (caption/figure-sequence heuristics)
   - `meta` (cross-category anomaly aggregation)
+  - `prediction_validation review` (manuscript-review path for nonrandomized prediction-model papers)
+
+## Prediction-Validation Manuscript Review
+
+For nonrandomized manuscripts, this repo now includes a dedicated review path:
+
+```bash
+bash scripts/run_manuscript_review.sh \
+  --study-id local_prediction_review \
+  --report "/absolute/path/to/local_manuscript.pdf" \
+  --review-type prediction_validation
+```
+
+This path is designed for manuscripts where trial-randomization checks do not apply. It currently:
+
+- extracts manuscript full text and page-level text
+- scaffolds and validates manual transcription tables
+- runs the shared `numeric` and `visual` screens where applicable
+- adds manuscript-specific checks for:
+  - Table 2 summary-statistic reproducibility
+  - Table 3 confusion-matrix compatibility
+  - Table E2 calibration-decile arithmetic / approximate Hosmer-Lemeshow consistency
+  - Figure 1 cohort-flow arithmetic
+- renders a single PDF report under `reports/reviews/<study>/`
+
+Key limitation:
+- This path assumes manual or semi-manual transcription of the high-yield tables (`Table 2`, `Table 3`, `Table E2`, and the flow diagram). It does not currently rely on fully automatic table extraction for proof PDFs.
 
 ## Numeric scrutiny contract
 - Canonical cases: `data/processed/numeric/<study>/inputs/scrutiny_cases.csv`.

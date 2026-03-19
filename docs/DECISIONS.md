@@ -69,3 +69,17 @@ Record decisions that affect reproducibility and interpretation.
 - **Assumptions locked in:** Pilot scope is one figure target; `--digitize-plots` defaults to `false`; empty digitization output is valid and represented explicitly.
 - **Output impact:** Added `data/raw/figures/<study>/plot_digitization_targets.csv`, `data/generated/plot_digitization/<study>/metaDigitise/`, `data/processed/visual/<study>/inputs/plot_digitized_values.csv`, and new visual summary metrics (`n_digitized_figures`, `n_digitized_series`, `n_digitized_points`, `digitization_ready`).
 - **Verification evidence:** `uv run ruff check .`, `uv run pytest -q`, `bash scripts/run_pipeline.sh --forensics visual`, `bash scripts/run_pipeline.sh --forensics visual --digitize-plots false`.
+
+## 2026-03-19: Add nonrandomized prediction-validation manuscript review path
+- **Date:** 2026-03-19
+- **Decision:** Add a dedicated `prediction_validation` manuscript-review workflow for nonrandomized prediction-model papers, separate from the trial-oriented `randomization` and `registration` categories.
+- **Context:** Some manuscripts need internal statistical screening even when there is no randomization process to audit. Prediction-model validation papers concentrate their high-yield checks in reported tables, confusion-matrix summaries, calibration summaries, and flow diagrams rather than trial allocation.
+- **Options considered:**
+  - Force the manuscript into the existing category pipeline only.
+  - Add a dedicated review entrypoint that reuses shared numeric/visual screens and layers manuscript-specific checks on top.
+- **Why this choice:** Prediction-model validation papers need different arithmetic and plausibility checks than randomized trials. A separate path avoids overloading the trial workflow while preserving shared package execution where it still applies.
+- **Consequences / follow-ups:** High-yield tables are transcribed manually or semi-manually rather than auto-parsed from proof PDFs; future work can add more structured support for calibration plots, confusion-matrix interval reconstruction, or ROC digitization.
+- **Methods/packages affected:** Shared `scrutiny`, `statcheck`, and visual-caption heuristics; new manuscript-specific checks for summary-statistic reproducibility, confusion-matrix compatibility, calibration-decile sums, and flow reconciliation.
+- **Assumptions locked in:** This workflow is manuscript-only and screening-oriented; it does not claim full model reproduction without individual-level predictions or raw data. Manual transcription is the default for the key tables.
+- **Output impact:** Added `scripts/run_manuscript_review.sh`, `scripts/extract_prediction_review.py`, `scripts/build_prediction_review_inputs.py`, `scripts/run_prediction_review_forensics.R`, `src/research_project/prediction_review.py`, `notebooks/prediction_validation_review.qmd`, and outputs under `data/processed/reviews/<study>/` and `reports/reviews/<study>/`.
+- **Verification evidence:** `uv run ruff check .`, `uv run pytest -q`, `bash scripts/run_manuscript_review.sh --study-id <study_id> --report <local_pdf> --review-type prediction_validation`.

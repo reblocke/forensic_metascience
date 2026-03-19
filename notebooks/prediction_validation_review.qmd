@@ -1,0 +1,304 @@
+---
+title: "Prediction-Validation Manuscript Review"
+format:
+  pdf:
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Scope
+
+This report screens a nonrandomized prediction-validation manuscript for internal statistical consistency.
+
+It is intentionally narrower than the trial-oriented pipeline:
+
+- `statcheck` is treated as a supplemental text screen only
+- Table 2 is checked for summary-statistic reproducibility where the published rows allow it
+- Table 3 is checked for integer confusion-matrix compatibility
+- Table E2 is checked for calibration-decile arithmetic and approximate Hosmer-Lemeshow consistency
+- Figure 1 is checked for cohort-flow arithmetic
+
+All flagged results are screening signals, not adjudications.
+
+## Load Outputs
+
+```{r}
+repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
+study_id <- Sys.getenv("REVIEW_STUDY_ID", unset = "")
+if (!nzchar(study_id)) {
+  stop("Missing REVIEW_STUDY_ID environment variable.")
+}
+report_dir <- file.path(repo_root, "reports", "reviews", study_id)
+data_dir <- file.path(repo_root, "data", "processed", "reviews", study_id)
+
+required <- c(
+  "review_summary.csv",
+  "review_table2_reproducibility.csv",
+  "review_table3_metric_checks.csv",
+  "review_calibration_checks.csv",
+  "review_flow_checks.csv",
+  "review_standardized_results.csv"
+)
+missing <- required[!file.exists(file.path(report_dir, required))]
+if (length(missing) > 0) {
+  stop("Missing files: ", paste(missing, collapse = ", "))
+}
+
+review_summary <- read.csv(file.path(report_dir, "review_summary.csv"), check.names = FALSE)
+table2_checks <- read.csv(file.path(report_dir, "review_table2_reproducibility.csv"), check.names = FALSE)
+table3_checks <- read.csv(file.path(report_dir, "review_table3_metric_checks.csv"), check.names = FALSE)
+calibration_checks <- read.csv(file.path(report_dir, "review_calibration_checks.csv"), check.names = FALSE)
+flow_checks <- read.csv(file.path(report_dir, "review_flow_checks.csv"), check.names = FALSE)
+standardized <- read.csv(file.path(report_dir, "review_standardized_results.csv"), check.names = FALSE)
+
+statcheck_raw <- if (file.exists(file.path(report_dir, "numeric_statcheck_raw.csv"))) {
+  read.csv(file.path(report_dir, "numeric_statcheck_raw.csv"), check.names = FALSE)
+} else {
+  data.frame()
+}
+numeric_pkg_status <- if (file.exists(file.path(report_dir, "numeric_package_status.csv"))) {
+  read.csv(file.path(report_dir, "numeric_package_status.csv"), check.names = FALSE)
+} else {
+  data.frame()
+}
+visual_summary <- if (file.exists(file.path(report_dir, "visual_summary.csv"))) {
+  read.csv(file.path(report_dir, "visual_summary.csv"), check.names = FALSE)
+} else {
+  data.frame()
+}
+visual_rows <- if (file.exists(file.path(report_dir, "visual_row_results.csv"))) {
+  read.csv(file.path(report_dir, "visual_row_results.csv"), check.names = FALSE)
+} else {
+  data.frame()
+}
+confusion_candidates <- if (file.exists(file.path(data_dir, "inputs", "table3_confusion_matrix_matches.csv"))) {
+  read.csv(file.path(data_dir, "inputs", "table3_confusion_matrix_matches.csv"), check.names = FALSE)
+} else {
+  data.frame()
+}
+
+compact_character <- function(x, width = 52) {
+  x <- as.character(x)
+  x[is.na(x)] <- ""
+  too_long <- nchar(x) > width
+  x[too_long] <- paste0(substr(x[too_long], 1, width - 3), "...")
+  x
+}
+
+compact_df <- function(df, cols = NULL, n = 20, char_width = 52) {
+  out <- df
+  if (!is.null(cols)) {
+    keep <- intersect(cols, names(out))
+    out <- out[, keep, drop = FALSE]
+  }
+  if (nrow(out) > n) {
+    out <- utils::head(out, n)
+  }
+  is_char_like <- vapply(out, function(col) is.character(col) || is.factor(col), logical(1))
+  out[is_char_like] <- lapply(out[is_char_like], compact_character, width = char_width)
+  out
+}
+
+render_table <- function(df, note, cols = NULL, n = 20, digits = 4, char_width = 52) {
+  if (nrow(df) > 0) {
+    knitr::kable(compact_df(df, cols = cols, n = n, char_width = char_width), digits = digits)
+  } else {
+    cat(note)
+  }
+}
+```
+
+## Summary
+
+```{r}
+knitr::kable(review_summary, digits = 4)
+```
+
+## Interpretation Key
+
+- `statcheck_rows`, `statcheck_errors`, `statcheck_decision_errors`: APA-style inline test extraction yield and disagreement burden. Low counts are expected in prediction-model manuscripts.
+- `grim_incons_cases`, `grimmer_incons_cases`, `duplicate_flag_rows`, `rounding_bias_flags`: numeric-integrity side screens carried over from the shared numeric pipeline.
+- `table2_reproducible_rows`: Table 2 variables where the published summary statistics support a direct re-check.
+- `table2_flagged_rows`: reproducible Table 2 rows with `|reported_p - recomputed_p| >= 0.05`.
+- `exact_confusion_match_count`: number of integer confusion matrices that reproduce the rounded Table 3 sensitivity, specificity, PPV, and NPV simultaneously.
+- `best_confusion_total_abs_delta`: smallest total mismatch across those four metrics when no exact match exists.
+- `calibration_displayed_expected_events`: sum of displayed expected outcomes across Table E2 deciles.
+- `flow_failed_checks`: number of arithmetic failures in the Figure 1 flow diagram.
+
+## Text / Statcheck
+
+```{r}
+render_table(
+  numeric_pkg_status,
+  "No numeric package-status output.",
+  cols = c("package", "installed", "version", "executed", "execution_note"),
+  n = 20,
+  char_width = 40
+)
+```
+
+```{r}
+render_table(
+  statcheck_raw,
+  "No statcheck rows were extracted from the manuscript text.",
+  cols = c(
+    "source", "test_type", "df1", "df2", "test_value",
+    "reported_p", "computed_p", "error", "decision_error"
+  ),
+  n = 20,
+  char_width = 36
+)
+```
+
+## Table 2 Reproducibility
+
+Rows listed as `not_reproducible_from_summary` are usually median/IQR rows where the manuscript does not publish enough information for an exact rerun.
+
+```{r}
+render_table(
+  table2_checks,
+  "No Table 2 reproducibility rows available.",
+  cols = c(
+    "variable",
+    "measure_type",
+    "reported_p",
+    "recomputed_p",
+    "abs_delta",
+    "reproducible",
+    "method_used",
+    "anomaly_flag",
+    "note"
+  ),
+  n = 25,
+  char_width = 40
+)
+```
+
+## Prediction Metrics
+
+The main question here is whether the rounded Table 3 operating characteristics can come from any single integer confusion matrix with the reported sample size and event count.
+
+```{r}
+render_table(
+  table3_checks,
+  "No Table 3 metric checks available.",
+  cols = c(
+    "metric",
+    "reported_value",
+    "exact_match_count",
+    "best_tp",
+    "best_fp",
+    "best_tn",
+    "best_fn",
+    "best_total_abs_delta",
+    "anomaly_flag",
+    "note"
+  ),
+  n = 10,
+  char_width = 40
+)
+```
+
+```{r}
+render_table(
+  confusion_candidates,
+  "No confusion-matrix candidate table available.",
+  cols = c(
+    "tp",
+    "fp",
+    "tn",
+    "fn",
+    "sensitivity_calc",
+    "specificity_calc",
+    "ppv_calc",
+    "npv_calc",
+    "total_abs_delta",
+    "exact_rounded_match"
+  ),
+  n = 10,
+  char_width = 32
+)
+```
+
+## Calibration
+
+The Hosmer-Lemeshow calculation below is approximate because it uses the displayed rounded expected counts from Table E2 rather than the underlying model predictions.
+
+```{r}
+render_table(
+  calibration_checks,
+  "No calibration check rows available.",
+  cols = c(
+    "n_groups",
+    "total_individuals_sum",
+    "observed_outcomes_sum",
+    "displayed_expected_outcomes_sum",
+    "displayed_expected_minus_observed",
+    "hl_statistic_from_displayed_rows",
+    "hl_df",
+    "hl_p_value_from_displayed_rows",
+    "anomaly_flag",
+    "note"
+  ),
+  n = 10,
+  char_width = 40
+)
+```
+
+## Flow Consistency
+
+```{r}
+render_table(
+  flow_checks,
+  "No flow-check rows available.",
+  cols = c("check_name", "left_value", "right_value", "delta", "pass_flag", "note"),
+  n = 10,
+  char_width = 44
+)
+```
+
+## Visual Checks
+
+```{r}
+render_table(
+  visual_summary,
+  "No visual summary output available.",
+  n = 10,
+  char_width = 36
+)
+```
+
+```{r}
+render_table(
+  visual_rows,
+  "No visual row-level output available.",
+  n = 10,
+  char_width = 36
+)
+```
+
+## Standardized Review Output
+
+```{r}
+render_table(
+  standardized,
+  "No standardized review rows available.",
+  cols = c(
+    "trial_id",
+    "method",
+    "source_unit",
+    "metric",
+    "value_numeric",
+    "p_value",
+    "anomaly_flag",
+    "severity",
+    "details"
+  ),
+  n = 30,
+  char_width = 40
+)
+```

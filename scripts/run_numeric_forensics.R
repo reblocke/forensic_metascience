@@ -331,6 +331,8 @@ run_scrutiny_grimmer <- function(scrutiny_grimmer_input) {
 
   prepared <- scrutiny_grimmer_input %>%
     mutate(
+      x = as.character(x),
+      sd = as.character(sd),
       x = ifelse(is.na(x) | x == "", NA_character_, x),
       sd = ifelse(is.na(sd) | sd == "", NA_character_, sd),
       n = as.numeric(n)
@@ -396,6 +398,8 @@ run_scrutiny_debit <- function(scrutiny_debit_input) {
 
   prepared <- scrutiny_debit_input %>%
     mutate(
+      x = as.character(x),
+      sd = as.character(sd),
       x = ifelse(is.na(x) | x == "", NA_character_, x),
       sd = ifelse(is.na(sd) | sd == "", NA_character_, sd),
       n = as.numeric(n)

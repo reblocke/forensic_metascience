@@ -67,3 +67,44 @@ quarto render notebooks/lungtime_visual_audit.qmd --to pdf
 - Pipeline category scripts currently run with `python3` (system interpreter) because PDF tooling is user-level; this is intentional for now.
 - Visual caption extraction can be sparse depending on PDF text quality; empty extraction is handled and still produces schema-valid outputs.
 - Plot digitization is intentionally human-in-loop: it runs only when `--digitize-plots true` is set, and requires local figure image files matching the target manifest.
+
+## 2026-03-19 manuscript-review addition
+
+### What changed
+- Added a nonrandomized manuscript-review path for prediction-model validation papers:
+  - `src/research_project/prediction_review.py`
+  - `scripts/extract_prediction_review.py`
+  - `scripts/build_prediction_review_inputs.py`
+  - `scripts/run_prediction_review_forensics.R`
+  - `scripts/run_manuscript_review.sh`
+  - `notebooks/prediction_validation_review.qmd`
+- Review inputs and outputs are local-only artifacts under:
+  - `data/processed/reviews/<study>/`
+  - `reports/reviews/<study>/`
+  - `notebooks/reports/<study>/`
+  - these paths are gitignored and should not be used for sharing source-manuscript contents
+- Added focused unit coverage:
+  - `tests/test_prediction_review.py`
+- Updated docs:
+  - `README.md`
+  - `docs/DECISIONS.md`
+
+### What was verified
+- `uv run ruff check .`
+- `uv run ruff format . --check`
+- `uv run pytest -q`
+- `PYTHONPATH="$PWD/src" python3 scripts/extract_prediction_review.py --report "<local_pdf>" --study-id <study_id> --review-type prediction_validation --out "$PWD/data/processed/reviews/<study_id>"`
+- `PYTHONPATH="$PWD/src" python3 scripts/build_prediction_review_inputs.py --in "$PWD/data/processed/reviews/<study_id>" --out "$PWD/data/processed/reviews/<study_id>"`
+- `bash scripts/run_manuscript_review.sh --study-id <study_id> --report "<local_pdf>" --review-type prediction_validation`
+  - analytic stages completed
+  - sandboxed Quarto render failed on `sysctl ... Operation not permitted`
+- `quarto render notebooks/prediction_validation_review.qmd --to pdf --output-dir "$PWD/reports/reviews/<study_id>"`
+- `PYTHONPATH="$PWD/src" python3 scripts/mark_forensics_ready.py --study-id <study_id> --category review_prediction_validation --source-pdf <local_pdf_name> --extract-confidence medium --page-ref "table2|table3|tablee2|figure1" --table-ref prediction_validation_review --ready`
+
+### Privacy / sharing note
+- Do not store manuscript-specific findings, source file names, or transcribed source statistics in tracked docs.
+- Keep those outputs confined to the gitignored review artifact paths above.
+
+### Gotchas
+- The new manuscript-review scripts also use system `python3` so they can reuse the user-level PDF libraries already present on this machine.
+- In sandboxed environments, `quarto render` may fail on an architecture probe; rerun the render outside the sandbox if the analysis files already exist and only PDF generation failed.

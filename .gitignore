@@ -13,6 +13,8 @@ data/generated/*
 # Reports
 reports/figures/*
 reports/diagnostics/*
+reports/reviews/*
+notebooks/reports/*
 
 # OS
 .DS_Store
