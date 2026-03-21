@@ -11,6 +11,25 @@ Primary workflow:
 - compare results across methods
 - render transparent Quarto reports for interpretation
 
+## Purpose
+
+This repo is designed for two related use cases:
+
+1. **Public/example pipeline runs**
+   - use the built-in example study and shared category pipeline
+   - exercise the full `extract -> build -> run -> report` workflow
+   - validate that the environment and package interfaces work on your machine
+2. **Local/private manuscript review**
+   - run a nonrandomized review on a manuscript PDF that should not be committed
+   - keep source PDFs, transcribed tables, and review outputs in gitignored paths
+   - reuse the same numeric/visual/reporting infrastructure without exposing the source document
+
+If you are using this repository for the first time, the recommended order is:
+
+1. install the environment
+2. run the built-in public example once
+3. then run the private manuscript-review path on your own local PDF
+
 ## What This Repo Is (And Isn't)
 
 - These methods are **screening tools**, not proof of misconduct or validity.
@@ -25,6 +44,17 @@ Primary workflow:
 - Quarto CLI (for rendering `.qmd` reports)
 - A LaTeX engine for PDF output (e.g., TinyTeX or TeX Live)
 - `bash`
+
+## Documentation Map
+
+- `README.md`
+  - high-level purpose, setup, first-run walkthrough, and common workflows
+- `docs/CREDIBILITY_CRITERIA.md`
+  - data contracts, reporting contracts, and minimum verification expectations
+- `docs/DECISIONS.md`
+  - scientific and architectural decisions that affect interpretation or reproducibility
+- `docs/HANDOFF.md`
+  - implementation notes and reproduction commands for multi-session work
 
 ## Install
 
@@ -59,42 +89,146 @@ Notes:
 - `simdistr` is required for the current `randomization` stage, and `numeric`/`meta` runs currently execute `randomization` first.
 - `scrutiny`, `statcheck`, and `metaDigitise` are optional; when missing, the pipeline emits schema-valid empty outputs and records availability in category reports (for example `reports/numeric/<study>/numeric_package_status.csv`).
 
-## Quickstart
+## First-Time Walkthrough
 
-### 1) Run repository checks
+### 1) Clone and install
+
+```bash
+git clone <REPO_URL>
+cd <REPO_DIR>
+uv sync
+```
+
+Install the required R packages:
+
+```bash
+Rscript -e "install.packages(c('readr','dplyr','tidyr','tibble','simdistr','scrutiny','statcheck','metaDigitise'), repos='https://cloud.r-project.org')"
+```
+
+### 2) Verify the repo before running analyses
+
 ```bash
 uv run pytest -q
 uv run ruff check .
 ```
 
-### 2) Run deterministic preprocessing entrypoint
-```bash
-bash scripts/run_pipeline.sh
-```
+### 3) Run the built-in public example once
 
-### 2b) Run pipeline plus randomization forensics audit (LungTIME test case)
-```bash
-bash scripts/run_pipeline.sh --randomization-audit
-```
+This is the fastest way to confirm that the pipeline, R packages, and Quarto rendering all work on your machine.
 
-### 2c) Run selected forensic categories (comma-separated)
-```bash
-bash scripts/run_pipeline.sh --forensics randomization,numeric,registration,visual,meta
-```
-
-### 2d) Run all categories (LungTIME test case)
 ```bash
 bash scripts/run_pipeline.sh --forensics all
 ```
 
-### 2e) Run visual category with interactive plot digitization (pilot)
+Expected outputs include:
+
+- `reports/randomization/lungtime/`
+- `reports/numeric/lungtime/`
+- `reports/registration/lungtime/`
+- `reports/visual/lungtime/`
+- `reports/meta/lungtime/`
+
+### 4) Run a private manuscript review
+
+Use this path for a local manuscript PDF that should not be committed.
+
+```bash
+bash scripts/run_manuscript_review.sh \
+  --study-id local_prediction_review \
+  --report "/absolute/path/to/local_manuscript.pdf" \
+  --review-type prediction_validation
+```
+
+Expected outputs include:
+
+- `data/processed/reviews/<study_id>/`
+- `reports/reviews/<study_id>/`
+
+Important:
+
+- local review outputs under `data/processed/reviews/`, `reports/reviews/`, and `notebooks/reports/` are gitignored
+- the manuscript-review path currently assumes manual or semi-manual transcription of the key tables
+- some PDF extraction scripts use system `python3` because PDF tooling is installed at user level on this machine
+
+## Quickstart Reference
+
+### 1) Run deterministic preprocessing entrypoint
+```bash
+bash scripts/run_pipeline.sh
+```
+
+### 2) Run pipeline plus randomization forensics audit (LungTIME test case)
+```bash
+bash scripts/run_pipeline.sh --randomization-audit
+```
+
+### 3) Run selected forensic categories (comma-separated)
+```bash
+bash scripts/run_pipeline.sh --forensics randomization,numeric,registration,visual,meta
+```
+
+### 4) Run all categories (LungTIME test case)
+```bash
+bash scripts/run_pipeline.sh --forensics all
+```
+
+### 5) Run visual category with interactive plot digitization (pilot)
 ```bash
 bash scripts/run_pipeline.sh --forensics visual --digitize-plots true
 ```
 
-### 3) Render Quarto reports (when `.qmd` notebooks are present)
+### 6) Render Quarto reports (when `.qmd` notebooks are present)
 ```bash
 quarto render notebooks
+```
+
+## Example Use Cases
+
+### Use Case 1: Sanity-check the full public pipeline
+
+Goal:
+- confirm the environment, R packages, and report rendering work end to end
+
+Command:
+
+```bash
+bash scripts/run_pipeline.sh --forensics all
+```
+
+### Use Case 2: Run only numeric forensics on the built-in example
+
+Goal:
+- focus on GRIM/GRIMMER/DEBIT/statcheck-style checks without running every category
+
+Command:
+
+```bash
+bash scripts/run_pipeline.sh --forensics numeric
+```
+
+### Use Case 3: Review a private nonrandomized manuscript
+
+Goal:
+- evaluate a local prediction-model or observational manuscript without pushing source-derived artifacts
+
+Command:
+
+```bash
+bash scripts/run_manuscript_review.sh \
+  --study-id local_prediction_review \
+  --report "/absolute/path/to/local_manuscript.pdf" \
+  --review-type prediction_validation
+```
+
+### Use Case 4: Add manual plot digitization to a visual review
+
+Goal:
+- capture plotted values when caption-level visual heuristics are not enough
+
+Command:
+
+```bash
+bash scripts/run_pipeline.sh --forensics visual --digitize-plots true
 ```
 
 ## Repository layout
