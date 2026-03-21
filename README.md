@@ -110,6 +110,7 @@ Rscript -e "install.packages(c('readr','dplyr','tidyr','tibble','simdistr','scru
 ```bash
 uv run pytest -q
 uv run ruff check .
+uv run ruff format . --check
 ```
 
 ### 3) Run the built-in public example once
@@ -143,6 +144,7 @@ Expected outputs include:
 
 - `data/processed/reviews/<study_id>/`
 - `reports/reviews/<study_id>/`
+- `reports/reviews/<study_id>/<study_id>_prediction_validation_review.pdf`
 
 Important:
 
@@ -156,6 +158,7 @@ Important:
 ```bash
 bash scripts/run_pipeline.sh
 ```
+This runs the shared preprocessing and diagnostics only. Add `--forensics ...` to execute category analyses and render reports.
 
 ### 2) Run pipeline plus randomization forensics audit (LungTIME test case)
 ```bash
@@ -279,7 +282,7 @@ This path is designed for manuscripts where trial-randomization checks do not ap
   - Table 3 confusion-matrix compatibility
   - Table E2 calibration-decile arithmetic / approximate Hosmer-Lemeshow consistency
   - Figure 1 cohort-flow arithmetic
-- renders a single PDF report under `reports/reviews/<study>/`
+- renders a single PDF report at `reports/reviews/<study_id>/<study_id>_prediction_validation_review.pdf`
 
 Key limitation:
 - This path assumes manual or semi-manual transcription of the high-yield tables (`Table 2`, `Table 3`, `Table E2`, and the flow diagram). It does not currently rely on fully automatic table extraction for proof PDFs.

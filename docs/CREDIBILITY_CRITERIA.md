@@ -40,5 +40,6 @@ This document defines minimum standards for analyses that evaluate research-clai
 - Run standard checks before closing work:
   - `uv run pytest -q`
   - `uv run ruff check .`
+  - `uv run ruff format . --check`
   - `bash scripts/run_pipeline.sh`
   - `quarto render notebooks` (when `.qmd` files are changed)

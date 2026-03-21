@@ -2,6 +2,7 @@
 
 ## Current state
 - Multi-category forensic scaffold is implemented and runnable through a single pipeline entrypoint.
+- A separate private manuscript-review path exists for nonrandomized prediction-validation reviews.
 
 ## What changed
 - Added shared manifest helper and category modules:
@@ -32,8 +33,8 @@
   - `tests/test_forensics_categories.py`
 - Deepened numeric forensics execution:
   - `scripts/extract_numeric.py` now emits `statcheck_text.txt` from report PDF text.
-  - `scripts/run_numeric_forensics.R` now runs package-native `scrutiny::grim_map` and `statcheck::statcheck` when installed.
-  - Numeric outputs now include package raw tables and `numeric_standardized_results.csv`.
+  - `scripts/run_numeric_forensics.R` now runs package-native `scrutiny` methods (`grim_map`, `grimmer_map`, `debit_map`, duplicate checks, rounding-bias checks) and `statcheck::statcheck` when installed.
+  - Numeric outputs now include package raw tables, audits, and `numeric_standardized_results.csv`.
 - Updated docs/contracts:
   - `README.md`, `docs/CREDIBILITY_CRITERIA.md`, `docs/DECISIONS.md`
 
@@ -42,6 +43,7 @@
 # from repo root
 uv sync
 uv run ruff check .
+uv run ruff format . --check
 uv run pytest -q
 bash scripts/run_pipeline.sh
 bash scripts/run_pipeline.sh --forensics visual
@@ -51,7 +53,8 @@ quarto render notebooks/lungtime_visual_audit.qmd --to pdf
 
 ## What I verified
 - `uv run ruff check .` passes.
-- `uv run pytest -q` passes (`16` tests).
+- `uv run ruff format . --check` passes.
+- `uv run pytest -q` passes.
 - `bash scripts/run_pipeline.sh` passes.
 - `bash scripts/run_pipeline.sh --forensics visual` passes and renders visual PDF.
 - `bash scripts/run_pipeline.sh --forensics visual --digitize-plots false` passes and remains non-interactive.
@@ -81,7 +84,8 @@ quarto render notebooks/lungtime_visual_audit.qmd --to pdf
 - Review inputs and outputs are local-only artifacts under:
   - `data/processed/reviews/<study>/`
   - `reports/reviews/<study>/`
-  - `notebooks/reports/<study>/`
+  - `reports/reviews/<study>/<study>_prediction_validation_review.pdf`
+  - `notebooks/reports/<study>/` (local rerender byproduct only)
   - these paths are gitignored and should not be used for sharing source-manuscript contents
 - Added focused unit coverage:
   - `tests/test_prediction_review.py`
