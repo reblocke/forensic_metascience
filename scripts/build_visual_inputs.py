@@ -68,7 +68,7 @@ def main() -> None:
     elif not digitized_values.empty:
         trial_id = digitized_values["study_id"].iloc[0]
     else:
-        trial_id = "lungtime"
+        trial_id = args.in_dir.name
     checks = pd.DataFrame(
         [
             {

@@ -3,6 +3,7 @@
 ## Current state
 - Multi-category forensic scaffold is implemented and runnable through a single pipeline entrypoint.
 - A separate private manuscript-review path exists for nonrandomized prediction-validation reviews.
+- Public trial runs can now be selected with `bash scripts/run_pipeline.sh --study-id <study_id> ...` using configs under `config/studies/`.
 
 ## What changed
 - Added shared manifest helper and category modules:
@@ -37,6 +38,14 @@
   - Numeric outputs now include package raw tables, audits, and `numeric_standardized_results.csv`.
 - Updated docs/contracts:
   - `README.md`, `docs/CREDIBILITY_CRITERIA.md`, `docs/DECISIONS.md`
+- Added study-config-driven public trial support:
+  - `config/studies/lungtime.sh`
+  - `config/studies/pronto.sh`
+  - staged PRONTO source PDFs under `data/raw/studies/pronto/`
+  - `scripts/run_pipeline.sh` now accepts `--study-id <study_id>`
+  - public report renders now land in `reports/<category>/<study_id>/`
+  - `src/research_project/randomization.py` now parses both original Table 1 layouts and supplement-style hierarchical baseline tables
+  - `src/research_project/registration_forensics.py` now recognizes `ISRCTN` and UK trial phrasing (`randomisation`, `masked`, `open-label`)
 
 ## How to reproduce
 ```bash
@@ -46,6 +55,7 @@ uv run ruff check .
 uv run ruff format . --check
 uv run pytest -q
 bash scripts/run_pipeline.sh
+bash scripts/run_pipeline.sh --study-id pronto --forensics all
 bash scripts/run_pipeline.sh --forensics visual
 bash scripts/run_pipeline.sh --forensics visual --digitize-plots false
 quarto render notebooks/lungtime_visual_audit.qmd --to pdf
@@ -56,6 +66,7 @@ quarto render notebooks/lungtime_visual_audit.qmd --to pdf
 - `uv run ruff format . --check` passes.
 - `uv run pytest -q` passes.
 - `bash scripts/run_pipeline.sh` passes.
+- `bash scripts/run_pipeline.sh --study-id pronto --forensics all` passes.
 - `bash scripts/run_pipeline.sh --forensics visual` passes and renders visual PDF.
 - `bash scripts/run_pipeline.sh --forensics visual --digitize-plots false` passes and remains non-interactive.
 - `quarto render notebooks/lungtime_visual_audit.qmd --to pdf` passes.

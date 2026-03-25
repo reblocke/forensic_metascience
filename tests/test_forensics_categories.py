@@ -217,12 +217,12 @@ def test_scrutiny_builders_return_header_only_when_empty() -> None:
 
 def test_registration_claims_and_registry_id_extraction() -> None:
     report_pages = [
-        "Methods randomization was performed in a 1:1 ratio. Trial NCT12345678.",
-        "Open-label study.",
+        "Methods randomisation was performed in a 1:1 ratio. Trial ISRCTN12345678.",
+        "Open-label study; participants were not masked.",
     ]
     protocol_pages = [
-        "Section 3.2 randomization in 1:1 ratio. Registration NCT12345678.",
-        "Blinded endpoint review.",
+        "Section 3.2 randomization in 1:1 ratio. Registration ISRCTN12345678.",
+        "Open-\u00adlabel trial with blinded endpoint review.",
     ]
     ids = extract_registry_ids(report_pages[0])
     claims = derive_registration_claims(
@@ -231,11 +231,17 @@ def test_registration_claims_and_registry_id_extraction() -> None:
         protocol_page_texts=protocol_pages,
     )
 
-    assert ids == ["NCT12345678"]
+    assert ids == ["ISRCTN12345678"]
     assert not claims.empty
     assert "allocation_ratio" in claims["claim"].tolist()
     ratio_row = claims[claims["claim"] == "allocation_ratio"].iloc[0]
     assert ratio_row["match_status"]
+    registry_row = claims[claims["claim"] == "registry_id_overlap"].iloc[0]
+    assert registry_row["match_status"]
+    randomization_row = claims[claims["claim"] == "randomization_phrase"].iloc[0]
+    assert randomization_row["match_status"]
+    blinding_row = claims[claims["claim"] == "blinding_phrase"].iloc[0]
+    assert blinding_row["match_status"]
 
 
 def test_visual_forensics_caption_checks() -> None:

@@ -1,5 +1,5 @@
 ---
-title: "LungTIME-C01 Registration Congruence Audit"
+title: "Registration Congruence Audit"
 format:
   pdf:
     toc: true
@@ -18,7 +18,8 @@ This report compares manuscript and protocol claims for trial registration and m
 
 ```{r}
 repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
-report_dir <- file.path(repo_root, "reports", "registration", "lungtime")
+study_id <- Sys.getenv("FORENSICS_STUDY_ID", "lungtime")
+report_dir <- file.path(repo_root, "reports", "registration", study_id)
 
 required <- c("registration_row_results.csv", "registration_summary.csv")
 missing <- required[!file.exists(file.path(report_dir, required))]

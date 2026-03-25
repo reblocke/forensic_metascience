@@ -1,5 +1,5 @@
 ---
-title: "LungTIME-C01 Visual Forensics Audit"
+title: "Visual Forensics Audit"
 format:
   pdf:
     toc: true
@@ -19,7 +19,8 @@ It also reports pilot human-in-the-loop plot digitization coverage.
 
 ```{r}
 repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
-report_dir <- file.path(repo_root, "reports", "visual", "lungtime")
+study_id <- Sys.getenv("FORENSICS_STUDY_ID", "lungtime")
+report_dir <- file.path(repo_root, "reports", "visual", study_id)
 
 required <- c("visual_row_results.csv", "visual_summary.csv", "visual_digitized_values.csv")
 missing <- required[!file.exists(file.path(report_dir, required))]

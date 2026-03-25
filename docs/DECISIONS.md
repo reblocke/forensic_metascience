@@ -83,3 +83,17 @@ Record decisions that affect reproducibility and interpretation.
 - **Assumptions locked in:** This workflow is manuscript-only and screening-oriented; it does not claim full model reproduction without individual-level predictions or raw data. Manual transcription is the default for the key tables.
 - **Output impact:** Added `scripts/run_manuscript_review.sh`, `scripts/extract_prediction_review.py`, `scripts/build_prediction_review_inputs.py`, `scripts/run_prediction_review_forensics.R`, `src/research_project/prediction_review.py`, `notebooks/prediction_validation_review.qmd`, and outputs under `data/processed/reviews/<study>/` and `reports/reviews/<study>/`.
 - **Verification evidence:** `uv run ruff check .`, `uv run pytest -q`, `bash scripts/run_manuscript_review.sh --study-id <study_id> --report <local_pdf> --review-type prediction_validation`.
+
+## 2026-03-25: Add config-driven public study selection and supplement baseline parsing
+- **Date:** 2026-03-25
+- **Decision:** Add `--study-id` support to `scripts/run_pipeline.sh`, move new public study sources under `data/raw/studies/<study>/`, and extend baseline-table parsing to support supplement-style hierarchical tables with dynamic arm labels.
+- **Context:** A second public trial case (`pronto`) needed to run through the same category pipeline without duplicating the LungTIME-specific orchestration and without forcing all baselines to look like the original Table 1 layout.
+- **Options considered:**
+  - Add a one-off PRONTO script and study-specific report copies.
+  - Parameterize the existing public pipeline with study configs and make the baseline parser accept both original and supplement table layouts.
+- **Why this choice:** It keeps one public pipeline entrypoint, makes report rendering/output paths study-scoped, and reduces the amount of duplicated notebook/orchestration code.
+- **Consequences / follow-ups:** Public study configs now live under `config/studies/`; notebooks are rendered with study ID environment variables; Quarto output filenames are moved into per-study report folders after render. Registration congruence checks now recognize `ISRCTN` and UK spelling/phrasing patterns.
+- **Methods/packages affected:** `simdistr`, `scrutiny`, `statcheck`, Quarto report rendering, report/protocol congruence helpers.
+- **Assumptions locked in:** When a richer baseline table is available in a supplement, that supplement can be the preferred source for baseline randomization forensics; missing manuscript-reported baseline p-values are valid and should not block report rendering.
+- **Output impact:** Added `config/studies/lungtime.sh`, `config/studies/pronto.sh`, staged raw inputs under `data/raw/studies/pronto/`, and study-scoped outputs under `data/processed/<category>/pronto/` and `reports/<category>/pronto/`.
+- **Verification evidence:** `uv run pytest -q tests/test_forensics_categories.py tests/test_randomization.py`, `uv run ruff check ...`, `bash scripts/run_pipeline.sh --study-id pronto --forensics all`.

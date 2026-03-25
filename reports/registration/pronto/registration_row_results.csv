@@ -1,0 +1,5 @@
+trial_id,claim,report_value,protocol_value,match_status,evidence_page_report,evidence_page_protocol,extract_confidence,report_norm,protocol_norm,is_missing_report,is_missing_protocol,mismatch_flag
+pronto,registry_id_overlap,ISRCTN54006056,ISRCTN54006056,TRUE,1,2,medium,isrctn54006056,isrctn54006056,FALSE,FALSE,FALSE
+pronto,allocation_ratio,1:1,1:1,TRUE,1,1,medium,1:1,1:1,FALSE,FALSE,FALSE
+pronto,randomization_phrase,present,present,TRUE,1,3,high,present,present,FALSE,FALSE,FALSE
+pronto,blinding_phrase,present,present,TRUE,1,1,medium,present,present,FALSE,FALSE,FALSE

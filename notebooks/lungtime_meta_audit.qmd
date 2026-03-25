@@ -1,5 +1,5 @@
 ---
-title: "LungTIME-C01 Meta-Forensics Aggregation Audit"
+title: "Meta-Forensics Aggregation Audit"
 format:
   pdf:
     toc: true
@@ -18,7 +18,8 @@ This report aggregates category-level forensic summaries into an overall anomaly
 
 ```{r}
 repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
-report_dir <- file.path(repo_root, "reports", "meta", "lungtime")
+study_id <- Sys.getenv("FORENSICS_STUDY_ID", "lungtime")
+report_dir <- file.path(repo_root, "reports", "meta", study_id)
 
 required <- c("meta_category_scores_out.csv", "meta_overall_summary.csv")
 missing <- required[!file.exists(file.path(report_dir, required))]

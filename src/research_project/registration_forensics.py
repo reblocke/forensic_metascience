@@ -11,7 +11,19 @@ import pandas as pd
 def normalize_text(value: str) -> str:
     """Normalize whitespace and lowercase text."""
 
-    return re.sub(r"\s+", " ", value or "").strip().lower()
+    normalized = value or ""
+    for old, new in {
+        "\u00ad": "",
+        "‐": "-",
+        "‑": "-",
+        "‒": "-",
+        "–": "-",
+        "—": "-",
+        "−": "-",
+    }.items():
+        normalized = normalized.replace(old, new)
+    normalized = re.sub(r"\s*-\s*", "-", normalized)
+    return re.sub(r"\s+", " ", normalized).strip().lower()
 
 
 def extract_registry_ids(text: str) -> list[str]:
@@ -19,6 +31,7 @@ def extract_registry_ids(text: str) -> list[str]:
 
     patterns = [
         r"\bNCT\d{8}\b",
+        r"\bISRCTN\d{8}\b",
         r"\bChiCTR[-_]?[A-Za-z0-9]+\b",
         r"\bEUCTR\d{4}-\d{6}-\d{2}\b",
     ]
@@ -47,6 +60,16 @@ def first_page_with_phrase(page_texts: Sequence[str], phrase: str) -> int | None
     return None
 
 
+def first_page_with_any_phrase(page_texts: Sequence[str], phrases: Sequence[str]) -> int | None:
+    """Return the first page index (1-based) containing any phrase."""
+
+    for phrase in phrases:
+        page = first_page_with_phrase(page_texts, phrase)
+        if page is not None:
+            return page
+    return None
+
+
 def derive_registration_claims(
     *,
     trial_id: str,
@@ -62,6 +85,8 @@ def derive_registration_claims(
     protocol_ids = extract_registry_ids(protocol_text)
     ratio_report = extract_allocation_ratio(report_text)
     ratio_protocol = extract_allocation_ratio(protocol_text)
+    randomization_phrases = ["randomization", "randomisation", "randomly assigned"]
+    blinding_phrases = ["blind", "blinded", "masked", "masking", "open-label"]
 
     claims = [
         {
@@ -70,8 +95,12 @@ def derive_registration_claims(
             "report_value": "|".join(report_ids),
             "protocol_value": "|".join(protocol_ids),
             "match_status": bool(set(report_ids).intersection(protocol_ids)),
-            "evidence_page_report": first_page_with_phrase(report_page_texts, "NCT"),
-            "evidence_page_protocol": first_page_with_phrase(protocol_page_texts, "NCT"),
+            "evidence_page_report": first_page_with_any_phrase(
+                report_page_texts, report_ids or protocol_ids
+            ),
+            "evidence_page_protocol": first_page_with_any_phrase(
+                protocol_page_texts, protocol_ids or report_ids
+            ),
             "extract_confidence": "medium",
         },
         {
@@ -88,34 +117,41 @@ def derive_registration_claims(
             "trial_id": trial_id,
             "claim": "randomization_phrase",
             "report_value": "present"
-            if first_page_with_phrase(report_page_texts, "randomization") is not None
+            if first_page_with_any_phrase(report_page_texts, randomization_phrases) is not None
             else "missing",
             "protocol_value": "present"
-            if first_page_with_phrase(protocol_page_texts, "randomization") is not None
+            if first_page_with_any_phrase(protocol_page_texts, randomization_phrases) is not None
             else "missing",
             "match_status": (
-                first_page_with_phrase(report_page_texts, "randomization") is not None
-                and first_page_with_phrase(protocol_page_texts, "randomization") is not None
+                first_page_with_any_phrase(report_page_texts, randomization_phrases) is not None
+                and first_page_with_any_phrase(protocol_page_texts, randomization_phrases)
+                is not None
             ),
-            "evidence_page_report": first_page_with_phrase(report_page_texts, "randomization"),
-            "evidence_page_protocol": first_page_with_phrase(protocol_page_texts, "randomization"),
+            "evidence_page_report": first_page_with_any_phrase(
+                report_page_texts, randomization_phrases
+            ),
+            "evidence_page_protocol": first_page_with_any_phrase(
+                protocol_page_texts, randomization_phrases
+            ),
             "extract_confidence": "high",
         },
         {
             "trial_id": trial_id,
             "claim": "blinding_phrase",
             "report_value": "present"
-            if first_page_with_phrase(report_page_texts, "blind") is not None
+            if first_page_with_any_phrase(report_page_texts, blinding_phrases) is not None
             else "missing",
             "protocol_value": "present"
-            if first_page_with_phrase(protocol_page_texts, "blind") is not None
+            if first_page_with_any_phrase(protocol_page_texts, blinding_phrases) is not None
             else "missing",
             "match_status": (
-                first_page_with_phrase(report_page_texts, "blind") is not None
-                and first_page_with_phrase(protocol_page_texts, "blind") is not None
+                first_page_with_any_phrase(report_page_texts, blinding_phrases) is not None
+                and first_page_with_any_phrase(protocol_page_texts, blinding_phrases) is not None
             ),
-            "evidence_page_report": first_page_with_phrase(report_page_texts, "blind"),
-            "evidence_page_protocol": first_page_with_phrase(protocol_page_texts, "blind"),
+            "evidence_page_report": first_page_with_any_phrase(report_page_texts, blinding_phrases),
+            "evidence_page_protocol": first_page_with_any_phrase(
+                protocol_page_texts, blinding_phrases
+            ),
             "extract_confidence": "medium",
         },
     ]

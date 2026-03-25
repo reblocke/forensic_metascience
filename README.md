@@ -121,6 +121,8 @@ This is the fastest way to confirm that the pipeline, R packages, and Quarto ren
 bash scripts/run_pipeline.sh --forensics all
 ```
 
+The default public study is `lungtime`. To run a different configured study, pass `--study-id <study_id>`.
+
 Expected outputs include:
 
 - `reports/randomization/lungtime/`
@@ -175,7 +177,12 @@ bash scripts/run_pipeline.sh --forensics randomization,numeric,registration,visu
 bash scripts/run_pipeline.sh --forensics all
 ```
 
-### 5) Run visual category with interactive plot digitization (pilot)
+### 5) Run a non-default configured public trial
+```bash
+bash scripts/run_pipeline.sh --study-id pronto --forensics all
+```
+
+### 6) Run visual category with interactive plot digitization (pilot)
 ```bash
 bash scripts/run_pipeline.sh --forensics visual --digitize-plots true
 ```
@@ -234,7 +241,19 @@ Command:
 bash scripts/run_pipeline.sh --forensics visual --digitize-plots true
 ```
 
+### Use Case 5: Run the configured PRONTO trial package
+
+Goal:
+- run the full public trial pipeline on the staged PRONTO report, protocol, and supplement
+
+Command:
+
+```bash
+bash scripts/run_pipeline.sh --study-id pronto --forensics all
+```
+
 ## Repository layout
+- `config/studies/` shell-based study configs used by `scripts/run_pipeline.sh --study-id ...`
 - `R/` R wrappers for meta-science package calls and parameter mappings
 - `src/` Python helper code for parsing, validation, and utility transformations
 - `scripts/` reproducible entrypoints (pipeline, diagnostics, report orchestration)
@@ -242,6 +261,7 @@ bash scripts/run_pipeline.sh --forensics visual --digitize-plots true
 - `tests/` unit/integration tests for core transformation and interfaces
 - `data/processed/manifests/<study_id>/forensics_manifest.csv` shared extraction/readiness manifest
 - `data/raw/` immutable source inputs
+- `data/raw/studies/<study_id>/` staged public trial source PDFs for configured study runs
 - `data/processed/` deterministic intermediate/final analysis tables
 - `data/generated/` synthetic or AI-generated data (explicitly labeled)
 - `reports/` rendered credibility reports and diagnostic figures

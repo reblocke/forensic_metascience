@@ -1,0 +1,44 @@
+trial_name,variable_id,simdistr_pvalue,variable,level
+pronto_lrm_2026_s2213260025004333,1,0.5671,Ethnicity,White
+pronto_lrm_2026_s2213260025004333,2,0.3404,Ethnicity,White English/Welsh/Scottish/Northern Irish/British
+pronto_lrm_2026_s2213260025004333,3,0.5897,Ethnicity,White Irish
+pronto_lrm_2026_s2213260025004333,4,0.8221,Ethnicity,Gypsy or Irish Traveller
+pronto_lrm_2026_s2213260025004333,5,0.1218,Ethnicity,Any other White background
+pronto_lrm_2026_s2213260025004333,6,0.1865,Ethnicity,Mixed
+pronto_lrm_2026_s2213260025004333,7,0.3775,Ethnicity,White and Black Caribbean
+pronto_lrm_2026_s2213260025004333,8,0.41,Ethnicity,White and Black African
+pronto_lrm_2026_s2213260025004333,9,0.475,Ethnicity,White and Asian
+pronto_lrm_2026_s2213260025004333,10,0.2874,Ethnicity,Any other mixed/multiple ethnic background
+pronto_lrm_2026_s2213260025004333,11,0.9149,Ethnicity,Asian
+pronto_lrm_2026_s2213260025004333,12,0.7709,Ethnicity,Indian
+pronto_lrm_2026_s2213260025004333,13,0.752,Ethnicity,Pakistani
+pronto_lrm_2026_s2213260025004333,14,0.3701,Ethnicity,Bangladeshi
+pronto_lrm_2026_s2213260025004333,15,0.343,Ethnicity,Chinese
+pronto_lrm_2026_s2213260025004333,16,0.5997,Ethnicity,Any other Asian background
+pronto_lrm_2026_s2213260025004333,17,0.4535,Ethnicity,Black
+pronto_lrm_2026_s2213260025004333,18,0.206,Ethnicity,African
+pronto_lrm_2026_s2213260025004333,19,0.9125,Ethnicity,Caribbean
+pronto_lrm_2026_s2213260025004333,20,0.2486,Ethnicity,Any other Black/African/Caribbean background
+pronto_lrm_2026_s2213260025004333,21,0.6169,Ethnicity,Other
+pronto_lrm_2026_s2213260025004333,22,0.9107,Ethnicity,Arab
+pronto_lrm_2026_s2213260025004333,23,0.3933,Ethnicity,Any other ethnic group
+pronto_lrm_2026_s2213260025004333,24,0.3278,Ethnicity,Missing/not declared
+pronto_lrm_2026_s2213260025004333,25,0.7183,Number of Listed Comorbidities,0
+pronto_lrm_2026_s2213260025004333,26,0.2518,Number of Listed Comorbidities,1
+pronto_lrm_2026_s2213260025004333,27,0.615,Number of Listed Comorbidities,2+
+pronto_lrm_2026_s2213260025004333,28,0.753,Number of Listed Comorbidities,Missing
+pronto_lrm_2026_s2213260025004333,29,0.7259,Comorbidities,Diabetes Mellitus
+pronto_lrm_2026_s2213260025004333,30,0.1052,Comorbidities,COPD
+pronto_lrm_2026_s2213260025004333,31,0.9082,Comorbidities,Heart Failure
+pronto_lrm_2026_s2213260025004333,32,0.1266,Comorbidities,Moderate to severe CKD (Grade III or above)
+pronto_lrm_2026_s2213260025004333,33,0.7796,Comorbidities,Ischaemic Heart Disease
+pronto_lrm_2026_s2213260025004333,34,0.4108,Comorbidities,Stroke or TIA
+pronto_lrm_2026_s2213260025004333,35,0.5071,Comorbidities,Dementia
+pronto_lrm_2026_s2213260025004333,36,0.256,Comorbidities,Physical Disability
+pronto_lrm_2026_s2213260025004333,37,0.0543,Comorbidities,Solid Tumour Malignancy
+pronto_lrm_2026_s2213260025004333,38,0.3958,Comorbidities,Myocardial Infarction
+pronto_lrm_2026_s2213260025004333,39,0.6891,Comorbidities,Peripheral Vascular Disease
+pronto_lrm_2026_s2213260025004333,40,0.6298,Comorbidities,Connective Tissue Disease
+pronto_lrm_2026_s2213260025004333,41,0.5901,Comorbidities,Liver Disease
+pronto_lrm_2026_s2213260025004333,42,0.1235,Comorbidities,Learning Disability
+pronto_lrm_2026_s2213260025004333,43,0.1199,Comorbidities,Haematological malignancy

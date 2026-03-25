@@ -1,0 +1,8 @@
+STUDY_ID="pronto"
+STUDY_TITLE="PRONTO"
+TRIAL_ID="pronto_lrm_2026_s2213260025004333"
+REPORT_REL_PATH="data/raw/studies/pronto/PIIS2213260025004333.pdf"
+PROTOCOL_REL_PATH="data/raw/studies/pronto/bmjopen-2022-063424.pdf"
+SUPPLEMENT_REL_PATH="data/raw/studies/pronto/mmc1 (2).pdf"
+BASELINE_REL_PATH="data/raw/studies/pronto/mmc1 (2).pdf"
+BASELINE_TABLE_LABEL="Table s3"

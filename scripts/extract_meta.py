@@ -9,11 +9,11 @@ import pandas as pd
 
 from research_project.forensics_manifest import manifest_path, upsert_manifest_row
 
-SUMMARY_PATHS = {
-    "randomization": "reports/randomization/lungtime/pooled_pvalues.csv",
-    "numeric": "reports/numeric/lungtime/numeric_summary.csv",
-    "registration": "reports/registration/lungtime/registration_summary.csv",
-    "visual": "reports/visual/lungtime/visual_summary.csv",
+SUMMARY_FILES = {
+    "randomization": "pooled_pvalues.csv",
+    "numeric": "numeric_summary.csv",
+    "registration": "registration_summary.csv",
+    "visual": "visual_summary.csv",
 }
 
 
@@ -30,8 +30,8 @@ def main() -> None:
     rows: list[dict[str, object]] = []
     found_categories: list[str] = []
 
-    for category, relative in SUMMARY_PATHS.items():
-        path = args.repo_root / relative
+    for category, filename in SUMMARY_FILES.items():
+        path = args.repo_root / "reports" / category / args.study_id / filename
         if not path.exists():
             continue
         summary = pd.read_csv(path)

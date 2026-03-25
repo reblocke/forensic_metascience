@@ -1,5 +1,5 @@
 ---
-title: "LungTIME-C01 Numeric Integrity Audit"
+title: "Numeric Integrity Audit"
 format:
   pdf:
     toc: true
@@ -23,7 +23,8 @@ This report summarizes numeric-integrity checks aligned with Heathers' data-tech
 
 ```{r}
 repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
-report_dir <- file.path(repo_root, "reports", "numeric", "lungtime")
+study_id <- Sys.getenv("FORENSICS_STUDY_ID", "lungtime")
+report_dir <- file.path(repo_root, "reports", "numeric", study_id)
 
 required <- c(
   "numeric_row_results.csv",

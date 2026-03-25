@@ -1,0 +1,130 @@
+trial_id,method,source_unit,metric,value_numeric,p_value,anomaly_flag,severity,details
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / White / pct,abs_percent_delta,0.0142439737034294,NA,FALSE,low,reported_percent=84.5; computed_percent=84.5142
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / White / usual_care,abs_percent_delta,0.0302025782688701,NA,FALSE,low,reported_percent=85.2; computed_percent=85.2302
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / White English/Welsh/Scottish/Northern Irish/British / pct,abs_percent_delta,0.031044558071585,NA,FALSE,low,reported_percent=82.5; computed_percent=82.469
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / White English/Welsh/Scottish/Northern Irish/British / usual_care,abs_percent_delta,0.0465930018416145,NA,FALSE,low,reported_percent=82.9; computed_percent=82.9466
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / White Irish / pct,abs_percent_delta,0.0347699050401753,NA,FALSE,low,reported_percent=0.4; computed_percent=0.3652
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / White Irish / usual_care,abs_percent_delta,0.047513812154696,NA,FALSE,low,reported_percent=0.6; computed_percent=0.5525
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Gypsy or Irish Traveller / pct,abs_percent_delta,0,NA,FALSE,low,reported_percent=0; computed_percent=0
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Gypsy or Irish Traveller / usual_care,abs_percent_delta,0.0368324125230202,NA,FALSE,low,reported_percent=0; computed_percent=0.0368
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Any other White background / pct,abs_percent_delta,0.0199415631848063,NA,FALSE,low,reported_percent=1.7; computed_percent=1.6801
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Any other White background / usual_care,abs_percent_delta,0.0057090239410682,NA,FALSE,low,reported_percent=1.7; computed_percent=1.6943
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Mixed / pct,abs_percent_delta,0.020891161431702,NA,FALSE,low,reported_percent=0.6; computed_percent=0.6209
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Mixed / usual_care,abs_percent_delta,0.0261510128913443,NA,FALSE,low,reported_percent=0.6; computed_percent=0.6262
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / White and Black Caribbean / pct,abs_percent_delta,0.0095690284879473,NA,FALSE,low,reported_percent=0.1; computed_percent=0.1096
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / White and Black Caribbean / usual_care,abs_percent_delta,0.0158379373848987,NA,FALSE,low,reported_percent=0.2; computed_percent=0.1842
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / White and Black African / pct,abs_percent_delta,0.0460920379839298,NA,FALSE,low,reported_percent=0.1; computed_percent=0.1461
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / White and Black African / usual_care,abs_percent_delta,0.0104972375690607,NA,FALSE,low,reported_percent=0.1; computed_percent=0.1105
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / White and Asian / pct,abs_percent_delta,0.0095690284879473,NA,FALSE,low,reported_percent=0.1; computed_percent=0.1096
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / White and Asian / usual_care,abs_percent_delta,0.0263351749539594,NA,FALSE,low,reported_percent=0.1; computed_percent=0.0737
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Any other mixed/multiple ethnic background / pct,abs_percent_delta,0.0443389335281226,NA,FALSE,low,reported_percent=0.3; computed_percent=0.2557
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Any other mixed/multiple ethnic background / usual_care,abs_percent_delta,0.0421731123388581,NA,FALSE,low,reported_percent=0.3; computed_percent=0.2578
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Asian / pct,abs_percent_delta,0.0374726077428779,NA,FALSE,low,reported_percent=2.3; computed_percent=2.3375
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Asian / usual_care,abs_percent_delta,0.0425414364640883,NA,FALSE,low,reported_percent=1.7; computed_percent=1.6575
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Indian / pct,abs_percent_delta,0.006062819576333,NA,FALSE,low,reported_percent=0.7; computed_percent=0.6939
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Indian / usual_care,abs_percent_delta,0.0211786372007366,NA,FALSE,low,reported_percent=0.5; computed_percent=0.4788
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Pakistani / pct,abs_percent_delta,0.0304601899196493,NA,FALSE,low,reported_percent=0.7; computed_percent=0.7305
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Pakistani / usual_care,abs_percent_delta,0.0156537753222836,NA,FALSE,low,reported_percent=0.5; computed_percent=0.5157
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Bangladeshi / pct,abs_percent_delta,0.0460920379839298,NA,FALSE,low,reported_percent=0.1; computed_percent=0.1461
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Bangladeshi / usual_care,abs_percent_delta,0.047329650092081,NA,FALSE,low,reported_percent=0.1; computed_percent=0.1473
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Chinese / pct,abs_percent_delta,0.0191380569758947,NA,FALSE,low,reported_percent=0.2; computed_percent=0.2191
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Chinese / usual_care,abs_percent_delta,0.047329650092081,NA,FALSE,low,reported_percent=0.1; computed_percent=0.1473
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Any other Asian background / pct,abs_percent_delta,0.047845142439737,NA,FALSE,low,reported_percent=0.5; computed_percent=0.5478
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Any other Asian background / usual_care,abs_percent_delta,0.0316758747697974,NA,FALSE,low,reported_percent=0.4; computed_percent=0.3683
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Black / pct,abs_percent_delta,0.0138787436084732,NA,FALSE,low,reported_percent=1; computed_percent=0.9861
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Black / usual_care,abs_percent_delta,0.0471454880294658,NA,FALSE,low,reported_percent=0.8; computed_percent=0.8471
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / African / pct,abs_percent_delta,0.0113221329437546,NA,FALSE,low,reported_percent=0.5; computed_percent=0.5113
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / African / usual_care,abs_percent_delta,0.0211786372007366,NA,FALSE,low,reported_percent=0.5; computed_percent=0.4788
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Caribbean / pct,abs_percent_delta,0.0460920379839298,NA,FALSE,low,reported_percent=0.1; computed_percent=0.1461
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Caribbean / usual_care,abs_percent_delta,0.0368324125230202,NA,FALSE,low,reported_percent=0; computed_percent=0.0368
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Any other Black/African/Caribbean background / pct,abs_percent_delta,0.0287070854638422,NA,FALSE,low,reported_percent=0.3; computed_percent=0.3287
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Any other Black/African/Caribbean background / usual_care,abs_percent_delta,0.0314917127071823,NA,FALSE,low,reported_percent=0.3; computed_percent=0.3315
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Other / pct,abs_percent_delta,0.0148283418553687,NA,FALSE,low,reported_percent=1.3; computed_percent=1.3148
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Other / usual_care,abs_percent_delta,0.0313075506445672,NA,FALSE,low,reported_percent=1; computed_percent=1.0313
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Arab / pct,abs_percent_delta,0.0173849525200876,NA,FALSE,low,reported_percent=0.2; computed_percent=0.1826
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Arab / usual_care,abs_percent_delta,0,NA,FALSE,low,reported_percent=0; computed_percent=0
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Any other ethnic group / pct,abs_percent_delta,0.0322132943754565,NA,FALSE,low,reported_percent=1.1; computed_percent=1.1322
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Any other ethnic group / usual_care,abs_percent_delta,0.0313075506445672,NA,FALSE,low,reported_percent=1; computed_percent=1.0313
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Missing/not declared / pct,abs_percent_delta,0.0264426588750925,NA,FALSE,low,reported_percent=10.2; computed_percent=10.2264
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Ethnicity / Missing/not declared / usual_care,abs_percent_delta,0.0077348066298341,NA,FALSE,low,reported_percent=10.6; computed_percent=10.6077
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Number of Listed Comorbidities / 0 / pct,abs_percent_delta,0.02191380569759,NA,FALSE,low,reported_percent=20; computed_percent=19.9781
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Number of Listed Comorbidities / 0 / usual_care,abs_percent_delta,0.0418047882136249,NA,FALSE,low,reported_percent=18.9; computed_percent=18.8582
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Number of Listed Comorbidities / 1 / pct,abs_percent_delta,0.0163623082542017,NA,FALSE,low,reported_percent=20.4; computed_percent=20.4164
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Number of Listed Comorbidities / 1 / usual_care,abs_percent_delta,0.0366482504604057,NA,FALSE,low,reported_percent=20.7; computed_percent=20.7366
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Number of Listed Comorbidities / 2+ / pct,abs_percent_delta,0.0446311176040907,NA,FALSE,low,reported_percent=58.1; computed_percent=58.1446
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Number of Listed Comorbidities / 2+ / usual_care,abs_percent_delta,0.0370165745856354,NA,FALSE,low,reported_percent=59.3; computed_percent=59.337
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Number of Listed Comorbidities / Missing / pct,abs_percent_delta,0.0390796201607013,NA,FALSE,low,reported_percent=1.5; computed_percent=1.4609
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Number of Listed Comorbidities / Missing / usual_care,abs_percent_delta,0.0318600368324126,NA,FALSE,low,reported_percent=1.1; computed_percent=1.0681
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Diabetes Mellitus / pct,abs_percent_delta,0.0461650840029221,NA,FALSE,low,reported_percent=22.8; computed_percent=22.7538
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Diabetes Mellitus / usual_care,abs_percent_delta,0.0220994475138134,NA,FALSE,low,reported_percent=24; computed_percent=23.9779
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / COPD / pct,abs_percent_delta,0.0096420745069387,NA,FALSE,low,reported_percent=22.8; computed_percent=22.7904
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / COPD / usual_care,abs_percent_delta,0.0480662983425403,NA,FALSE,low,reported_percent=22.7; computed_percent=22.6519
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Heart Failure / pct,abs_percent_delta,0.0447772096420742,NA,FALSE,low,reported_percent=12.3; computed_percent=12.3448
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Heart Failure / usual_care,abs_percent_delta,0.0226519337016579,NA,FALSE,low,reported_percent=13.9; computed_percent=13.9227
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Moderate to severe CKD (Grade III or above) / pct,abs_percent_delta,0.0499634769905039,NA,FALSE,low,reported_percent=13.6; computed_percent=13.55
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Moderate to severe CKD (Grade III or above) / usual_care,abs_percent_delta,0.0016574585635371,NA,FALSE,low,reported_percent=13.7; computed_percent=13.7017
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Ischaemic Heart Disease / pct,abs_percent_delta,0.0178962746530313,NA,FALSE,low,reported_percent=10.5; computed_percent=10.4821
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Ischaemic Heart Disease / usual_care,abs_percent_delta,0.0346224677716389,NA,FALSE,low,reported_percent=11.6; computed_percent=11.5654
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Stroke or TIA / pct,abs_percent_delta,5.113221329438e-4,NA,FALSE,low,reported_percent=10.3; computed_percent=10.2995
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Stroke or TIA / usual_care,abs_percent_delta,0.0449355432780862,NA,FALSE,low,reported_percent=10.8; computed_percent=10.7551
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Dementia / pct,abs_percent_delta,0.0403214024835651,NA,FALSE,low,reported_percent=9.2; computed_percent=9.2403
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Dementia / usual_care,abs_percent_delta,0.0025782688766113,NA,FALSE,low,reported_percent=9.8; computed_percent=9.7974
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Physical Disability / pct,abs_percent_delta,0.0057706355003652,NA,FALSE,low,reported_percent=9.1; computed_percent=9.0942
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Physical Disability / usual_care,abs_percent_delta,0.002946593001841,NA,FALSE,low,reported_percent=8.8; computed_percent=8.8029
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Solid Tumour Malignancy / pct,abs_percent_delta,0.0237399561723883,NA,FALSE,low,reported_percent=7.5; computed_percent=7.5237
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Solid Tumour Malignancy / usual_care,abs_percent_delta,0.0138121546961329,NA,FALSE,low,reported_percent=7.5; computed_percent=7.5138
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Myocardial Infarction / pct,abs_percent_delta,0.0258582907231552,NA,FALSE,low,reported_percent=6.6; computed_percent=6.5741
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Myocardial Infarction / usual_care,abs_percent_delta,0.0123388581952124,NA,FALSE,low,reported_percent=6.9; computed_percent=6.8877
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Peripheral Vascular Disease / pct,abs_percent_delta,0.0175310445580718,NA,FALSE,low,reported_percent=4; computed_percent=4.0175
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Peripheral Vascular Disease / usual_care,abs_percent_delta,0.0327808471454877,NA,FALSE,low,reported_percent=4.6; computed_percent=4.5672
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Connective Tissue Disease / pct,abs_percent_delta,0.0111760409057706,NA,FALSE,low,reported_percent=3.7; computed_percent=3.6888
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Connective Tissue Disease / usual_care,abs_percent_delta,0.0412523020257826,NA,FALSE,low,reported_percent=3.2; computed_percent=3.2413
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Liver Disease / pct,abs_percent_delta,0.0392257121986849,NA,FALSE,low,reported_percent=2.7; computed_percent=2.7392
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Liver Disease / usual_care,abs_percent_delta,0.0427255985267032,NA,FALSE,low,reported_percent=2.4; computed_percent=2.3573
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Learning Disability / pct,abs_percent_delta,0.0025566106647187,NA,FALSE,low,reported_percent=1.5; computed_percent=1.4974
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Learning Disability / usual_care,abs_percent_delta,0.0101289134438304,NA,FALSE,low,reported_percent=1.5; computed_percent=1.5101
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Haematological malignancy / pct,abs_percent_delta,0.0390796201607013,NA,FALSE,low,reported_percent=1.5; computed_percent=1.4609
+pronto_lrm_2026_s2213260025004333,rounding_consistency,Comorbidities / Haematological malignancy / usual_care,abs_percent_delta,0.0101289134438304,NA,FALSE,low,reported_percent=1.5; computed_percent=1.5101
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / COPD,abs_percent_between_arms,0.10000000000000142,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=22.8; percent_b=22.7
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / Connective Tissue Disease,abs_percent_between_arms,0.5,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=3.7; percent_b=3.2
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / Dementia,abs_percent_between_arms,0.6000000000000014,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=9.2; percent_b=9.8
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / Diabetes Mellitus,abs_percent_between_arms,1.1999999999999993,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=22.8; percent_b=24
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / Haematological malignancy,abs_percent_between_arms,0,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=1.5; percent_b=1.5
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / Heart Failure,abs_percent_between_arms,1.5999999999999996,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=12.3; percent_b=13.9
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / Ischaemic Heart Disease,abs_percent_between_arms,1.0999999999999996,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=10.5; percent_b=11.6
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / Learning Disability,abs_percent_between_arms,0,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=1.5; percent_b=1.5
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / Liver Disease,abs_percent_between_arms,0.30000000000000027,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=2.7; percent_b=2.4
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / Moderate to severe CKD (Grade III or above),abs_percent_between_arms,0.09999999999999964,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=13.6; percent_b=13.7
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / Myocardial Infarction,abs_percent_between_arms,0.3000000000000007,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=6.6; percent_b=6.9
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / Peripheral Vascular Disease,abs_percent_between_arms,0.5999999999999996,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=4; percent_b=4.6
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / Physical Disability,abs_percent_between_arms,0.29999999999999893,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=9.1; percent_b=8.8
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / Solid Tumour Malignancy,abs_percent_between_arms,0,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=7.5; percent_b=7.5
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Comorbidities / Stroke or TIA,abs_percent_between_arms,0.5,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=10.3; percent_b=10.8
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / African,abs_percent_between_arms,0,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.5; percent_b=0.5
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Any other Asian background,abs_percent_between_arms,0.09999999999999998,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.5; percent_b=0.4
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Any other Black/African/Caribbean background,abs_percent_between_arms,0,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.3; percent_b=0.3
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Any other White background,abs_percent_between_arms,0,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=1.7; percent_b=1.7
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Any other ethnic group,abs_percent_between_arms,0.10000000000000007,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=1.1; percent_b=1
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Any other mixed/multiple ethnic background,abs_percent_between_arms,0,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.3; percent_b=0.3
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Arab,abs_percent_between_arms,0.2,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.2; percent_b=0
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Asian,abs_percent_between_arms,0.5999999999999999,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=2.3; percent_b=1.7
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Bangladeshi,abs_percent_between_arms,0,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.1; percent_b=0.1
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Black,abs_percent_between_arms,0.19999999999999996,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=1; percent_b=0.8
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Caribbean,abs_percent_between_arms,0.1,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.1; percent_b=0
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Chinese,abs_percent_between_arms,0.1,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.2; percent_b=0.1
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Gypsy or Irish Traveller,abs_percent_between_arms,0,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0; percent_b=0
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Indian,abs_percent_between_arms,0.19999999999999996,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.7; percent_b=0.5
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Missing/not declared,abs_percent_between_arms,0.4000000000000003,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=10.2; percent_b=10.6
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Mixed,abs_percent_between_arms,0,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.6; percent_b=0.6
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Other,abs_percent_between_arms,0.30000000000000004,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=1.3; percent_b=1
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / Pakistani,abs_percent_between_arms,0.19999999999999996,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.7; percent_b=0.5
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / White,abs_percent_between_arms,0.7000000000000028,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=84.5; percent_b=85.2
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / White English/Welsh/Scottish/Northern Irish/British,abs_percent_between_arms,0.4000000000000057,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=82.5; percent_b=82.9
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / White Irish,abs_percent_between_arms,0.19999999999999996,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.4; percent_b=0.6
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / White and Asian,abs_percent_between_arms,0,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.1; percent_b=0.1
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / White and Black African,abs_percent_between_arms,0,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.1; percent_b=0.1
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Ethnicity / White and Black Caribbean,abs_percent_between_arms,0.1,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=0.1; percent_b=0.2
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Number of Listed Comorbidities / 0,abs_percent_between_arms,1.1000000000000014,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=20; percent_b=18.9
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Number of Listed Comorbidities / 1,abs_percent_between_arms,0.3000000000000007,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=20.4; percent_b=20.7
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Number of Listed Comorbidities / 2+,abs_percent_between_arms,1.1999999999999955,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=58.1; percent_b=59.3
+pronto_lrm_2026_s2213260025004333,rsprite2_stub,Number of Listed Comorbidities / Missing,abs_percent_between_arms,0.3999999999999999,NA,FALSE,low,group_a=pct; group_b=usual_care; percent_a=1.5; percent_b=1.1

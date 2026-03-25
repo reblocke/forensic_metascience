@@ -30,6 +30,18 @@ def _table1_fixture() -> list[list[str]]:
     ]
 
 
+def _hierarchical_table_fixture() -> list[list[str | None]]:
+    return [
+        ["", "", "PCT", "Usual care"],
+        ["N", "", "3092/6119 (50.5%)", "3027/6119 (49.5%)"],
+        ["Age (years)", "Median [IQR]", "72 [57, 82]", "73 [58, 82]"],
+        ["Gender (%)", "Male", "1533/3092 (49.6%)", "1519/3027 (50.2%)"],
+        [None, "Female", "1557/3092 (50.4%)", "1508/3027 (49.8%)"],
+        ["Comorbidities", "Diabetes Mellitus", "623/2738 (22.8%)", "651/2715 (24.0%)"],
+        [None, "COPD", "624/2738 (22.8%)", "615/2715 (22.7%)"],
+    ]
+
+
 def test_parse_table1_long_extracts_expected_fields() -> None:
     table = _table1_fixture()
     parsed = parse_table1_long(table=table, trial_id="trial_x", source_page=3)
@@ -83,3 +95,27 @@ def test_build_package_inputs_shapes_and_columns() -> None:
 
     assert csf_df["one_vs_rest"].all()
     assert set(csf_df["trial_id"]) == {"trial_x"}
+
+
+def test_parse_hierarchical_supplement_baseline_table() -> None:
+    parsed = parse_table1_long(
+        table=_hierarchical_table_fixture(),
+        trial_id="trial_y",
+        source_page=12,
+    )
+
+    assert not parsed.empty
+    assert set(parsed["group"]) == {"pct", "usual_care"}
+
+    age_rows = parsed[(parsed["variable"] == "Age (years)") & (parsed["level"] == "all")]
+    assert len(age_rows) == 2
+    assert sorted(age_rows["value"].tolist()) == [72.0, 73.0]
+
+    male_rows = parsed[(parsed["variable"] == "Gender (%)") & (parsed["level"] == "Male")]
+    assert len(male_rows) == 2
+    assert sorted(male_rows["n_group"].tolist()) == [3027, 3092]
+
+    simdistr_df = build_simdistr_input(parsed)
+    csf_df = build_csf_input(parsed)
+    assert not simdistr_df.empty
+    assert not csf_df.empty

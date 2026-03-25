@@ -1,0 +1,8 @@
+STUDY_ID="lungtime"
+STUDY_TITLE="LungTIME-C01"
+TRIAL_ID="lungtime_c01_s41591_025_04181"
+REPORT_REL_PATH="Checkpoint Inhib Time of Day/s41591-025-04181-w.pdf"
+PROTOCOL_REL_PATH="Checkpoint Inhib Time of Day/41591_2025_4181_MOESM1_ESM.pdf"
+SUPPLEMENT_REL_PATH="Checkpoint Inhib Time of Day/41591_2025_4181_MOESM1_ESM.pdf"
+BASELINE_REL_PATH="Checkpoint Inhib Time of Day/s41591-025-04181-w.pdf"
+BASELINE_TABLE_LABEL="baseline characteristics"
