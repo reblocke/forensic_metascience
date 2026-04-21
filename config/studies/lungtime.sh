@@ -6,3 +6,15 @@ PROTOCOL_REL_PATH="Checkpoint Inhib Time of Day/41591_2025_4181_MOESM1_ESM.pdf"
 SUPPLEMENT_REL_PATH="Checkpoint Inhib Time of Day/41591_2025_4181_MOESM1_ESM.pdf"
 BASELINE_REL_PATH="Checkpoint Inhib Time of Day/s41591-025-04181-w.pdf"
 BASELINE_TABLE_LABEL="baseline characteristics"
+
+# Optional ClinicalTrials.gov registration audit inputs.
+# Leave blank to resolve a unique NCT ID from report/protocol text.
+REGISTRY_ID=""
+REGISTRY_URL=""
+REGISTRY_CURRENT_REL_PATH=""
+REGISTRY_HISTORY_REL_PATH=""
+REGISTRY_ALLOW_NETWORK="true"
+REGISTRY_AS_OF_DATE=""
+PUBLICATION_URL=""
+PUBLICATION_DOI=""
+PUBLICATION_PMID=""

@@ -97,3 +97,17 @@ Record decisions that affect reproducibility and interpretation.
 - **Assumptions locked in:** When a richer baseline table is available in a supplement, that supplement can be the preferred source for baseline randomization forensics; missing manuscript-reported baseline p-values are valid and should not block report rendering.
 - **Output impact:** Added `config/studies/lungtime.sh`, `config/studies/pronto.sh`, staged raw inputs under `data/raw/studies/pronto/`, and study-scoped outputs under `data/processed/<category>/pronto/` and `reports/<category>/pronto/`.
 - **Verification evidence:** `uv run pytest -q tests/test_forensics_categories.py tests/test_randomization.py`, `uv run ruff check ...`, `bash scripts/run_pipeline.sh --study-id pronto --forensics all`.
+
+## 2026-04-21: Add ClinicalTrials.gov current-record registration screening
+- **Date:** 2026-04-21
+- **Decision:** Expand the `registration` category to resolve NCT identifiers, optionally fetch ClinicalTrials.gov API v2 current records, normalize registry fields, and emit expanded claim-level registry screening rows alongside the existing report-versus-protocol congruence outputs.
+- **Context:** Registration checks previously compared only manuscript/protocol text. Trial reviews also need screening for prospective registration, registry-publication congruence, results posting, and registry-field alignment when a ClinicalTrials.gov record is available.
+- **Options considered:**
+  - Keep registration checks source-text only.
+  - Add registry-aware current-record checks with optional local history input and conservative indeterminate labeling.
+- **Why this choice:** It adds high-yield registry screening without making tests depend on live network access or overstating automated text-matching confidence.
+- **Consequences / follow-ups:** Registry history is supported through local staged CSV/JSON snapshots only unless a stable public history endpoint is later verified. Non-NCT registries remain source-text congruence checks only.
+- **Methods/packages affected:** ClinicalTrials.gov API v2 current-record JSON; no new R or Python package dependencies.
+- **Assumptions locked in:** Only NCT IDs trigger ClinicalTrials.gov-specific checks. Missing, ambiguous, or unsupported registry data are labeled `not_assessed` or `indeterminate`. Partial ClinicalTrials.gov dates are compared as possible intervals, not coerced to the first day of the period. Results-overdue screening uses a 365-day threshold after primary completion when registry results are absent.
+- **Output impact:** Added `registration_claims_expanded.csv`, `registration_registry_current.csv`, `registration_registry_current.json`, `registration_registry_fetch_metadata.csv`, and `registration_history_events.csv`; existing `registration_claims.csv`, `registration_checks_input.csv`, `registration_row_results.csv`, and `registration_summary.csv` are preserved.
+- **Verification evidence:** `uv run ruff check .`, `uv run ruff format . --check`, `uv run pytest -q`, `bash scripts/run_pipeline.sh --forensics registration`, `quarto render notebooks/lungtime_registration_audit.qmd --to pdf`.

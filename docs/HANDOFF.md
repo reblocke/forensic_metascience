@@ -78,7 +78,7 @@ quarto render notebooks/lungtime_visual_audit.qmd --to pdf
 - Add fixture-based integration tests for each category CLI.
 
 ## Gotchas
-- Pipeline category scripts currently run with `python3` (system interpreter) because PDF tooling is user-level; this is intentional for now.
+- Most pipeline Python scripts should run through `uv run python` when they depend on project dependencies. Some older PDF-heavy scripts still call system `python3` and should be migrated when touched.
 - Visual caption extraction can be sparse depending on PDF text quality; empty extraction is handled and still produces schema-valid outputs.
 - Plot digitization is intentionally human-in-loop: it runs only when `--digitize-plots true` is set, and requires local figure image files matching the target manifest.
 
@@ -123,3 +123,44 @@ quarto render notebooks/lungtime_visual_audit.qmd --to pdf
 ### Gotchas
 - The new manuscript-review scripts also use system `python3` so they can reuse the user-level PDF libraries already present on this machine.
 - In sandboxed environments, `quarto render` may fail on an architecture probe; rerun the render outside the sandbox if the analysis files already exist and only PDF generation failed.
+
+## 2026-04-21 ClinicalTrials.gov registration audit addition
+
+### What changed
+- Added ClinicalTrials.gov registry-aware registration screening:
+  - `src/research_project/clinicaltrials_registry.py`
+  - expanded `scripts/extract_registration.py` CLI inputs for NCT IDs, local current-record JSON, optional history files, publication identifiers, network control, and explicit as-of date
+  - updated `scripts/build_registration_inputs.py` to prefer `registration_claims_expanded.csv` while preserving legacy claim compatibility
+  - updated `scripts/run_registration_forensics.R` to summarize only assessed claims for mismatch rates and to copy registry-history events into report outputs
+  - updated `scripts/run_pipeline.sh` to pass optional registry config fields and to run registration Python scripts through `uv run python`
+- Added optional study-config fields in `config/studies/*.sh`:
+  - `REGISTRY_ID`, `REGISTRY_URL`, `REGISTRY_CURRENT_REL_PATH`, `REGISTRY_HISTORY_REL_PATH`, `REGISTRY_ALLOW_NETWORK`, `REGISTRY_AS_OF_DATE`, `PUBLICATION_URL`, `PUBLICATION_DOI`, `PUBLICATION_PMID`
+- Added registration report sections for registry source metadata, current-record claims, history events, and interpretation labels.
+- Added `pypdf` to Python dependencies because registration extraction already required it but it was not declared in `pyproject.toml`.
+
+### New outputs
+- `data/processed/registration/<study>/inputs/registration_claims_expanded.csv`
+- `data/processed/registration/<study>/inputs/registration_registry_current.csv`
+- `data/processed/registration/<study>/inputs/registration_registry_current.json`
+- `data/processed/registration/<study>/metadata/registration_registry_fetch_metadata.csv`
+- `reports/registration/<study>/registration_history_events.csv`
+
+### What I verified
+```bash
+uv run ruff check .
+uv run ruff format . --check
+uv run pytest -q
+bash scripts/run_pipeline.sh --forensics registration
+quarto render notebooks/lungtime_registration_audit.qmd --to pdf
+```
+
+### Notes
+- Tests use local fixtures only and do not require live ClinicalTrials.gov network access.
+- Normal pipeline runs may fetch ClinicalTrials.gov API v2 current records when a unique NCT ID is available and `REGISTRY_ALLOW_NETWORK="true"`.
+- Registry history is local-input only for now; no stable live history endpoint is assumed.
+
+### 2026-04-21 review-fix follow-up
+- Fixed ClinicalTrials.gov helper missing-value handling so CSV blanks do not become literal `nan` strings in claims or history comparisons.
+- Changed missing local registry-history files to informational sentinel rows and updated the R summary to count only substantive `value_changed` medium/high events as major history changes.
+- Changed partial registry-date adjudication to interval-based logic for prospective-registration and results-overdue screens.
+- Added unit tests covering missing values, missing history files, partial registration dates, and partial primary-completion dates.

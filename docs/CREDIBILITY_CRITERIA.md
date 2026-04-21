@@ -4,7 +4,6 @@ This document defines minimum standards for analyses that evaluate research-clai
 
 ## 1) Input data contract
 - Raw extraction sources stay immutable in `data/raw/`.
-- Normalized analysis inputs are written to `data/processed/analysis_inputs/`.
 - Category-specific inputs are written to `data/processed/<category>/<study>/inputs/`.
 - Category-specific extraction metadata are written to `data/processed/<category>/<study>/metadata/`.
 - Shared study manifest is written to `data/processed/manifests/<study>/forensics_manifest.csv`.
@@ -18,23 +17,35 @@ This document defines minimum standards for analyses that evaluate research-clai
 - Place R package wrappers in `R/`.
 - Keep one function/module per package family when practical.
 - For each package run, save:
-  - package-native output (`data/processed/results/<analysis_id>/raw/`)
-  - standardized output for cross-method comparison (`data/processed/results/<analysis_id>/standardized/`)
-  - run metadata (`data/processed/metadata/`)
+  - package-native output under `reports/<category>/<study>/` or `data/processed/<category>/<study>/inputs/`
+  - standardized output for cross-method comparison under the category report folder
+  - run metadata under `data/processed/<category>/<study>/metadata/`
+- Preserve backward-compatible outputs when expanding a category contract.
 
-## 3) Reproducibility and provenance
+## 3) Registration / registry checks
+- Report-versus-protocol congruence claims are written to `registration_claims.csv`.
+- Expanded registry-aware claims are written to `registration_claims_expanded.csv`.
+- ClinicalTrials.gov current-record outputs, when applicable, are written to:
+  - `registration_registry_current.csv`
+  - `registration_registry_current.json`
+  - `registration_registry_fetch_metadata.csv`
+- Registry history checks are local-input only unless a stable public history endpoint is explicitly adopted and documented.
+- Missing, ambiguous, or non-NCT registry cases should be represented as `not_assessed` or `indeterminate`, not as failures.
+- Mismatch rates should use assessed rows only.
+
+## 4) Reproducibility and provenance
 - Capture package versions and session info for each run.
 - Record package parameters/options and seed values.
 - Keep deterministic transformations; no ad-hoc manual edits of processed outputs.
 - Document scientific assumptions in `docs/DECISIONS.md`.
 
-## 4) Quarto reporting contract
+## 5) Quarto reporting contract
 - Author reports/notebooks as `.qmd` in `notebooks/`.
 - Reports should read from `data/processed/` and write rendered artifacts to `reports/`.
 - Final report tables/figures should reference method names, assumptions, and sensitivity checks.
 - Forensics category reports should render to PDF at `reports/<category>/<study>/`.
 
-## 5) Verification minimums
+## 6) Verification minimums
 - Add/maintain unit tests for parsing and standardization logic.
 - Add at least one integration-style test for end-to-end package interface behavior on a small fixture.
 - Run standard checks before closing work:

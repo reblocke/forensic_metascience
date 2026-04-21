@@ -12,7 +12,7 @@ execute:
 
 ## Scope
 
-This report compares manuscript and protocol claims for trial registration and methods congruence.
+This report compares manuscript, protocol, and ClinicalTrials.gov registration signals when a ClinicalTrials.gov NCT identifier is available. Registry-derived findings are screening signals: they identify discrepancies or missingness that require source-document review, not adjudicated protocol violations.
 
 ## Load Outputs
 
@@ -20,6 +20,7 @@ This report compares manuscript and protocol claims for trial registration and m
 repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
 study_id <- Sys.getenv("FORENSICS_STUDY_ID", "lungtime")
 report_dir <- file.path(repo_root, "reports", "registration", study_id)
+data_dir <- file.path(repo_root, "data", "processed", "registration", study_id)
 
 required <- c("registration_row_results.csv", "registration_summary.csv")
 missing <- required[!file.exists(file.path(report_dir, required))]
@@ -29,6 +30,24 @@ if (length(missing) > 0) {
 
 row_results <- read.csv(file.path(report_dir, "registration_row_results.csv"), check.names = FALSE)
 summary_tbl <- read.csv(file.path(report_dir, "registration_summary.csv"), check.names = FALSE)
+history_path <- file.path(report_dir, "registration_history_events.csv")
+history_events <- if (file.exists(history_path)) {
+  read.csv(history_path, check.names = FALSE)
+} else {
+  data.frame()
+}
+fetch_metadata_path <- file.path(data_dir, "metadata", "registration_registry_fetch_metadata.csv")
+fetch_metadata <- if (file.exists(fetch_metadata_path)) {
+  read.csv(fetch_metadata_path, check.names = FALSE)
+} else {
+  data.frame()
+}
+current_registry_path <- file.path(data_dir, "inputs", "registration_registry_current.csv")
+current_registry <- if (file.exists(current_registry_path)) {
+  read.csv(current_registry_path, check.names = FALSE)
+} else {
+  data.frame()
+}
 
 compact_character <- function(x, width = 44) {
   x <- as.character(x)
@@ -55,33 +74,147 @@ compact_df <- function(df, cols = NULL, n = 20, char_width = 44) {
 
 ## Interpretation Key
 
-- `n_claims`: number of report-versus-protocol claims checked.
-- `n_mismatch`: number of claims where extracted values do not match.
-- `mismatch_rate`: mismatch burden across claims.
-- `n_missing`: claims with missing extracted value from report or protocol.
-- `missing_rate`: missingness burden that can reduce confidence in congruence checks.
+- `n_claims`: total claim rows evaluated, including report-protocol and registry-derived rows.
+- `n_claims_assessed`: rows with enough information to classify as `match` or `mismatch`.
+- `n_mismatch`: assessed rows classified as mismatch.
+- `mismatch_rate`: `n_mismatch / n_claims_assessed`; indeterminate and not-assessed rows are excluded.
+- `n_missing`: rows with missing report or protocol values.
+- `missing_rate`: missing report/protocol burden across all claim rows.
+- `prospective_registration_status`: whether the registry first-posted date appears on or before the registered study start date.
+- `n_major_registry_history_changes`: local history-event rows marked medium/high severity.
+- `results_overdue_flag`: registry results appear absent more than 365 days after primary completion in this screen.
+- `publication_link_missing_flag`: a supplied DOI/PMID/URL was not found in registry references.
+
+Classification labels:
+
+- `match`: available extracted values agree under the implemented screen.
+- `mismatch`: available extracted values conflict or a prespecified registry screen fails.
+- `indeterminate`: the source contains insufficient or ambiguous information for automated classification.
+- `not_assessed`: the screen is not applicable or no eligible registry/source data were available.
 
 ```{r}
 knitr::kable(summary_tbl, digits = 4)
 ```
 
-## Claim-Level Table
+## Registry Source
 
 ```{r}
+if (nrow(fetch_metadata) == 0) {
+  cat("No registry fetch metadata was available.\n")
+} else {
+  knitr::kable(
+    compact_df(
+      fetch_metadata,
+      cols = c(
+        "registry_id",
+        "registry_id_source",
+        "registry_current_source",
+        "allow_network",
+        "fetch_status",
+        "fetch_message",
+        "api_url"
+      ),
+      n = 5,
+      char_width = 42
+    )
+  )
+}
+```
+
+```{r}
+if (nrow(current_registry) > 0) {
+  knitr::kable(
+    compact_df(
+      current_registry,
+      cols = c(
+        "registry_id",
+        "study_type",
+        "overall_status",
+        "start_date",
+        "study_first_posted_date",
+        "primary_completion_date",
+        "has_results",
+        "enrollment_count",
+        "allocation",
+        "masking"
+      ),
+      n = 5,
+      char_width = 36
+    )
+  )
+} else {
+  cat("No normalized ClinicalTrials.gov current record was available.\n")
+}
+```
+
+## Report-Protocol Claims
+
+```{r}
+report_protocol <- row_results[row_results$claim_category == "report_protocol", , drop = FALSE]
 knitr::kable(
   compact_df(
-    row_results,
+    report_protocol,
     cols = c(
-      "claim",
+      "claim_id",
       "report_value",
       "protocol_value",
-      "match_status",
-      "evidence_page_report",
-      "evidence_page_protocol",
-      "extract_confidence"
+      "assessment_status",
+      "page_ref",
+      "severity"
     ),
     n = 25,
-    char_width = 40
+    char_width = 38
   )
 )
+```
+
+## ClinicalTrials.gov Current-Record Claims
+
+```{r}
+registry_claims <- row_results[row_results$claim_category != "report_protocol", , drop = FALSE]
+if (nrow(registry_claims) == 0) {
+  cat("No ClinicalTrials.gov-derived claim rows were available.\n")
+} else {
+  knitr::kable(
+    compact_df(
+      registry_claims,
+      cols = c(
+        "claim_id",
+        "assessment_status",
+        "severity",
+        "report_value",
+        "registry_value",
+        "notes"
+      ),
+      n = 30,
+      char_width = 34
+    )
+  )
+}
+```
+
+## Registry History Events
+
+Registry history is optional in this version. If no local history file is supplied, this table is expected to be empty.
+
+```{r}
+if (nrow(history_events) == 0) {
+  cat("No local registry-history events were available.\n")
+} else {
+  knitr::kable(
+    compact_df(
+      history_events,
+      cols = c(
+        "event_date",
+        "registry_field",
+        "old_value",
+        "new_value",
+        "severity",
+        "notes"
+      ),
+      n = 30,
+      char_width = 34
+    )
+  )
+}
 ```

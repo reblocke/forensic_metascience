@@ -6,3 +6,15 @@ PROTOCOL_REL_PATH="data/raw/studies/pronto/bmjopen-2022-063424.pdf"
 SUPPLEMENT_REL_PATH="data/raw/studies/pronto/mmc1 (2).pdf"
 BASELINE_REL_PATH="data/raw/studies/pronto/mmc1 (2).pdf"
 BASELINE_TABLE_LABEL="Table s3"
+
+# Optional ClinicalTrials.gov registration audit inputs.
+# Leave blank to resolve a unique NCT ID from report/protocol text.
+REGISTRY_ID=""
+REGISTRY_URL=""
+REGISTRY_CURRENT_REL_PATH=""
+REGISTRY_HISTORY_REL_PATH=""
+REGISTRY_ALLOW_NETWORK="true"
+REGISTRY_AS_OF_DATE=""
+PUBLICATION_URL=""
+PUBLICATION_DOI=""
+PUBLICATION_PMID=""

@@ -111,6 +111,16 @@ if [[ ! -f "$CONFIG_PATH" ]]; then
 fi
 source "$CONFIG_PATH"
 
+REGISTRY_ID="${REGISTRY_ID:-}"
+REGISTRY_URL="${REGISTRY_URL:-}"
+REGISTRY_CURRENT_REL_PATH="${REGISTRY_CURRENT_REL_PATH:-}"
+REGISTRY_HISTORY_REL_PATH="${REGISTRY_HISTORY_REL_PATH:-}"
+REGISTRY_ALLOW_NETWORK="${REGISTRY_ALLOW_NETWORK:-true}"
+REGISTRY_AS_OF_DATE="${REGISTRY_AS_OF_DATE:-}"
+PUBLICATION_URL="${PUBLICATION_URL:-}"
+PUBLICATION_DOI="${PUBLICATION_DOI:-}"
+PUBLICATION_PMID="${PUBLICATION_PMID:-}"
+
 REPORT_PDF="$REPO_ROOT/$REPORT_REL_PATH"
 PROTOCOL_PDF="$REPO_ROOT/$PROTOCOL_REL_PATH"
 SUPPLEMENT_PDF="$REPO_ROOT/$SUPPLEMENT_REL_PATH"
@@ -233,13 +243,42 @@ run_registration_category() {
 
   mkdir -p "$REG_DATA_DIR" "$REG_REPORT_DIR"
 
-  PYTHONPATH="$REPO_ROOT/src" python3 scripts/extract_registration.py \
+  REGISTRY_ARGS=(
+    --allow-network "$REGISTRY_ALLOW_NETWORK"
+  )
+  if [[ -n "$REGISTRY_ID" ]]; then
+    REGISTRY_ARGS+=(--registry-id "$REGISTRY_ID")
+  fi
+  if [[ -n "$REGISTRY_URL" ]]; then
+    REGISTRY_ARGS+=(--registry-url "$REGISTRY_URL")
+  fi
+  if [[ -n "$REGISTRY_CURRENT_REL_PATH" ]]; then
+    REGISTRY_ARGS+=(--registry-current-json "$REPO_ROOT/$REGISTRY_CURRENT_REL_PATH")
+  fi
+  if [[ -n "$REGISTRY_HISTORY_REL_PATH" ]]; then
+    REGISTRY_ARGS+=(--registry-history "$REPO_ROOT/$REGISTRY_HISTORY_REL_PATH")
+  fi
+  if [[ -n "$REGISTRY_AS_OF_DATE" ]]; then
+    REGISTRY_ARGS+=(--as-of-date "$REGISTRY_AS_OF_DATE")
+  fi
+  if [[ -n "$PUBLICATION_URL" ]]; then
+    REGISTRY_ARGS+=(--publication-url "$PUBLICATION_URL")
+  fi
+  if [[ -n "$PUBLICATION_DOI" ]]; then
+    REGISTRY_ARGS+=(--publication-doi "$PUBLICATION_DOI")
+  fi
+  if [[ -n "$PUBLICATION_PMID" ]]; then
+    REGISTRY_ARGS+=(--publication-pmid "$PUBLICATION_PMID")
+  fi
+
+  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_registration.py \
     --report "$REPORT_PDF" \
     --protocol "$PROTOCOL_PDF" \
     --study-id "$STUDY_ID" \
-    --out "$REG_DATA_DIR"
+    --out "$REG_DATA_DIR" \
+    "${REGISTRY_ARGS[@]}"
 
-  PYTHONPATH="$REPO_ROOT/src" python3 scripts/build_registration_inputs.py \
+  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/build_registration_inputs.py \
     --in "$REG_DATA_DIR" \
     --out "$REG_DATA_DIR"
 
@@ -253,7 +292,7 @@ run_registration_category() {
     "$REG_REPORT_DIR" \
     "${STUDY_ID}_registration_audit.pdf"
 
-  PYTHONPATH="$REPO_ROOT/src" python3 scripts/mark_forensics_ready.py \
+  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/mark_forensics_ready.py \
     --study-id "$STUDY_ID" \
     --category "registration" \
     --source-pdf "$(basename "$REPORT_PDF")|$(basename "$PROTOCOL_PDF")" \

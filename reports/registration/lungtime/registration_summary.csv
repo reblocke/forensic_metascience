@@ -1,2 +1,2 @@
-trial_id,n_claims,n_mismatch,mismatch_rate,n_missing,missing_rate
-lungtime,4,1,0.25,0,0
+trial_id,n_claims,n_claims_total,n_claims_assessed,n_not_assessed,n_indeterminate,n_mismatch,mismatch_rate,n_missing,missing_rate,prospective_registration_status,n_major_registry_history_changes,results_overdue_flag,publication_link_missing_flag
+lungtime,18,18,16,1,1,2,0.125,1,0.05555555555555555,prospective,0,TRUE,FALSE

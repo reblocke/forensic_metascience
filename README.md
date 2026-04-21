@@ -182,12 +182,19 @@ bash scripts/run_pipeline.sh --forensics all
 bash scripts/run_pipeline.sh --study-id pronto --forensics all
 ```
 
-### 6) Run visual category with interactive plot digitization (pilot)
+### 6) Run registration checks with ClinicalTrials.gov support
+```bash
+bash scripts/run_pipeline.sh --forensics registration
+```
+
+When a unique NCT identifier is present in the report/protocol text, the registration stage attempts a ClinicalTrials.gov API v2 current-record lookup. To keep a run fully offline or pinned to a known record, set `REGISTRY_CURRENT_REL_PATH` in the study config and set `REGISTRY_ALLOW_NETWORK="false"`. Use `REGISTRY_AS_OF_DATE` to pin the results-overdue screen to a specific date.
+
+### 7) Run visual category with interactive plot digitization (pilot)
 ```bash
 bash scripts/run_pipeline.sh --forensics visual --digitize-plots true
 ```
 
-### 6) Render Quarto reports (when `.qmd` notebooks are present)
+### 8) Render Quarto reports (when `.qmd` notebooks are present)
 ```bash
 quarto render notebooks
 ```
@@ -276,7 +283,7 @@ bash scripts/run_pipeline.sh --study-id pronto --forensics all
 - Current implemented categories:
   - `randomization` (baseline balance and `simdistr`-oriented checks)
   - `numeric` (numeric/rounding consistency plus package-native `scrutiny` checks: GRIM, GRIMMER, DEBIT, duplicates, rounding-bias, and `statcheck`)
-  - `registration` (report-versus-protocol congruence checks)
+  - `registration` (report-versus-protocol congruence plus optional ClinicalTrials.gov current-record checks)
   - `visual` (caption/figure-sequence heuristics)
   - `meta` (cross-category anomaly aggregation)
   - `prediction_validation review` (manuscript-review path for nonrandomized prediction-model papers)
@@ -356,9 +363,19 @@ This repo is **R-first** for the inferential/forensic engines. Python is used fo
 ### Registration congruence (`registration`)
 
 - Repo extraction + congruence checks
-  - Objective: compare specific manuscript vs protocol claims (registration/methods congruence).
+  - Objective: compare specific manuscript vs protocol claims (registration/methods congruence), and when an NCT ID is available, compare source claims against the current ClinicalTrials.gov record.
   - Inputs in this repo: extracted claim tables under `data/processed/registration/<study>/inputs/`.
   - Limitations: claims can be ambiguous; missing IDs/fields can silently reduce coverage; results should be reviewed with the source documents.
+
+- ClinicalTrials.gov API v2: https://clinicaltrials.gov/data-api/api
+  - Objective: retrieve the current registry record for NCT-registered studies and screen for prospective registration, enrollment/outcome/design congruence, results posting, and publication linkage.
+  - Inputs in this repo:
+    - optional study-config fields: `REGISTRY_ID`, `REGISTRY_URL`, `REGISTRY_CURRENT_REL_PATH`, `REGISTRY_HISTORY_REL_PATH`, `REGISTRY_ALLOW_NETWORK`, `REGISTRY_AS_OF_DATE`, `PUBLICATION_DOI`, `PUBLICATION_PMID`, `PUBLICATION_URL`
+    - generated current-record outputs: `registration_registry_current.csv`, `registration_claims_expanded.csv`, and `registration_registry_fetch_metadata.csv`
+  - Limitations:
+    - Only NCT identifiers trigger ClinicalTrials.gov-specific checks.
+    - Current-record checks cannot prove when a field changed; local registry-history files are needed for history-event screens.
+    - Automated text matching is conservative. Many nonmatches are labeled `indeterminate` rather than `mismatch`.
 
 ### Visual techniques (`visual`)
 
