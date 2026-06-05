@@ -111,7 +111,7 @@ def main() -> None:
     if pdfplumber is None:
         pd.DataFrame(columns=SUMMARY_COLUMNS).to_csv(output_path, index=False)
         print(
-            "pdfplumber is not installed; wrote header-only numeric summary table.",
+            "pdfplumber is not installed; run `uv sync` from the repo root.",
             file=sys.stderr,
         )
         print(f"Wrote {output_path}")

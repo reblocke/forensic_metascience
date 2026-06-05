@@ -28,6 +28,35 @@ Record decisions that affect reproducibility and interpretation.
 - **Output impact:** New outputs under `data/processed/<category>/<study>/`, `reports/<category>/<study>/`, and `data/processed/manifests/<study>/forensics_manifest.csv`.
 - **Verification evidence:** `uv run ruff check .`, `uv run pytest -q`, `bash scripts/run_pipeline.sh --forensics randomization,numeric,registration,visual,meta`.
 
+## 2026-06-05: Add ScienceVerse-informed transparency layer
+- **Date:** 2026-06-05
+- **Decision:** Add a `transparency` category that creates a repo-owned `research_object_lite.json` and offline transparency evidence tables inspired by the ScienceVerse/MetaCheck research-object and module pattern.
+- **Context:** ScienceVerse/MetaCheck provides a mature conceptual frame for machine-readable research descriptions and best-practice checks, but the public `metacheck` package is experimental, AGPL-licensed, broad in dependencies, and not needed for a deterministic v1 adapter.
+- **Options considered:**
+  - Add `metacheck` as a direct R dependency.
+  - Borrow only the conceptual model in docs.
+  - Add a narrow offline adapter category with explicit provenance.
+- **Why this choice:** It improves conceptual clarity and review provenance without changing existing numeric, randomization, registration, or visual scientific results, and avoids introducing network/LLM behavior or licensing ambiguity into default runs.
+- **Consequences / follow-ups:** Future citation-risk, repository-content, DOI, PubPeer, RetractionWatch, OSF/GitHub/Zenodo, or LLM-assisted checks must be opt-in and provenance-logged. Regex-based open-practice detection remains a screening aid with possible false positives.
+- **Methods/packages affected:** No new transparency-specific R or Python dependencies; `metacheck` is not imported in v1.
+- **Assumptions locked in:** Offline default; no LLM calls; no direct `metacheck` dependency; no automated quality, validity, misconduct, or ranking decision from transparency outputs. Software-use and package/vendor documentation links are provenance context, not open-code evidence unless paired with explicit code/script availability language.
+- **Output impact:** Added `data/processed/transparency/<study>/inputs/research_object_lite.json`, transparency evidence CSVs, `reports/transparency/<study>/transparency_summary.csv`, a transparency PDF report, and a transparency row in the shared manifest.
+- **Verification evidence:** `uv run ruff check .`, `uv run ruff format . --check`, `uv run pytest -q`, `bash scripts/run_pipeline.sh --forensics transparency`, `bash scripts/run_pipeline.sh --forensics all`.
+
+## 2026-06-05: Declare PDF extraction dependency and uv-managed public pipeline runtime
+- **Date:** 2026-06-05
+- **Decision:** Add `pdfplumber` to the uv-managed Python environment and run all public `scripts/run_pipeline.sh` Python stages through `uv run python`.
+- **Context:** The public all-category pipeline failed before analysis because system `python3` lacked `pandas`, while the uv environment lacked the already-used `pdfplumber` dependency required by randomization and numeric-summary extraction.
+- **Options considered:**
+  - Keep using system `python3` and rely on user-level packages.
+  - Declare missing PDF dependencies and make the public pipeline use the project environment.
+- **Why this choice:** The public pipeline should be reproducible from `pyproject.toml` and `uv.lock`, not dependent on machine-specific user Python state.
+- **Consequences / follow-ups:** `scripts/run_manuscript_review.sh` still uses system `python3` and can be migrated separately. Public pipeline users should run `uv sync` before analysis.
+- **Methods/packages affected:** Python extraction only; no R packages or scientific method assumptions changed.
+- **Assumptions locked in:** `pdfplumber` is an extraction dependency already used by existing code, not a new forensic method.
+- **Output impact:** No intended scientific output changes; regenerated public report artifacts may update due to rerunning the pipeline.
+- **Verification evidence:** `uv sync`, `uv run python -c "import pandas, pypdf, pdfplumber"`, `uv run ruff check .`, `uv run ruff format . --check`, `uv run pytest -q`, `bash scripts/run_pipeline.sh --forensics transparency`, `bash scripts/run_pipeline.sh --forensics all`.
+
 ## 2026-02-06: Numeric package-native execution baseline
 - **Date:** 2026-02-06
 - **Decision:** Run `scrutiny::grim_map` and `statcheck::statcheck` directly in `scripts/run_numeric_forensics.R` when packages are available, and emit one standardized long-table output.

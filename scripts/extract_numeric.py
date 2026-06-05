@@ -37,7 +37,7 @@ def extract_pdf_text(pdf_path: Path | None) -> str:
     except ImportError as exc:
         raise RuntimeError(
             "Missing PDF dependency for statcheck text extraction. "
-            "Install with: python3 -m pip install --user pypdf"
+            "Run `uv sync` from the repo root."
         ) from exc
     reader = PdfReader(str(pdf_path))
     return "\n".join((page.extract_text() or "") for page in reader.pages)

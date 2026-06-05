@@ -16,9 +16,7 @@ def _import_pdf_libraries() -> tuple[object, object]:
         import pdfplumber
         from pypdf import PdfReader
     except ImportError as exc:
-        message = (
-            "Missing PDF dependencies. Install with: python3 -m pip install --user pypdf pdfplumber"
-        )
+        message = "Missing PDF dependencies. Run `uv sync` from the repo root."
         raise RuntimeError(message) from exc
     return pdfplumber, PdfReader
 

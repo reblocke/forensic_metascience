@@ -11,11 +11,13 @@
   - `src/research_project/numeric_integrity.py`
   - `src/research_project/registration_forensics.py`
   - `src/research_project/visual_forensics.py`
+  - `src/research_project/transparency.py`
   - `src/research_project/meta_forensics.py`
 - Added category scripts (`extract -> build -> run`) and manifest updater:
   - `scripts/extract_numeric.py`, `scripts/build_numeric_inputs.py`, `scripts/run_numeric_forensics.R`
   - `scripts/extract_registration.py`, `scripts/build_registration_inputs.py`, `scripts/run_registration_forensics.R`
   - `scripts/extract_visual.py`, `scripts/build_visual_inputs.py`, `scripts/run_visual_forensics.R`
+  - `scripts/extract_transparency.py`, `scripts/build_transparency_inputs.py`, `scripts/run_transparency_forensics.R`
   - `scripts/extract_meta.py`, `scripts/build_meta_inputs.py`, `scripts/run_meta_forensics.R`
   - `scripts/mark_forensics_ready.py`
 - Added plot-digitization pilot workflow:
@@ -24,11 +26,12 @@
   - target manifest contract under `data/raw/figures/<study>/plot_digitization_targets.csv`
   - standardized digitized-point input `data/processed/visual/<study>/inputs/plot_digitized_values.csv`
 - Extended orchestration:
-  - `scripts/run_pipeline.sh` now supports `--forensics randomization,numeric,registration,visual,meta`, `all`, and optional `--digitize-plots true|false`.
+  - `scripts/run_pipeline.sh` now supports `--forensics randomization,numeric,registration,visual,transparency,meta`, `all`, and optional `--digitize-plots true|false`.
 - Added PDF report notebooks:
   - `notebooks/lungtime_numeric_audit.qmd`
   - `notebooks/lungtime_registration_audit.qmd`
   - `notebooks/lungtime_visual_audit.qmd`
+  - `notebooks/lungtime_transparency_audit.qmd`
   - `notebooks/lungtime_meta_audit.qmd`
 - Added tests for new core logic:
   - `tests/test_forensics_categories.py`
@@ -38,6 +41,11 @@
   - Numeric outputs now include package raw tables, audits, and `numeric_standardized_results.csv`.
 - Updated docs/contracts:
   - `README.md`, `docs/CREDIBILITY_CRITERIA.md`, `docs/DECISIONS.md`
+- Added a ScienceVerse-informed transparency layer:
+  - `research_object_lite.json` records source PDFs, file hashes, text refs, URLs, open-practice evidence, repository/preregistration links, and offline provenance.
+  - v1 is offline by default with no LLM calls, no live repository/citation-risk API checks, and no direct `metacheck` dependency.
+  - software-use and package/vendor documentation links are provenance context, not open-code evidence unless paired with explicit code/script availability language.
+  - meta aggregation now exposes `evidence_burden_score` and `review_priority` while preserving `overall_score` and `risk_tier` for compatibility.
 - Added study-config-driven public trial support:
   - `config/studies/lungtime.sh`
   - `config/studies/pronto.sh`
@@ -65,6 +73,9 @@ quarto render notebooks/lungtime_visual_audit.qmd --to pdf
 - `uv run ruff check .` passes.
 - `uv run ruff format . --check` passes.
 - `uv run pytest -q` passes.
+- `uv run pytest -q tests/test_transparency.py tests/test_forensics_categories.py` passes.
+- `bash scripts/run_pipeline.sh --forensics transparency` passes and renders transparency PDF.
+- `bash scripts/run_pipeline.sh --forensics all` passes.
 - `bash scripts/run_pipeline.sh` passes.
 - `bash scripts/run_pipeline.sh --study-id pronto --forensics all` passes.
 - `bash scripts/run_pipeline.sh --forensics visual` passes and renders visual PDF.
@@ -78,7 +89,7 @@ quarto render notebooks/lungtime_visual_audit.qmd --to pdf
 - Add fixture-based integration tests for each category CLI.
 
 ## Gotchas
-- Most pipeline Python scripts should run through `uv run python` when they depend on project dependencies. Some older PDF-heavy scripts still call system `python3` and should be migrated when touched.
+- The public `scripts/run_pipeline.sh` entrypoint runs Python stages through `uv run python`; run `uv sync` first so declared PDF dependencies are available.
 - Visual caption extraction can be sparse depending on PDF text quality; empty extraction is handled and still produces schema-valid outputs.
 - Plot digitization is intentionally human-in-loop: it runs only when `--digitize-plots true` is set, and requires local figure image files matching the target manifest.
 
@@ -164,3 +175,22 @@ quarto render notebooks/lungtime_registration_audit.qmd --to pdf
 - Changed missing local registry-history files to informational sentinel rows and updated the R summary to count only substantive `value_changed` medium/high events as major history changes.
 - Changed partial registry-date adjudication to interval-based logic for prospective-registration and results-overdue screens.
 - Added unit tests covering missing values, missing history files, partial registration dates, and partial primary-completion dates.
+
+## 2026-06-05 public pipeline Python environment stabilization
+
+### What changed
+- Added `pdfplumber` to declared Python dependencies because existing randomization and numeric-summary extraction already import it.
+- Changed the public `scripts/run_pipeline.sh` Python stages to run through `uv run python` instead of system `python3`.
+- Updated PDF dependency error messages to direct users to `uv sync`.
+- Left `scripts/run_manuscript_review.sh` on system `python3` as a deliberately separate follow-up scope.
+
+### What to verify
+```bash
+uv sync
+uv run python -c "import pandas, pypdf, pdfplumber"
+uv run ruff check .
+uv run ruff format . --check
+uv run pytest -q
+bash scripts/run_pipeline.sh --forensics transparency
+bash scripts/run_pipeline.sh --forensics all
+```

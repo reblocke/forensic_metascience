@@ -38,7 +38,7 @@ def main() -> None:
 
     summary_tables = {
         category: _to_summary_table(raw, category)
-        for category in ("randomization", "numeric", "registration", "visual")
+        for category in ("randomization", "numeric", "registration", "visual", "transparency")
     }
     category_scores = build_category_scores(summary_tables)
     overall = compute_overall_meta_score(category_scores)

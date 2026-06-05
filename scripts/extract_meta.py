@@ -14,6 +14,7 @@ SUMMARY_FILES = {
     "numeric": "numeric_summary.csv",
     "registration": "registration_summary.csv",
     "visual": "visual_summary.csv",
+    "transparency": "transparency_summary.csv",
 }
 
 

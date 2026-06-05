@@ -1,0 +1,95 @@
+---
+title: "Transparency Evidence Audit"
+format:
+  pdf:
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Scope
+
+This report summarizes offline transparency evidence extracted from source documents. It is an evidence map for human review, not an automated quality score. No network calls, LLM calls, or direct `metacheck` package dependency are used in this v1 category.
+
+## Load Outputs
+
+```{r}
+repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
+study_id <- Sys.getenv("FORENSICS_STUDY_ID", "lungtime")
+report_dir <- file.path(repo_root, "reports", "transparency", study_id)
+
+required <- c(
+  "transparency_summary.csv",
+  "transparency_open_practices.csv",
+  "transparency_repository_links.csv",
+  "transparency_preregistration_links.csv",
+  "research_object_sources.csv"
+)
+missing <- required[!file.exists(file.path(report_dir, required))]
+if (length(missing) > 0) {
+  stop("Missing files: ", paste(missing, collapse = ", "))
+}
+
+summary_tbl <- read.csv(file.path(report_dir, "transparency_summary.csv"), check.names = FALSE)
+open_practices <- read.csv(file.path(report_dir, "transparency_open_practices.csv"), check.names = FALSE)
+repositories <- read.csv(file.path(report_dir, "transparency_repository_links.csv"), check.names = FALSE)
+prereg <- read.csv(file.path(report_dir, "transparency_preregistration_links.csv"), check.names = FALSE)
+sources <- read.csv(file.path(report_dir, "research_object_sources.csv"), check.names = FALSE)
+```
+
+## Summary
+
+`transparency_evidence_burden` is a triage-oriented missing-evidence indicator based on detected open-practice statements and on-request language. It should not be interpreted as a validity, misconduct, or quality ranking.
+
+```{r}
+knitr::kable(summary_tbl, digits = 4)
+```
+
+## Source Provenance
+
+```{r}
+knitr::kable(sources)
+```
+
+## Open-Practice Evidence
+
+```{r}
+if (nrow(open_practices) == 0) {
+  cat("No open-practice evidence statements were detected by the offline text scan.")
+} else {
+  display <- open_practices[, intersect(
+    c("practice", "is_open", "category", "location", "source_pdf", "page", "evidence_text"),
+    names(open_practices)
+  ), drop = FALSE]
+  knitr::kable(display)
+}
+```
+
+## Repository Links
+
+```{r}
+if (nrow(repositories) == 0) {
+  cat("No supported repository links were detected.")
+} else {
+  knitr::kable(repositories[, intersect(
+    c("repository_type", "url", "source_pdf", "page", "context"),
+    names(repositories)
+  ), drop = FALSE])
+}
+```
+
+## Preregistration And Registry Links
+
+```{r}
+if (nrow(prereg) == 0) {
+  cat("No preregistration or registry links/identifiers were detected.")
+} else {
+  knitr::kable(prereg[, intersect(
+    c("link_type", "url_or_id", "source_pdf", "page", "context"),
+    names(prereg)
+  ), drop = FALSE])
+}
+```

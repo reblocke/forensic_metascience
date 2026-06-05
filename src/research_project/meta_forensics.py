@@ -12,6 +12,7 @@ DEFAULT_CATEGORY_WEIGHTS: dict[str, float] = {
     "numeric": 1.0,
     "registration": 0.8,
     "visual": 0.8,
+    "transparency": 0.6,
 }
 
 
@@ -78,6 +79,19 @@ def build_category_scores(
             }
         )
 
+    if "transparency" in summary_tables and not summary_tables["transparency"].empty:
+        transparency = summary_tables["transparency"].iloc[0]
+        burden = float(transparency.get("transparency_evidence_burden", math.nan))
+        score = _bounded(burden if not math.isnan(burden) else 0.0)
+        rows.append(
+            {
+                "category": "transparency",
+                "metric": "transparency_evidence_burden",
+                "raw_value": burden,
+                "anomaly_score": score,
+            }
+        )
+
     return pd.DataFrame(rows)
 
 
@@ -88,7 +102,12 @@ def compute_overall_meta_score(
     """Compute weighted overall anomaly score and risk tier."""
 
     if category_scores.empty:
-        return {"overall_score": math.nan, "risk_tier": "insufficient_data"}
+        return {
+            "overall_score": math.nan,
+            "risk_tier": "insufficient_data",
+            "evidence_burden_score": math.nan,
+            "review_priority": "insufficient_data",
+        }
 
     weights = category_weights or DEFAULT_CATEGORY_WEIGHTS
     scores = []
@@ -103,7 +122,12 @@ def compute_overall_meta_score(
         score_weights.append(weight)
 
     if not scores:
-        return {"overall_score": math.nan, "risk_tier": "insufficient_data"}
+        return {
+            "overall_score": math.nan,
+            "risk_tier": "insufficient_data",
+            "evidence_burden_score": math.nan,
+            "review_priority": "insufficient_data",
+        }
 
     weighted = sum(scores[index] * score_weights[index] for index in range(len(scores)))
     total_weight = sum(score_weights)
@@ -118,4 +142,9 @@ def compute_overall_meta_score(
     else:
         tier = "high"
 
-    return {"overall_score": overall, "risk_tier": tier}
+    return {
+        "overall_score": overall,
+        "risk_tier": tier,
+        "evidence_burden_score": overall,
+        "review_priority": tier,
+    }

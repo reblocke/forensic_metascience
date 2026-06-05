@@ -39,13 +39,24 @@ This document defines minimum standards for analyses that evaluate research-clai
 - Keep deterministic transformations; no ad-hoc manual edits of processed outputs.
 - Document scientific assumptions in `docs/DECISIONS.md`.
 
-## 5) Quarto reporting contract
+## 5) Transparency / research-object checks
+- Transparency inputs are written under `data/processed/transparency/<study>/inputs/`.
+- The repo-owned `research_object_lite.json` contract records source PDFs, file hashes, page-level text refs, detected URLs, repository links, preregistration/registry links, open-practice evidence, figure/table mentions, and offline provenance.
+- The v1 transparency category is offline by default:
+  - no LLM calls
+  - no live DOI, PubPeer, RetractionWatch, OSF, GitHub, Zenodo, or other repository API calls
+  - no direct `metacheck` package dependency
+- Automated transparency checks are evidence maps for human review, not automated quality, validity, misconduct, or ranking decisions.
+- Software-use and package/vendor documentation links are recorded as provenance context only; they do not satisfy open-code evidence unless the text also states code or scripts are available.
+- Network or LLM-assisted checks require explicit opt-in flags plus provenance outputs documenting what external services were used.
+
+## 6) Quarto reporting contract
 - Author reports/notebooks as `.qmd` in `notebooks/`.
 - Reports should read from `data/processed/` and write rendered artifacts to `reports/`.
 - Final report tables/figures should reference method names, assumptions, and sensitivity checks.
 - Forensics category reports should render to PDF at `reports/<category>/<study>/`.
 
-## 6) Verification minimums
+## 7) Verification minimums
 - Add/maintain unit tests for parsing and standardization logic.
 - Add at least one integration-style test for end-to-end package interface behavior on a small fixture.
 - Run standard checks before closing work:

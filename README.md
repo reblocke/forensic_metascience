@@ -71,6 +71,8 @@ cd <REPO_DIR>
 uv sync
 ```
 
+This installs the declared PDF extraction dependencies used by the public pipeline, including `pypdf` and `pdfplumber`.
+
 ### 3) Install R packages
 
 Required for this pipeline's R scripts:
@@ -152,7 +154,7 @@ Important:
 
 - local review outputs under `data/processed/reviews/`, `reports/reviews/`, and `notebooks/reports/` are gitignored
 - the manuscript-review path currently assumes manual or semi-manual transcription of the key tables
-- some PDF extraction scripts use system `python3` because PDF tooling is installed at user level on this machine
+- the separate manuscript-review script still uses system `python3`; the public `scripts/run_pipeline.sh` path uses the uv-managed Python environment
 
 ## Quickstart Reference
 
@@ -169,7 +171,7 @@ bash scripts/run_pipeline.sh --randomization-audit
 
 ### 3) Run selected forensic categories (comma-separated)
 ```bash
-bash scripts/run_pipeline.sh --forensics randomization,numeric,registration,visual,meta
+bash scripts/run_pipeline.sh --forensics randomization,numeric,registration,visual,transparency,meta
 ```
 
 ### 4) Run all categories (LungTIME test case)
@@ -285,7 +287,8 @@ bash scripts/run_pipeline.sh --study-id pronto --forensics all
   - `numeric` (numeric/rounding consistency plus package-native `scrutiny` checks: GRIM, GRIMMER, DEBIT, duplicates, rounding-bias, and `statcheck`)
   - `registration` (report-versus-protocol congruence plus optional ClinicalTrials.gov current-record checks)
   - `visual` (caption/figure-sequence heuristics)
-  - `meta` (cross-category anomaly aggregation)
+  - `transparency` (offline research-object metadata, open-practice evidence, repository/preregistration links, and text provenance)
+  - `meta` (cross-category evidence-burden aggregation for human review prioritization)
   - `prediction_validation review` (manuscript-review path for nonrandomized prediction-model papers)
 
 ## Prediction-Validation Manuscript Review
@@ -326,6 +329,14 @@ Key limitation:
 - Processed digitized points: `data/processed/visual/<study>/inputs/plot_digitized_values.csv`.
 - Visual summary includes: `n_digitized_figures`, `n_digitized_series`, `n_digitized_points`, `digitization_ready`.
 - Pipeline default remains non-interactive; opt in with `--digitize-plots true`.
+
+## Transparency research-object contract
+- Research object: `data/processed/transparency/<study>/inputs/research_object_lite.json`.
+- Source provenance: `research_object_sources.csv` with source roles, repo-relative paths, SHA-256 hashes, and page counts.
+- Evidence tables: `transparency_urls.csv`, `transparency_repository_links.csv`, `transparency_preregistration_links.csv`, `transparency_open_practices.csv`, and `transparency_figure_table_mentions.csv`.
+- Report summary: `reports/transparency/<study>/transparency_summary.csv`.
+- The v1 transparency category is offline by default: no LLM calls, no live repository/DOI/citation-risk API calls, and no direct `metacheck` dependency.
+- Transparency outputs are evidence maps for human review, not automated quality, validity, misconduct, or ranking decisions.
 
 ## Tools And Packages (Why, Inputs, Limitations)
 
@@ -391,10 +402,18 @@ This repo is **R-first** for the inferential/forensic engines. Python is used fo
 
 ### Meta aggregation (`meta`)
 
-- Repo aggregation logic (category-level scoring)
-  - Objective: turn per-category summaries into an overall score and tier to prioritize review.
+- Repo aggregation logic (category-level evidence burden)
+  - Objective: turn per-category summaries into an evidence-burden score and review-priority label for human triage.
   - Inputs in this repo: `reports/<category>/<study>/*_summary.csv` and standardized tables.
-  - Limitations: heuristic weighting and tiering (not a validated decision rule).
+  - Limitations: heuristic weighting and tiering; not a validated decision rule and not an automated assessment of study quality, validity, or misconduct.
+
+### Transparency evidence (`transparency`)
+
+- Repo-owned ScienceVerse-informed adapter
+  - Objective: create a compact machine-readable research-object description and offline evidence map for source provenance, open-practice statements, repository links, preregistration/registry links, and figure/table mentions.
+  - Inputs in this repo: configured report, protocol, supplement, and baseline PDFs.
+  - Outputs in this repo: `research_object_lite.json`, transparency evidence CSVs, `transparency_summary.csv`, and a Quarto PDF report.
+  - Limitations: regex-based detection can miss evidence or produce false positives; external repository contents and citation-risk services are not checked unless a future opt-in path is added.
 
 ## Working principles
 - No silent changes to assumptions or analysis defaults.

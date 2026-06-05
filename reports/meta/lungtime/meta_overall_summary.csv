@@ -1,2 +1,2 @@
-overall_score,risk_tier,n_categories
-0.09928431723717063,low,4
+overall_score,risk_tier,evidence_burden_score,review_priority,n_categories
+0.1327198909651939,low,0.1327198909651939,low,5

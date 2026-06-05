@@ -264,13 +264,22 @@ def test_meta_forensics_score_aggregation() -> None:
         "numeric": pd.DataFrame([{"median_abs_percent_delta": 0.4}]),
         "registration": pd.DataFrame([{"mismatch_rate": 0.25}]),
         "visual": pd.DataFrame([{"near_duplicate_rate": 0.10}]),
+        "transparency": pd.DataFrame([{"transparency_evidence_burden": 0.25}]),
     }
     scores = build_category_scores(summary_tables)
     overall = compute_overall_meta_score(scores)
 
-    assert set(scores["category"]) == {"randomization", "numeric", "registration", "visual"}
+    assert set(scores["category"]) == {
+        "randomization",
+        "numeric",
+        "registration",
+        "visual",
+        "transparency",
+    }
     assert 0.0 <= overall["overall_score"] <= 1.0
+    assert overall["evidence_burden_score"] == overall["overall_score"]
     assert overall["risk_tier"] in {"low", "moderate", "high"}
+    assert overall["review_priority"] == overall["risk_tier"]
 
 
 def test_manifest_upsert_replaces_existing_category(tmp_path: Path) -> None:
@@ -279,7 +288,7 @@ def test_manifest_upsert_replaces_existing_category(tmp_path: Path) -> None:
         manifest_path,
         study_id="trial_x",
         source_pdf="report.pdf",
-        category="numeric",
+        category="transparency",
         extract_confidence="high",
         page_ref="3",
         table_ref="table1",
@@ -289,7 +298,7 @@ def test_manifest_upsert_replaces_existing_category(tmp_path: Path) -> None:
         manifest_path,
         study_id="trial_x",
         source_pdf="report.pdf",
-        category="numeric",
+        category="transparency",
         extract_confidence="high",
         page_ref="3",
         table_ref="table1",

@@ -1,0 +1,2 @@
+study_id,n_source_files,n_pages,n_urls,n_repository_links,n_preregistration_links,n_availability_statements,data_statement_detected,code_statement_detected,materials_statement_detected,registration_statement_detected,on_request_statement_detected,transparency_evidence_burden,external_network_used,llm_used,metacheck_dependency_used
+lungtime,2,82,30,2,4,14,TRUE,FALSE,TRUE,TRUE,TRUE,0.5,FALSE,FALSE,FALSE

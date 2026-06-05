@@ -32,7 +32,7 @@ parse_args <- function() {
   parsed
 }
 
-risk_tier <- function(score) {
+review_priority <- function(score) {
   if (is.na(score)) {
     return("insufficient_data")
   }
@@ -62,7 +62,7 @@ main <- function() {
     stop("Expected `anomaly_score` column in ", scores_path)
   }
 
-  weights <- c(randomization = 1.0, numeric = 1.0, registration = 0.8, visual = 0.8)
+  weights <- c(randomization = 1.0, numeric = 1.0, registration = 0.8, visual = 0.8, transparency = 0.6)
   scores <- scores %>%
     mutate(weight = dplyr::coalesce(weights[category], 1.0))
   valid <- scores %>% filter(!is.na(anomaly_score))
@@ -74,7 +74,9 @@ main <- function() {
   }
   overall <- tibble::tibble(
     overall_score = overall_score,
-    risk_tier = risk_tier(overall_score),
+    risk_tier = review_priority(overall_score),
+    evidence_burden_score = overall_score,
+    review_priority = review_priority(overall_score),
     n_categories = nrow(valid)
   )
 

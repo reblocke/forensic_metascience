@@ -25,9 +25,7 @@ def _import_pdf_reader() -> object:
     try:
         from pypdf import PdfReader
     except ImportError as exc:
-        raise RuntimeError(
-            "Missing PDF dependency. Install with: python3 -m pip install --user pypdf"
-        ) from exc
+        raise RuntimeError("Missing PDF dependency. Run `uv sync` from the repo root.") from exc
     return PdfReader
 
 
