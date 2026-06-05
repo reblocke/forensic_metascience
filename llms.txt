@@ -1,0 +1,45 @@
+# Forensic Meta-Science Credibility Pipeline
+
+Repository: https://github.com/reblocke/forensic_metascience
+Purpose: Repository for forensic science replications
+Status: No manuscript version is expected. This repository may contain third-party study data; verify reuse terms.
+
+## Human-Readable Entry Points
+- `README.md` is the primary human-facing overview.
+- `llms.txt` is a compact machine-readable index and should not replace the README.
+
+## Repository Layout
+- `AGENTS.md`
+- `Checkpoint Inhib Time of Day/41591_2025_4181_MOESM1_ESM.pdf`
+- `Checkpoint Inhib Time of Day/s41591-025-04181-w.pdf`
+- `LICENSE`
+- `R/README.md`
+- `README.md`
+- `Snakefile`
+- `docs/AI_SHARP_EDGES.md`
+- `docs/CODEX_WORKFLOW.md`
+- `docs/CREDIBILITY_CRITERIA.md`
+- `docs/DECISIONS.md`
+- `docs/HANDOFF.md`
+- `docs/TASK_TEMPLATE.md`
+- `notebooks/.gitignore`
+
+## Data and Reuse Boundaries
+Public replication data; verify source licenses
+
+## Workflow
+Run Python smoke checks
+
+## Dependencies
+Python dependency metadata
+
+## Citation
+No publication DOI is assigned to this repository. Cite the GitHub repository URL and the commit or release used.
+
+## License
+MIT License for repository code; see `LICENSE`. Third-party and publisher materials remain under their original terms.
+
+## Agent Cautions
+- Do not re-add a README appendix aimed primarily at LLMs; integrate user-facing details into normal README sections.
+- Keep restricted clinical data, private drafts, publisher PDFs, local paths, and generated outputs out of public documentation unless explicitly reviewed.
+- Prefer concise summaries plus links to citable records over copied manuscript or publisher text.

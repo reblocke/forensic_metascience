@@ -404,50 +404,20 @@ This repo is **R-first** for the inferential/forensic engines. Python is used fo
 
 See `AGENTS.md` for detailed operating conventions and `docs/DECISIONS.md` for scientific/architectural decision notes.
 
-## LLM and Repository Readiness Notes
+## Repository Notes
 
-### Description
-Repository for forensic science replications
+### Data and Reuse
 
-### Instructions
-Start with this README, then inspect the files listed under Repository Layout. For computational workflows, run commands from the repository root and avoid committing generated outputs unless a release explicitly calls for them.
-
-### Authors, Funding, and Acknowledgments
-Maintainer: Brian W. Locke (`@reblocke`, ORCID 0000-0002-3588-5238). Preserve any project-specific author, funding, and acknowledgment details already listed elsewhere in the repository or accompanying publication.
-
-### Repository Layout
-- `AGENTS.md`
-- `Checkpoint Inhib Time of Day/41591_2025_4181_MOESM1_ESM.pdf`
-- `Checkpoint Inhib Time of Day/s41591-025-04181-w.pdf`
-- `LICENSE`
-- `R/README.md`
-- `README.md`
-- `Snakefile`
-- `docs/AI_SHARP_EDGES.md`
-- `docs/CODEX_WORKFLOW.md`
-- `docs/CREDIBILITY_CRITERIA.md`
-- `docs/DECISIONS.md`
-- `docs/HANDOFF.md`
-- `docs/TASK_TEMPLATE.md`
-- `notebooks/.gitignore`
-
-### Data and Codebook
 Public replication data; verify source licenses
 
-### Workflow / Script Order
-Run Python smoke checks
-
-### Dependencies / Environment
-Python dependency metadata
-
 ### Citation
+
 No publication DOI is assigned to this repository. Cite the GitHub repository URL and the commit or release used.
 
 ### License
-Repository license status: MIT. See the root license file when present. Third-party and publisher materials remain under their original terms.
 
-### Manuscript Status
-No manuscript version expected May contain third-party study data; verify reuse terms
+MIT License for repository code; see `LICENSE`. Third-party and publisher materials remain under their original terms.
 
 ### Contact
+
 Maintainer: Brian W. Locke (`@reblocke`). Use GitHub issues or pull requests for repository-specific questions when the repository is public.
