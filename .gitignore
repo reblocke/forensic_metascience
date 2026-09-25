@@ -9,6 +9,7 @@ data/raw/*
 !data/raw/sample.csv
 data/processed/*
 data/generated/*
+data/private/
 
 # Reports
 reports/figures/*
