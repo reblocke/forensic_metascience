@@ -1,265 +1,176 @@
 # Forensic Meta-Science Credibility Pipeline
 
-This repository is a reproducible scaffold for **forensic meta-science investigations** focused on evaluating the credibility of published findings.
-
-Conceptual reference (methods taxonomy + motivation):
-- James Heathers' open book on forensic meta-science techniques: https://jamesheathers.curve.space/#an-introduction-to-techniques
-
-Primary workflow:
-- parse extracted study statistics into standardized analysis inputs
-- run credibility analyses with established meta-science packages (primarily in R)
-- compare results across methods
-- render transparent Quarto reports for interpretation
+This repository is an R-first research scaffold for screening published
+claims with source extraction, method-specific checks, and Quarto reports.
+Python handles extraction and orchestration. It supports configured
+public-paper studies and a separate local manuscript-review route. Outputs
+are leads for human appraisal, not proof of study validity or misconduct.
 
 ## Purpose
 
-This repo is designed for two related use cases:
-
-1. **Public/example pipeline runs**
-   - use the built-in example study and shared category pipeline
-   - exercise the full `extract -> build -> run -> report` workflow
-   - validate that the environment and package interfaces work on your machine
-2. **Local/private manuscript review**
-   - run a nonrandomized review on a manuscript PDF that should not be committed
-   - keep source PDFs, transcribed tables, and review outputs in gitignored paths
-   - reuse the same numeric/visual/reporting infrastructure without exposing the source document
-
-If you are using this repository for the first time, the recommended order is:
-
-1. install the environment
-2. run the built-in public example once
-3. then run the private manuscript-review path on your own local PDF
+Use a data-free test to check the Python setup first. A configured
+public-paper run is a further step: it needs source PDFs, R packages, Quarto,
+and a PDF engine, writes into `data/processed/` and `reports/`, and can
+replace existing generated files. A private manuscript review additionally
+requires an authorized local source PDF and manual or semi-manual
+transcription. Neither path is a clone-only analysis.
 
 ## What This Repo Is (And Isn't)
 
 - These methods are **screening tools**, not proof of misconduct or validity.
-- Outputs depend on what can be extracted from manuscripts/protocols (often PDFs). Poor PDF text/table structure can reduce coverage and increase false negatives.
-- Many methods assume conventional rounding and denominator choices; apparent "errors" can be benign (different denominators, weighting, imputation, rounding conventions, or reporting choices).
-- Plot digitization is intentionally **human-in-the-loop** and should be treated as measurement data with operator uncertainty.
+- PDF text and table extraction can be incomplete; missing extracted rows do
+  not establish that a discrepancy or source statement is absent.
+- Rounding, denominators, weighting, imputation, and reporting choices can
+  explain apparent numeric inconsistencies.
+- Plot digitization is interactive and subject to calibration, click, series,
+  and operator uncertainty.
+- The MIT license covers repository code; verify rights in publisher PDFs
+  separately. Keep private source PDFs, transcriptions, and review outputs
+  in the ignored local review paths, not in commits or public handoffs.
 
 ## Prerequisites
 
-- Python `>= 3.11` and [`uv`](https://github.com/astral-sh/uv) (Python environment + tooling)
-- R (tested with R `4.5.x`)
-- Quarto CLI (for rendering `.qmd` reports)
-- A LaTeX engine for PDF output (e.g., TinyTeX or TeX Live)
-- `bash`
+| Layer | What the repository establishes |
+| --- | --- |
+| Shell and Python | `bash`, Python `>=3.11` in `pyproject.toml`, and `uv`. `uv.lock` locks the Python tooling used by `scripts/run_pipeline.sh`; that script calls `uv run python`. |
+| R | `Rscript`; the prior README named R 4.5.x as tested, without a retained runtime receipt. The base R packages `readr`, `dplyr`, `tidyr`, and `tibble` are needed by the R stages. `simdistr` is needed for randomization, which also runs before numeric and meta. R packages are not pinned by the Python lock. |
+| Optional methods | `scrutiny`, `statcheck`, and `metaDigitise` enable their respective checks when eligible inputs exist. Missing packages or ineligible inputs can produce schema-valid empty outputs. `rsprite2` is stub-only in this runner even if installed. |
+| Reports | Quarto CLI and a LaTeX/PDF engine are needed for report rendering; this repository does not pin their versions. |
+| Sources | `config/studies/lungtime.sh` points to two tracked PDFs under `Checkpoint Inhib Time of Day/` for report/baseline and protocol/supplement roles. `config/studies/pronto.sh` points to three PDFs under `data/raw/studies/pronto/`, which are not staged in a fresh clone inspected here. The pipeline checks every configured PDF before starting work. |
+| Private review | `scripts/run_manuscript_review.sh` deliberately invokes system `python3`, not the uv interpreter. The required PDF libraries must exist in that interpreter separately; `uv sync` does not establish this. |
 
 ## Documentation Map
 
-- `README.md`
-  - high-level purpose, setup, first-run walkthrough, and common workflows
-- `docs/CREDIBILITY_CRITERIA.md`
-  - data contracts, reporting contracts, and minimum verification expectations
-- `docs/DECISIONS.md`
-  - scientific and architectural decisions that affect interpretation or reproducibility
-- `docs/HANDOFF.md`
-  - implementation notes and reproduction commands for multi-session work
+- [Credibility criteria](docs/CREDIBILITY_CRITERIA.md): data, package,
+  provenance, reporting, and verification contracts.
+- [Decisions](docs/DECISIONS.md): scientific and architectural choices.
+- [Handoff](docs/HANDOFF.md): dated implementation and verification notes.
+- [Notebook guide](notebooks/README.md): report sources and output context.
+- [James Heathers' open techniques book](https://jamesheathers.curve.space/#an-introduction-to-techniques): conceptual methods taxonomy, not implementation evidence for this repository.
 
 ## Install
 
-### 1) Clone and enter the repo
+From a shell with Python, `uv`, and Git, clone the real repository and sync
+its locked Python environment:
 
 ```bash
-git clone <REPO_URL>
-cd <REPO_DIR>
+git clone https://github.com/reblocke/forensic_metascience.git
+cd forensic_metascience
+uv sync --locked
 ```
 
-### 2) Sync Python tooling (used for utility scripts/tests)
+This prepares Python tools; it does not install R, Quarto, a PDF engine, or
+optional forensic packages. Install those for a paper run in an appropriate
+project environment. The repository's existing R setup command is:
 
 ```bash
-uv sync
+Rscript -e "install.packages(c('readr','dplyr','tidyr','tibble','simdistr'), repos='https://cloud.r-project.org')"
 ```
 
-This installs the declared PDF extraction dependencies used by the public pipeline, including `pypdf` and `pdfplumber`.
-
-### 3) Install R packages
-
-Required for this pipeline's R scripts:
-
-```bash
-Rscript -e "install.packages(c('readr','dplyr','tidyr','tibble'), repos='https://cloud.r-project.org')"
-```
-
-Packages that enable the implemented forensic methods (recommended):
-
-```bash
-Rscript -e "install.packages(c('simdistr','scrutiny','statcheck','metaDigitise'), repos='https://cloud.r-project.org')"
-```
-
-Notes:
-- `simdistr` is required for the current `randomization` stage, and `numeric`/`meta` runs currently execute `randomization` first.
-- `scrutiny`, `statcheck`, and `metaDigitise` are optional; when missing, the pipeline emits schema-valid empty outputs and records availability in category reports (for example `reports/numeric/<study>/numeric_package_status.csv`).
+Install optional method packages only when their checks are needed and their
+source and eligibility rules have been reviewed. Package installation needs
+the applicable software registry access; no R lockfile pins these versions.
 
 ## First-Time Walkthrough
 
-### 1) Clone and install
+For a first **data-free** check from the repository root, run the existing
+small pipeline test:
 
 ```bash
-git clone <REPO_URL>
-cd <REPO_DIR>
-uv sync
+uv run pytest -q tests/test_pipeline.py
 ```
 
-Install the required R packages:
+It creates a four-row fake CSV under pytest's temporary directory, checks
+the processed `value_z` column, and writes no study report. A passing test
+confirms that narrow Python path only; it does not execute R methods, parse a
+source PDF, render Quarto, or validate a scientific claim.
+The dated [documentation check](docs/HANDOFF.md#2026-09-24-readme-13-documentation-check)
+records the interpreter and test result for this revision. The public R/Quarto
+route was not rerun.
+
+For a configured **public-paper** check, first confirm every path in
+`config/studies/lungtime.sh` exists and that the R/Quarto/PDF prerequisites
+above are ready. Run in a disposable clean checkout if existing generated
+outputs must be preserved. This bounded category selection still runs
+randomization before numeric:
 
 ```bash
-Rscript -e "install.packages(c('readr','dplyr','tidyr','tibble','simdistr','scrutiny','statcheck','metaDigitise'), repos='https://cloud.r-project.org')"
+bash scripts/run_pipeline.sh --study-id lungtime --forensics numeric
 ```
 
-### 2) Verify the repo before running analyses
-
-```bash
-uv run pytest -q
-uv run ruff check .
-uv run ruff format . --check
-```
-
-### 3) Run the built-in public example once
-
-This is the fastest way to confirm that the pipeline, R packages, and Quarto rendering all work on your machine.
-
-```bash
-bash scripts/run_pipeline.sh --forensics all
-```
-
-The default public study is `lungtime`. To run a different configured study, pass `--study-id <study_id>`.
-
-Expected outputs include:
-
-- `reports/randomization/lungtime/`
-- `reports/numeric/lungtime/`
-- `reports/registration/lungtime/`
-- `reports/visual/lungtime/`
-- `reports/meta/lungtime/`
-
-### 4) Run a private manuscript review
-
-Use this path for a local manuscript PDF that should not be committed.
-
-```bash
-bash scripts/run_manuscript_review.sh \
-  --study-id local_prediction_review \
-  --report "/absolute/path/to/local_manuscript.pdf" \
-  --review-type prediction_validation
-```
-
-Expected outputs include:
-
-- `data/processed/reviews/<study_id>/`
-- `reports/reviews/<study_id>/`
-- `reports/reviews/<study_id>/<study_id>_prediction_validation_review.pdf`
-
-Important:
-
-- local review outputs under `data/processed/reviews/`, `reports/reviews/`, and `notebooks/reports/` are gitignored
-- the manuscript-review path currently assumes manual or semi-manual transcription of the key tables
-- the separate manuscript-review script still uses system `python3`; the public `scripts/run_pipeline.sh` path uses the uv-managed Python environment
+The script writes or replaces inputs under
+`data/processed/randomization/lungtime/` and
+`data/processed/numeric/lungtime/`, category CSVs and PDFs under
+`reports/randomization/lungtime/` and `reports/numeric/lungtime/`, diagnostics under
+`reports/diagnostics/`, and a category-level
+`data/processed/manifests/lungtime/forensics_manifest.csv` after successful
+category completion. Look for `reports/numeric/lungtime/numeric_summary.csv`,
+`numeric_package_status.csv`, and `numeric_standardized_results.csv`, then
+interpret them with the table below. File existence or an empty results table
+alone is not a success or no-finding test. This command was inspected for
+this README revision, not executed here.
 
 ## Quickstart Reference
 
-### 1) Run deterministic preprocessing entrypoint
-```bash
-bash scripts/run_pipeline.sh
-```
-This runs the shared preprocessing and diagnostics only. Add `--forensics ...` to execute category analyses and render reports.
+| Route | Inputs and runtime | Result / caution |
+| --- | --- | --- |
+| Data-free Python check | `uv run pytest -q tests/test_pipeline.py` after `uv sync --locked` | Temporary fake CSV only; no study finding. |
+| Configured public paper | `bash scripts/run_pipeline.sh --study-id lungtime --forensics numeric` after the PDFs, R packages, Quarto and PDF engine are present | Randomization plus numeric outputs as above; existing generated files can be replaced. |
+| Local/private review | [Prediction-validation manuscript review](#prediction-validation-manuscript-review) | Uses system `python3`, R, Quarto, an authorized local PDF, and manual transcription; ignored outputs must remain private. |
+| All categories | `--forensics all` in the [pipeline script](scripts/run_pipeline.sh) | Runs randomization, numeric, registration, visual, transparency, and meta; registration can contact ClinicalTrials.gov. It is not a lightweight/offline first run. |
 
-### 2) Run pipeline plus randomization forensics audit (LungTIME test case)
-```bash
-bash scripts/run_pipeline.sh --randomization-audit
-```
+The script has no `--help`, `--offline`, or output-directory flag. Passing
+an unsupported argument exits with an error. The base `bash scripts/run_pipeline.sh`
+command only runs preprocessing and diagnostics, not category reports.
 
-### 3) Run selected forensic categories (comma-separated)
-```bash
-bash scripts/run_pipeline.sh --forensics randomization,numeric,registration,visual,transparency,meta
-```
+## How to interpret completion
 
-### 4) Run all categories (LungTIME test case)
-```bash
-bash scripts/run_pipeline.sh --forensics all
-```
+For numeric methods, use `reports/numeric/<study>/numeric_package_status.csv`
+(`installed`, `executed`, `execution_note`) together with
+`numeric_summary.csv`, `numeric_standardized_results.csv`, and method-native
+tables. The [shared extraction manifest](src/research_project/forensics_manifest.py)
+records source, confidence, and category-level `analysis_ready`; that flag
+does not certify every method or the science.
 
-### 5) Run a non-default configured public trial
-```bash
-bash scripts/run_pipeline.sh --study-id pronto --forensics all
-```
+| Conceptual outcome | Existing evidence to inspect |
+| --- | --- |
+| Method ran and flagged a finding | Relevant package/method is installed and the `execution_note` reports `ok`; eligible/evaluated cases exist in `numeric_summary.csv` or method-native tables; inspect `anomaly_flag` or method-specific flags in standardized/native rows and the source record. |
+| Method ran with no finding in evaluated rows | The same successful method note and nonzero eligible/evaluated coverage, with no flagged rows for that method. A zero-row file alone cannot establish this. |
+| Package unavailable | `installed=false` and a package-not-installed `execution_note`; schema-valid empty method files may still be written. The `rsprite2` row is stub-only even when `installed=true`. |
+| Inputs insufficient or ineligible | `execution_note` says no eligible rows, no rows after filtering, or no report text; use extraction inputs, case counts, and the manifest to see what was available. This is not a negative result. |
+| Method failed | A nonzero command exit or an `execution_note` containing a method execution error; files may be absent, old, or schema-valid but empty. Resolve the error before interpreting findings. |
 
-### 6) Run registration checks with ClinicalTrials.gov support
-```bash
-bash scripts/run_pipeline.sh --forensics registration
-```
+There is no single per-method success enum. The package-level `executed`
+field is not decisive: for `rsprite2` it reflects package presence although
+execution is not implemented, and some error or ineligibility paths retain
+`executed=true`. Read `execution_note`, case counts, and the native rows.
 
-When a unique NCT identifier is present in the report/protocol text, the registration stage attempts a ClinicalTrials.gov API v2 current-record lookup. To keep a run fully offline or pinned to a known record, set `REGISTRY_CURRENT_REL_PATH` in the study config and set `REGISTRY_ALLOW_NETWORK="false"`. Use `REGISTRY_AS_OF_DATE` to pin the results-overdue screen to a specific date.
+## Network and manual work
 
-### 7) Run visual category with interactive plot digitization (pilot)
-```bash
-bash scripts/run_pipeline.sh --forensics visual --digitize-plots true
-```
+`run_pipeline.sh` sources `config/studies/<study-id>.sh` before applying
+fallbacks. Both tracked study configs set `REGISTRY_ALLOW_NETWORK=true`, so
+an exported shell value does **not** override them. Registration can retrieve
+a current ClinicalTrials.gov API v2 record when it resolves a unique NCT ID.
+An existing `REGISTRY_CURRENT_REL_PATH` is used before any network fetch;
+a missing configured local JSON reports `missing_local_json` rather than
+silently falling back. For an intentionally offline registration run, set
+`REGISTRY_ALLOW_NETWORK=false` in a local working copy of the selected study
+config and supply a pinned current-record JSON if required; do not commit
+private records or an incidental configuration edit.
 
-### 8) Render Quarto reports (when `.qmd` notebooks are present)
-```bash
-quarto render notebooks
-```
+`REGISTRY_AS_OF_DATE` pins date-based adjudication such as the results-overdue
+screen. It does not turn a fetched current record into a historical snapshot;
+registry history remains a separate local input. The default without an
+as-of date uses the current date. The visual category's
+`--digitize-plots true` is opt-in and interactive, with operator uncertainty.
+The private review route requires manual or semi-manual transcription of key
+tables; it is not an unattended PDF proof.
 
 ## Example Use Cases
 
-### Use Case 1: Sanity-check the full public pipeline
-
-Goal:
-- confirm the environment, R packages, and report rendering work end to end
-
-Command:
-
-```bash
-bash scripts/run_pipeline.sh --forensics all
-```
-
-### Use Case 2: Run only numeric forensics on the built-in example
-
-Goal:
-- focus on GRIM/GRIMMER/DEBIT/statcheck-style checks without running every category
-
-Command:
-
-```bash
-bash scripts/run_pipeline.sh --forensics numeric
-```
-
-### Use Case 3: Review a private nonrandomized manuscript
-
-Goal:
-- evaluate a local prediction-model or observational manuscript without pushing source-derived artifacts
-
-Command:
-
-```bash
-bash scripts/run_manuscript_review.sh \
-  --study-id local_prediction_review \
-  --report "/absolute/path/to/local_manuscript.pdf" \
-  --review-type prediction_validation
-```
-
-### Use Case 4: Add manual plot digitization to a visual review
-
-Goal:
-- capture plotted values when caption-level visual heuristics are not enough
-
-Command:
-
-```bash
-bash scripts/run_pipeline.sh --forensics visual --digitize-plots true
-```
-
-### Use Case 5: Run the configured PRONTO trial package
-
-Goal:
-- run the full public trial pipeline on the staged PRONTO report, protocol, and supplement
-
-Command:
-
-```bash
-bash scripts/run_pipeline.sh --study-id pronto --forensics all
-```
+Choose a route from [Quickstart Reference](#quickstart-reference). For the
+method contracts and limitations, continue below and consult the
+[credibility criteria](docs/CREDIBILITY_CRITERIA.md).
 
 ## Repository layout
 - `config/studies/` shell-based study configs used by `scripts/run_pipeline.sh --study-id ...`
@@ -316,6 +227,7 @@ This path is designed for manuscripts where trial-randomization checks do not ap
 
 Key limitation:
 - This path assumes manual or semi-manual transcription of the high-yield tables (`Table 2`, `Table 3`, `Table E2`, and the flow diagram). It does not currently rely on fully automatic table extraction for proof PDFs.
+- Local source-derived review outputs under `data/processed/reviews/`, `reports/reviews/`, and `notebooks/reports/` are gitignored and must not be copied into public handoffs.
 
 ## Numeric scrutiny contract
 - Canonical cases: `data/processed/numeric/<study>/inputs/scrutiny_cases.csv`.
@@ -427,7 +339,11 @@ See `AGENTS.md` for detailed operating conventions and `docs/DECISIONS.md` for s
 
 ### Data and Reuse
 
-Public replication data; verify source licenses
+The data-free setup check uses a generated four-row CSV. Configured paper runs
+need the named source PDFs and a review of publisher rights before sharing
+them or derived reports. Private manuscript PDFs, transcriptions, and review
+outputs require authorization and stay in ignored local paths. A runnable
+example does not grant redistribution permission.
 
 ### Citation
 

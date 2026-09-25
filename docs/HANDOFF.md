@@ -1,5 +1,19 @@
 # Handoff (for multi-session work)
 
+## 2026-09-24 README-13 documentation check
+
+This check used default `main@805cb282ed0f9f974f5d977592bbf95b419fd022`
+and existing README PR #4 at `298c80c82ffc02738799adeb9aa1129ba63da4f1`
+in an isolated checkout. On 2026-09-24 MDT, `uv sync --locked` and
+`uv run --frozen pytest -q tests/test_pipeline.py` completed with one passing
+four-row fake-CSV test under CPython 3.14.4. The uv cache and Python installation
+directory were redirected to isolated scratch; no study source PDF, registry,
+private manuscript, R method, or Quarto report was opened or run. This checks
+the Python fixture path only. The former README's R 4.5.x testing statement
+has no retained runtime receipt here, and this documentation check did not
+qualify an R, Quarto, PDF, or optional-package environment. Source findings
+and status interpretation remain subject to the contracts below.
+
 ## Current state
 - Multi-category forensic scaffold is implemented and runnable through a single pipeline entrypoint.
 - A separate private manuscript-review path exists for nonrandomized prediction-validation reviews.
