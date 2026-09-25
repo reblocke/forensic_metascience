@@ -39,7 +39,8 @@ required <- c(
   "numeric_scrutiny_duplicates.csv",
   "numeric_scrutiny_rounding_bias.csv",
   "numeric_statcheck_raw.csv",
-  "numeric_standardized_results.csv"
+  "numeric_standardized_results.csv",
+  "numeric_method_receipts.csv"
 )
 missing <- required[!file.exists(file.path(report_dir, required))]
 if (length(missing) > 0) {
@@ -59,6 +60,7 @@ duplicates_raw <- read.csv(file.path(report_dir, "numeric_scrutiny_duplicates.cs
 rounding_bias <- read.csv(file.path(report_dir, "numeric_scrutiny_rounding_bias.csv"), check.names = FALSE)
 statcheck_raw <- read.csv(file.path(report_dir, "numeric_statcheck_raw.csv"), check.names = FALSE)
 standardized <- read.csv(file.path(report_dir, "numeric_standardized_results.csv"), check.names = FALSE)
+method_receipts <- read.csv(file.path(report_dir, "numeric_method_receipts.csv"), check.names = FALSE)
 
 compact_character <- function(x, width = 48) {
   x <- as.character(x)
@@ -96,7 +98,7 @@ render_table <- function(df, note, cols = NULL, n = 20, digits = 4, char_width =
 These are screening indicators from Heathers' data-techniques framework, not proof of misconduct.
 
 - `n_rows`: number of categorical count-percent cells checked for arithmetic consistency.
-- `n_rounding_flags`: rows with `|reported_percent - computed_percent| >= 0.2`.
+- `n_rounding_flags`: rows whose reported percentage is incompatible under the recorded rounding rule and denominator role.
 - `rounding_flag_rate`: `n_rounding_flags / n_rows`; larger values suggest widespread reporting drift.
 - `median_abs_percent_delta`, `max_abs_percent_delta`: typical and worst discrepancy magnitude.
 - `scrutiny_cases_n`: total canonical rows prepared for scrutiny-family methods.
@@ -108,7 +110,7 @@ These are screening indicators from Heathers' data-techniques framework, not pro
 - `statcheck_cases`, `statcheck_errors`, `statcheck_decision_errors`: parsed test rows, any inconsistencies, and significance-changing inconsistencies.
 - `scrutiny_seq_enabled`: whether optional sequence-space checks were executed.
 
-Empty method tables can mean "no eligible rows", "package unavailable", or execution failure; inspect `numeric_package_status.csv` execution notes for attribution.
+Method receipts distinguish applicability and execution. `no_finding` requires completed evaluation with positive coverage; `indeterminate` means a method was blocked, failed, or only partially evaluated; `not_evaluated` means it was not requested. A blank method table alone is not evidence of no findings. SPRITE inputs are descriptive arm differences only because SPRITE execution is not implemented.
 
 ```{r}
 if (nrow(summary_tbl) > 0) {
@@ -123,7 +125,7 @@ if (nrow(summary_tbl) > 0) {
 }
 ```
 
-## Package Availability
+## Package Status and Method Receipts
 
 ```{r}
 render_table(
@@ -132,6 +134,17 @@ render_table(
   cols = c("package", "installed", "version", "objective", "executed", "execution_note"),
   n = 20,
   char_width = 42
+)
+```
+
+```{r}
+render_table(
+  method_receipts,
+  "No method receipt output; this report cannot attribute empty method tables.",
+  cols = c("method_id", "applicability", "execution", "result_status", "n_input",
+           "n_eligible", "n_evaluated", "n_failed", "n_flagged", "diagnostic"),
+  n = 30,
+  char_width = 48
 )
 ```
 

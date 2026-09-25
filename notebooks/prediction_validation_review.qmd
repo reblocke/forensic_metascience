@@ -65,6 +65,11 @@ numeric_pkg_status <- if (file.exists(file.path(report_dir, "numeric_package_sta
 } else {
   data.frame()
 }
+numeric_method_receipts <- if (file.exists(file.path(report_dir, "numeric_method_receipts.csv"))) {
+  read.csv(file.path(report_dir, "numeric_method_receipts.csv"), check.names = FALSE)
+} else {
+  data.frame()
+}
 visual_summary <- if (file.exists(file.path(report_dir, "visual_summary.csv"))) {
   read.csv(file.path(report_dir, "visual_summary.csv"), check.names = FALSE)
 } else {
@@ -129,6 +134,8 @@ knitr::kable(review_summary, digits = 4)
 - `calibration_displayed_expected_events`: sum of displayed expected outcomes across Table E2 deciles.
 - `flow_failed_checks`: number of arithmetic failures in the Figure 1 flow diagram.
 
+The numeric method-receipt table, when present, distinguishes completed checks from missing, blocked, failed, and unrequested methods. Legacy package-status rows alone do not establish that an empty result table is a clean finding.
+
 ## Text / Statcheck
 
 ```{r}
@@ -136,6 +143,16 @@ render_table(
   numeric_pkg_status,
   "No numeric package-status output.",
   cols = c("package", "installed", "version", "executed", "execution_note"),
+  n = 20,
+  char_width = 40
+)
+```
+
+```{r}
+render_table(
+  numeric_method_receipts,
+  "No per-method receipt is available; shared numeric-screen status remains unverified.",
+  cols = c("method_id", "applicability", "execution", "result_status", "n_evaluated", "n_failed"),
   n = 20,
   char_width = 40
 )

@@ -6,6 +6,8 @@ suppressPackageStartupMessages({
   library(tibble)
 })
 
+source("R/method_receipts.R")
+
 parse_bool <- function(value) {
   tolower(value) %in% c("true", "1", "yes", "y")
 }
@@ -324,7 +326,7 @@ as_logical_count <- function(x) {
 run_scrutiny_grim <- function(scrutiny_grim_input) {
   if (!requireNamespace("scrutiny", quietly = TRUE)) {
     return(list(
-      available = FALSE,
+      executed = FALSE,
       raw = empty_scrutiny_grim_raw(),
       audit = empty_scrutiny_grim_audit(),
       message = "Package `scrutiny` not installed."
@@ -332,7 +334,7 @@ run_scrutiny_grim <- function(scrutiny_grim_input) {
   }
   if (nrow(scrutiny_grim_input) == 0) {
     return(list(
-      available = TRUE,
+      executed = FALSE,
       raw = empty_scrutiny_grim_raw(),
       audit = empty_scrutiny_grim_audit(),
       message = "No GRIM-eligible rows."
@@ -363,7 +365,7 @@ run_scrutiny_grim <- function(scrutiny_grim_input) {
 
   if (nrow(prepared) == 0) {
     return(list(
-      available = TRUE,
+      executed = FALSE,
       raw = empty_scrutiny_grim_raw(),
       audit = empty_scrutiny_grim_audit(),
       message = "No GRIM rows after filtering."
@@ -381,7 +383,7 @@ run_scrutiny_grim <- function(scrutiny_grim_input) {
       )
       audit_out <- scrutiny::audit(grim_out)
       list(
-        available = TRUE,
+        executed = TRUE,
         raw = as_tibble(grim_out),
         audit = as_tibble(audit_out),
         message = "ok"
@@ -389,7 +391,7 @@ run_scrutiny_grim <- function(scrutiny_grim_input) {
     },
     error = function(exc) {
       list(
-        available = TRUE,
+        executed = FALSE,
         raw = empty_scrutiny_grim_raw(),
         audit = empty_scrutiny_grim_audit(),
         message = paste("GRIM execution error:", conditionMessage(exc))
@@ -401,7 +403,7 @@ run_scrutiny_grim <- function(scrutiny_grim_input) {
 run_scrutiny_grimmer <- function(scrutiny_grimmer_input) {
   if (!requireNamespace("scrutiny", quietly = TRUE)) {
     return(list(
-      available = FALSE,
+      executed = FALSE,
       raw = empty_scrutiny_grimmer_raw(),
       audit = empty_scrutiny_grimmer_audit(),
       message = "Package `scrutiny` not installed."
@@ -409,7 +411,7 @@ run_scrutiny_grimmer <- function(scrutiny_grimmer_input) {
   }
   if (nrow(scrutiny_grimmer_input) == 0) {
     return(list(
-      available = TRUE,
+      executed = FALSE,
       raw = empty_scrutiny_grimmer_raw(),
       audit = empty_scrutiny_grimmer_audit(),
       message = "No GRIMMER-eligible rows."
@@ -428,7 +430,7 @@ run_scrutiny_grimmer <- function(scrutiny_grimmer_input) {
 
   if (nrow(prepared) == 0) {
     return(list(
-      available = TRUE,
+      executed = FALSE,
       raw = empty_scrutiny_grimmer_raw(),
       audit = empty_scrutiny_grimmer_audit(),
       message = "No GRIMMER rows after filtering."
@@ -446,7 +448,7 @@ run_scrutiny_grimmer <- function(scrutiny_grimmer_input) {
         as_tibble(grimmer_out)
       )
       list(
-        available = TRUE,
+        executed = TRUE,
         raw = mapped_out,
         audit = as_tibble(audit_out),
         message = paste(
@@ -456,7 +458,7 @@ run_scrutiny_grimmer <- function(scrutiny_grimmer_input) {
     },
     error = function(exc) {
       list(
-        available = TRUE,
+        executed = FALSE,
         raw = empty_scrutiny_grimmer_raw(),
         audit = empty_scrutiny_grimmer_audit(),
         message = paste("GRIMMER execution error:", conditionMessage(exc))
@@ -468,7 +470,7 @@ run_scrutiny_grimmer <- function(scrutiny_grimmer_input) {
 run_scrutiny_debit <- function(scrutiny_debit_input) {
   if (!requireNamespace("scrutiny", quietly = TRUE)) {
     return(list(
-      available = FALSE,
+      executed = FALSE,
       raw = empty_scrutiny_debit_raw(),
       audit = empty_scrutiny_debit_audit(),
       message = "Package `scrutiny` not installed."
@@ -476,7 +478,7 @@ run_scrutiny_debit <- function(scrutiny_debit_input) {
   }
   if (nrow(scrutiny_debit_input) == 0) {
     return(list(
-      available = TRUE,
+      executed = FALSE,
       raw = empty_scrutiny_debit_raw(),
       audit = empty_scrutiny_debit_audit(),
       message = "No DEBIT-eligible rows."
@@ -496,7 +498,7 @@ run_scrutiny_debit <- function(scrutiny_debit_input) {
 
   if (nrow(prepared) == 0) {
     return(list(
-      available = TRUE,
+      executed = FALSE,
       raw = empty_scrutiny_debit_raw(),
       audit = empty_scrutiny_debit_audit(),
       message = "No DEBIT rows after filtering."
@@ -508,7 +510,7 @@ run_scrutiny_debit <- function(scrutiny_debit_input) {
       debit_out <- scrutiny::debit_map(prepared)
       audit_out <- scrutiny::audit(debit_out)
       list(
-        available = TRUE,
+        executed = TRUE,
         raw = as_tibble(debit_out),
         audit = as_tibble(audit_out),
         message = "ok"
@@ -516,7 +518,7 @@ run_scrutiny_debit <- function(scrutiny_debit_input) {
     },
     error = function(exc) {
       list(
-        available = TRUE,
+        executed = FALSE,
         raw = empty_scrutiny_debit_raw(),
         audit = empty_scrutiny_debit_audit(),
         message = paste("DEBIT execution error:", conditionMessage(exc))
@@ -528,14 +530,14 @@ run_scrutiny_debit <- function(scrutiny_debit_input) {
 run_scrutiny_duplicates <- function(scrutiny_duplicates_input) {
   if (!requireNamespace("scrutiny", quietly = TRUE)) {
     return(list(
-      available = FALSE,
+      executed = FALSE,
       raw = empty_duplicates(),
       message = "Package `scrutiny` not installed."
     ))
   }
   if (nrow(scrutiny_duplicates_input) == 0) {
     return(list(
-      available = TRUE,
+      executed = FALSE,
       raw = empty_duplicates(),
       message = "No rows for duplication checks."
     ))
@@ -572,14 +574,14 @@ run_scrutiny_duplicates <- function(scrutiny_duplicates_input) {
         duplicate_tally %>% select(x_n, sd_n, n_n)
       )
       list(
-        available = TRUE,
+        executed = TRUE,
         raw = duplicate_out,
         message = "ok"
       )
     },
     error = function(exc) {
       list(
-        available = TRUE,
+        executed = FALSE,
         raw = empty_duplicates(),
         message = paste("Duplicate execution error:", conditionMessage(exc))
       )
@@ -590,14 +592,14 @@ run_scrutiny_duplicates <- function(scrutiny_duplicates_input) {
 run_scrutiny_rounding_bias <- function(scrutiny_rounding_bias_input) {
   if (!requireNamespace("scrutiny", quietly = TRUE)) {
     return(list(
-      available = FALSE,
+      executed = FALSE,
       raw = empty_rounding_bias(),
       message = "Package `scrutiny` not installed."
     ))
   }
   if (nrow(scrutiny_rounding_bias_input) == 0) {
     return(list(
-      available = TRUE,
+      executed = FALSE,
       raw = empty_rounding_bias(),
       message = "No rows for rounding-bias checks."
     ))
@@ -612,7 +614,7 @@ run_scrutiny_rounding_bias <- function(scrutiny_rounding_bias_input) {
 
   if (nrow(prepared) == 0) {
     return(list(
-      available = TRUE,
+      executed = FALSE,
       raw = empty_rounding_bias(),
       message = "No rows after rounding-bias filtering."
     ))
@@ -643,14 +645,14 @@ run_scrutiny_rounding_bias <- function(scrutiny_rounding_bias_input) {
           anomaly_flag = abs_bias_gap >= 0.05
         )
       list(
-        available = TRUE,
+        executed = TRUE,
         raw = bias,
         message = "ok"
       )
     },
     error = function(exc) {
       list(
-        available = TRUE,
+        executed = FALSE,
         raw = empty_rounding_bias(),
         message = paste("Rounding-bias execution error:", conditionMessage(exc))
       )
@@ -661,14 +663,14 @@ run_scrutiny_rounding_bias <- function(scrutiny_rounding_bias_input) {
 run_statcheck <- function(statcheck_text) {
   if (!requireNamespace("statcheck", quietly = TRUE)) {
     return(list(
-      available = FALSE,
+      executed = FALSE,
       raw = empty_statcheck_raw(),
       message = "Package `statcheck` not installed."
     ))
   }
   if (!nzchar(trimws(statcheck_text))) {
     return(list(
-      available = TRUE,
+      executed = FALSE,
       raw = empty_statcheck_raw(),
       message = "No report text available for statcheck."
     ))
@@ -691,11 +693,11 @@ run_statcheck <- function(statcheck_text) {
       } else {
         as_tibble(output)
       }
-      list(available = TRUE, raw = raw_tbl, message = "ok")
+      list(executed = TRUE, raw = raw_tbl, message = "ok")
     },
     error = function(exc) {
       list(
-        available = TRUE,
+        executed = FALSE,
         raw = empty_statcheck_raw(),
         message = paste("statcheck execution error:", conditionMessage(exc))
       )
@@ -812,7 +814,6 @@ standardize_scrutiny_map <- function(raw_df, trial_id, method_name, metric_name)
   if (nrow(raw_df) == 0) {
     return(tibble())
   }
-  p_col <- if ("probability" %in% names(raw_df)) "probability" else NA_character_
   raw_df %>%
     transmute(
       trial_id = if ("trial_id" %in% names(raw_df)) {
@@ -821,13 +822,23 @@ standardize_scrutiny_map <- function(raw_df, trial_id, method_name, metric_name)
         rep(as.character(trial_id), n())
       },
       method = method_name,
-      source_unit = if ("source_unit" %in% names(raw_df)) as.character(source_unit) else case_id,
+      case_id = if ("case_id" %in% names(raw_df)) as.character(case_id) else NA_character_,
+      source_unit = if ("source_unit" %in% names(raw_df)) {
+        as.character(source_unit)
+      } else if ("case_id" %in% names(raw_df)) {
+        as.character(case_id)
+      } else {
+        NA_character_
+      },
       metric = metric_name,
       value_numeric = ifelse(as.logical(consistency), 0, 1),
-      p_value = if (!is.na(p_col)) as.numeric(.data[[p_col]]) else NA_real_,
+      p_value = NA_real_,
       anomaly_flag = !as.logical(consistency),
       severity = ifelse(!as.logical(consistency), "medium", "low"),
-      details = if ("reason" %in% names(raw_df)) as.character(reason) else as.character(case_id)
+      details = paste0(
+        if ("reason" %in% names(raw_df)) as.character(reason) else "",
+        if ("probability" %in% names(raw_df)) paste0("; package_probability=", probability) else ""
+      )
     )
 }
 
@@ -910,28 +921,6 @@ standardize_statcheck <- function(statcheck_raw, trial_id) {
     )
 }
 
-standardize_rsprite_stub <- function(rsprite2_input, trial_id) {
-  if (nrow(rsprite2_input) == 0) {
-    return(tibble())
-  }
-  rsprite2_input %>%
-    transmute(
-      trial_id = trial_id,
-      method = "rsprite2_stub",
-      source_unit = paste(variable, level, sep = " / "),
-      metric = "abs_percent_between_arms",
-      value_numeric = as.numeric(abs_percent_between_arms),
-      p_value = NA_real_,
-      anomaly_flag = as.numeric(abs_percent_between_arms) >= 5,
-      severity = ifelse(as.numeric(abs_percent_between_arms) >= 10, "high", "low"),
-      details = paste0(
-        "group_a=", group_a, "; group_b=", group_b,
-        "; percent_a=", round(as.numeric(percent_a), 4),
-        "; percent_b=", round(as.numeric(percent_b), 4)
-      )
-    )
-}
-
 standardize_seq <- function(seq_audit, trial_id, method_name) {
   if (nrow(seq_audit) == 0) {
     return(tibble())
@@ -988,6 +977,10 @@ main <- function() {
     file.path(in_dir, "inputs", "scrutiny_grimmer_input.csv")
   )
   scrutiny_debit_input <- read_numeric_csv(file.path(in_dir, "inputs", "scrutiny_debit_input.csv"))
+  scrutiny_input_counts <- c(
+    grim = nrow(scrutiny_grim_input), grimmer = nrow(scrutiny_grimmer_input),
+    debit = nrow(scrutiny_debit_input)
+  )
   scrutiny_grim_input <- validate_scrutiny_input(scrutiny_grim_input, "grim")
   scrutiny_grimmer_input <- validate_scrutiny_input(scrutiny_grimmer_input, "grimmer")
   scrutiny_debit_input <- validate_scrutiny_input(scrutiny_debit_input, "debit")
@@ -1027,7 +1020,19 @@ main <- function() {
     median_delta <- NA_real_
   }
 
-  trial_id <- if (n_rows > 0) as.character(row_results$trial_id[[1]]) else NA_character_
+  id_sources <- list(
+    row_results, statcheck_input, scrutiny_cases, scrutiny_grim_input,
+    scrutiny_grimmer_input, scrutiny_debit_input
+  )
+  trial_ids <- unique(unlist(lapply(id_sources, function(tbl) {
+    if (!"trial_id" %in% names(tbl)) return(character())
+    ids <- trimws(as.character(tbl$trial_id))
+    ids[!is.na(ids) & nzchar(ids)]
+  }), use.names = FALSE))
+  if (length(trial_ids) > 1L) {
+    stop("Input files contain multiple trial_id values: ", paste(trial_ids, collapse = ", "))
+  }
+  trial_id <- if (length(trial_ids) == 1L) trial_ids[[1]] else NA_character_
 
   grim_run <- run_scrutiny_grim(scrutiny_grim_input)
   grimmer_run <- run_scrutiny_grimmer(scrutiny_grimmer_input)
@@ -1098,7 +1103,6 @@ main <- function() {
     standardize_duplicates(duplicates_run$raw),
     standardize_rounding_bias(rounding_bias_run$raw),
     standardize_statcheck(statcheck_run$raw, trial_id = trial_id),
-    standardize_rsprite_stub(rsprite2_input, trial_id = trial_id),
     standardize_seq(
       grim_seq$audit,
       trial_id = trial_id,
@@ -1117,6 +1121,76 @@ main <- function() {
   )
   standardized_path <- file.path(out_dir, "numeric_standardized_results.csv")
   write_csv(standardized, standardized_path)
+  write_csv(rsprite2_input, file.path(out_dir, "numeric_descriptive_arm_differences.csv"))
+
+  run_id <- paste0("numeric-", format(Sys.time(), "%Y%m%dT%H%M%S%z"))
+  evidence_ids <- function(tbl) {
+    if (!"case_id" %in% names(tbl)) return("")
+    ids <- unique(as.character(tbl$case_id))
+    paste(ids[!is.na(ids) & nzchar(ids)], collapse = ";")
+  }
+  receipt <- function(method_id, package_name, unit, tbl, eligible_n, method_run,
+                      output, requested = TRUE, implemented = TRUE, applicability = NULL,
+                      report_text_evaluated = FALSE, eval_override = NULL,
+                      fail_override = NULL, flag_override = NULL, input_n = nrow(tbl)) {
+    receipt_from_method_run(
+      run_id = run_id, method_id = method_id,
+      method_version = "numeric_eligibility_precision_v3",
+      package_name = package_name, package_version = safe_package_version(package_name),
+      unit_of_evaluation = unit, input_evidence_ids = evidence_ids(tbl),
+      parameters = "input_contract=numeric_eligibility_precision_v3",
+      input_count = input_n, eligible_count = eligible_n, method_run = method_run,
+      output_reference = output, requested = requested, implemented = implemented,
+      applicability_override = applicability,
+      report_text_evaluated = report_text_evaluated,
+      evaluated_count_override = eval_override,
+      failed_count_override = fail_override,
+      flagged_count_override = flag_override
+    )
+  }
+  zero_run <- function(message) list(raw = tibble(), message = message)
+  receipts <- bind_rows(
+    receipt("scrutiny_grim_map", "scrutiny", "summary_case", scrutiny_grim_input,
+      nrow(scrutiny_grim_input), grim_run, basename(grim_raw_path), input_n = scrutiny_input_counts[["grim"]]),
+    receipt("scrutiny_grimmer_map", "scrutiny", "summary_case", scrutiny_grimmer_input,
+      nrow(scrutiny_grimmer_input), grimmer_run, basename(grimmer_raw_path), input_n = scrutiny_input_counts[["grimmer"]]),
+    receipt("scrutiny_debit_map", "scrutiny", "summary_case", scrutiny_debit_input,
+      nrow(scrutiny_debit_input), debit_run, basename(debit_raw_path), input_n = scrutiny_input_counts[["debit"]]),
+    receipt("scrutiny_duplicates", "scrutiny", "summary_case", scrutiny_duplicates_input,
+      nrow(scrutiny_duplicates_input), duplicates_run, basename(duplicates_path),
+      flag_override = if (nrow(duplicates_run$raw) > 0L) as_logical_count(
+        duplicates_run$raw$x_dup | duplicates_run$raw$sd_dup | duplicates_run$raw$n_dup
+      ) else if (duplicates_run$executed) 0L else NULL),
+    receipt("scrutiny_rounding_bias", "scrutiny", "trial_digits_group", scrutiny_rounding_bias_input,
+      nrow(scrutiny_rounding_bias_input), rounding_bias_run, basename(rounding_bias_path),
+      flag_override = if (nrow(rounding_bias_run$raw) > 0L) as_logical_count(
+        rounding_bias_run$raw$anomaly_flag
+      ) else if (rounding_bias_run$executed) 0L else NULL),
+    receipt("statcheck", "statcheck", "report_text", statcheck_input,
+      if (nzchar(trimws(statcheck_text))) 1L else 0L, statcheck_run,
+      basename(statcheck_raw_path), report_text_evaluated = TRUE,
+      eval_override = if (statcheck_run$executed) 1L else NULL,
+      flag_override = if (statcheck_run$executed && nrow(statcheck_run$raw) > 0L &&
+        "error" %in% names(statcheck_run$raw)) as.integer(any(statcheck_run$raw$error, na.rm = TRUE)) else NULL),
+    receipt("rsprite2", "rsprite2", "summary_case", rsprite2_input,
+      0L, zero_run("SPRITE execution is not implemented; descriptive arm differences only."),
+      "numeric_descriptive_arm_differences.csv", implemented = FALSE, applicability = "unknown"),
+    receipt("scrutiny_grim_map_seq", "scrutiny", "summary_case", scrutiny_grim_input,
+      nrow(scrutiny_grim_input), grim_seq, "numeric_scrutiny_grim_seq_raw.csv", requested = scrutiny_seq),
+    receipt("scrutiny_grimmer_map_seq", "scrutiny", "summary_case", scrutiny_grimmer_input,
+      nrow(scrutiny_grimmer_input), grimmer_seq, "numeric_scrutiny_grimmer_seq_raw.csv", requested = scrutiny_seq),
+    receipt("scrutiny_debit_map_seq", "scrutiny", "summary_case", scrutiny_debit_input,
+      nrow(scrutiny_debit_input), debit_seq, "numeric_scrutiny_debit_seq_raw.csv", requested = scrutiny_seq)
+  )
+  write_csv(receipts, file.path(out_dir, "numeric_method_receipts.csv"))
+  receipt_flags <- function(method_id) {
+    value <- receipts$n_flagged[receipts$method_id == method_id]
+    if (length(value) == 0L) NA_integer_ else value[[1]]
+  }
+  receipt_coverage <- function(method_id) {
+    value <- receipts$n_evaluated[receipts$method_id == method_id]
+    if (length(value) == 0L) NA_integer_ else value[[1]]
+  }
 
   summary_table <- tibble(
     trial_id = trial_id,
@@ -1127,46 +1201,28 @@ main <- function() {
     median_abs_percent_delta = median_delta,
     max_abs_percent_delta = suppressWarnings(max(row_results$abs_percent_delta, na.rm = TRUE)),
     scrutiny_cases_n = nrow(scrutiny_cases),
-    grim_available = grim_run$available,
-    grim_cases = nrow(grim_run$raw),
-    grim_incons_cases = if ("consistency" %in% names(grim_run$raw)) {
-      sum(!as.logical(grim_run$raw$consistency), na.rm = TRUE)
-    } else {
-      0L
-    },
-    grimmer_available = grimmer_run$available,
-    grimmer_cases = nrow(grimmer_run$raw),
-    grimmer_incons_cases = if ("consistency" %in% names(grimmer_run$raw)) {
-      sum(!as.logical(grimmer_run$raw$consistency), na.rm = TRUE)
-    } else {
-      0L
-    },
-    debit_available = debit_run$available,
-    debit_cases = nrow(debit_run$raw),
-    debit_incons_cases = if ("consistency" %in% names(debit_run$raw)) {
-      sum(!as.logical(debit_run$raw$consistency), na.rm = TRUE)
-    } else {
-      0L
-    },
-    duplicates_available = duplicates_run$available,
-    duplicate_flag_rows = if (nrow(duplicates_run$raw) > 0) {
-      as_logical_count(
-        duplicates_run$raw$x_dup | duplicates_run$raw$sd_dup | duplicates_run$raw$n_dup
-      )
-    } else {
-      0L
-    },
-    rounding_bias_available = rounding_bias_run$available,
-    rounding_bias_groups = nrow(rounding_bias_run$raw),
-    statcheck_available = statcheck_run$available,
+    grim_available = requireNamespace("scrutiny", quietly = TRUE),
+    grim_cases = receipt_coverage("scrutiny_grim_map"),
+    grim_incons_cases = receipt_flags("scrutiny_grim_map"),
+    grimmer_available = requireNamespace("scrutiny", quietly = TRUE),
+    grimmer_cases = receipt_coverage("scrutiny_grimmer_map"),
+    grimmer_incons_cases = receipt_flags("scrutiny_grimmer_map"),
+    debit_available = requireNamespace("scrutiny", quietly = TRUE),
+    debit_cases = receipt_coverage("scrutiny_debit_map"),
+    debit_incons_cases = receipt_flags("scrutiny_debit_map"),
+    duplicates_available = requireNamespace("scrutiny", quietly = TRUE),
+    duplicate_flag_rows = receipt_flags("scrutiny_duplicates"),
+    rounding_bias_available = requireNamespace("scrutiny", quietly = TRUE),
+    rounding_bias_groups = receipt_coverage("scrutiny_rounding_bias"),
+    statcheck_available = requireNamespace("statcheck", quietly = TRUE),
     statcheck_rows = nrow(statcheck_input),
-    statcheck_cases = nrow(statcheck_run$raw),
-    statcheck_errors = if ("error" %in% names(statcheck_run$raw)) {
+    statcheck_cases = if (statcheck_run$executed) nrow(statcheck_run$raw) else NA_integer_,
+    statcheck_errors = if (!statcheck_run$executed) NA_integer_ else if ("error" %in% names(statcheck_run$raw)) {
       as_logical_count(statcheck_run$raw$error)
     } else {
       0L
     },
-    statcheck_decision_errors = if ("decision_error" %in% names(statcheck_run$raw)) {
+    statcheck_decision_errors = if (!statcheck_run$executed) NA_integer_ else if ("decision_error" %in% names(statcheck_run$raw)) {
       as_logical_count(statcheck_run$raw$decision_error)
     } else {
       0L
@@ -1194,9 +1250,9 @@ main <- function() {
       "Recompute p-values from reported statistics and compare consistency"
     ),
     executed = c(
-      grim_run$available || grimmer_run$available || debit_run$available,
-      requireNamespace("rsprite2", quietly = TRUE),
-      statcheck_run$available
+      any(receipts$execution[receipts$package_name == "scrutiny"] %in% c("completed", "partial")),
+      FALSE,
+      any(receipts$execution[receipts$method_id == "statcheck"] %in% c("completed", "partial"))
     ),
     execution_note = c(
       paste(
@@ -1207,7 +1263,7 @@ main <- function() {
         "; rounding_bias=", rounding_bias_run$message,
         "; seq=", ifelse(scrutiny_seq, "enabled", "disabled")
       ),
-      "Package execution not yet implemented in this runner.",
+      "Execution not implemented; descriptive arm differences are saved separately.",
       statcheck_run$message
     )
   )
@@ -1216,6 +1272,7 @@ main <- function() {
   cat("Wrote ", file.path(out_dir, "numeric_row_results.csv"), "\n", sep = "")
   cat("Wrote ", file.path(out_dir, "numeric_summary.csv"), "\n", sep = "")
   cat("Wrote ", file.path(out_dir, "numeric_package_status.csv"), "\n", sep = "")
+  cat("Wrote ", file.path(out_dir, "numeric_method_receipts.csv"), "\n", sep = "")
   cat("Wrote ", grim_raw_path, "\n", sep = "")
   cat("Wrote ", grim_audit_path, "\n", sep = "")
   cat("Wrote ", grimmer_raw_path, "\n", sep = "")

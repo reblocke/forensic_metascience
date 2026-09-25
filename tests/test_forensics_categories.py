@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import shutil
 import subprocess
 from pathlib import Path
@@ -463,6 +464,205 @@ stopifnot(nrow(validate_scrutiny_input(legacy, "grim")) == 0L)
         capture_output=True,
         text=True,
     )
+
+
+def test_r_method_receipt_contract_has_truthful_outcomes() -> None:
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        raise RuntimeError("Rscript is required for method receipt contract regressions.")
+    expression = r"""
+source("R/method_receipts.R")
+base <- list(
+  run_id = "synthetic-run", method_id = "grim", method_version = "test-v1",
+  package_name = "scrutiny", package_version = "not-installed",
+  unit_of_evaluation = "summary_case", input_evidence_ids = "case-1",
+  parameters = "fixture", output_reference = "raw.csv", diagnostic = ""
+)
+completed <- do.call(new_method_receipt, c(base, list(
+  applicability = "eligible", execution = "completed", n_input = 1L,
+  n_eligible = 1L, n_evaluated = 1L, n_failed = 0L, n_flagged = 0L
+)))
+partial <- do.call(new_method_receipt, c(base, list(
+  applicability = "mixed", execution = "partial", n_input = 2L,
+  n_eligible = 2L, n_evaluated = 1L, n_failed = 1L, n_flagged = 0L
+)))
+unimplemented_args <- utils::modifyList(base, list(method_id = "rsprite2"))
+unimplemented <- do.call(new_method_receipt, c(unimplemented_args, list(
+  applicability = "unknown", execution = "not_implemented",
+  n_input = 3L, n_eligible = 0L, n_evaluated = 0L, n_failed = 0L,
+  n_flagged = NA_integer_
+)))
+stopifnot(completed$result_status == "no_finding", completed$n_evaluated == 1L)
+stopifnot(partial$result_status == "indeterminate", partial$n_failed == 1L)
+stopifnot(unimplemented$execution == "not_implemented", is.na(unimplemented$n_flagged))
+invalid <- tryCatch({
+  do.call(new_method_receipt, c(base, list(
+    applicability = "eligible", execution = "completed", n_input = 1L,
+    n_eligible = 1L, n_evaluated = 0L, n_failed = 0L, n_flagged = 0L
+  )))
+  FALSE
+}, error = function(e) TRUE)
+stopifnot(invalid)
+run_receipt <- function(method_run, eligible_count = 1L) {
+  receipt_from_method_run(
+    run_id = "synthetic-run", method_id = "grim", method_version = "test-v1",
+    package_name = "scrutiny", package_version = NA_character_,
+    unit_of_evaluation = "summary_case", input_evidence_ids = "case-1",
+    parameters = "fixture", input_count = eligible_count, eligible_count = eligible_count,
+    method_run = method_run, output_reference = "raw.csv"
+  )
+}
+failed_run <- run_receipt(list(
+  raw = data.frame(), message = "GRIM execution error: fixture failure"
+))
+stopifnot(failed_run$execution == "failed", is.na(failed_run$n_flagged))
+partial_run <- run_receipt(list(
+  raw = data.frame(consistency = c(TRUE, NA)), message = "ok"
+), eligible_count = 2L)
+stopifnot(partial_run$execution == "partial", partial_run$n_evaluated == 1L)
+empty_run <- run_receipt(
+  list(raw = data.frame(consistency = logical()), message = "No eligible rows."), 0L
+)
+stopifnot(empty_run$execution == "blocked", is.na(empty_run$n_flagged))
+statcheck_run <- receipt_from_method_run(
+  run_id = "synthetic-run", method_id = "statcheck", method_version = "test-v1",
+  package_name = "statcheck", package_version = NA_character_,
+  unit_of_evaluation = "report_text", input_evidence_ids = "", parameters = "fixture",
+  input_count = 1L, eligible_count = 1L,
+  method_run = list(raw = data.frame(error = TRUE), message = "ok"),
+  output_reference = "statcheck.csv", report_text_evaluated = TRUE
+)
+stopifnot(statcheck_run$execution == "completed", statcheck_run$n_evaluated == 1L,
+          statcheck_run$n_flagged == 1L)
+source("scripts/run_numeric_forensics.R")
+standard <- standardize_scrutiny_map(
+  data.frame(case_id = "case-1", source_unit = "Table 1", trial_id = "trial_x",
+             consistency = FALSE, probability = 0.25),
+  trial_id = "trial_x", method_name = "scrutiny_grim_map", metric_name = "grim_flag"
+)
+stopifnot(is.na(standard$p_value), standard$case_id == "case-1",
+          grepl("package_probability=0.25", standard$details))
+"""
+    subprocess.run(
+        [rscript, "-e", expression],
+        cwd=Path(__file__).resolve().parents[1],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_numeric_runner_receipts_keep_means_only_trial_and_exclude_sprite_stub(
+    tmp_path: Path,
+) -> None:
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        raise RuntimeError("Rscript is required for numeric runner receipt regressions.")
+    input_dir = tmp_path / "study"
+    inputs = input_dir / "inputs"
+    inputs.mkdir(parents=True)
+
+    def write_csv(name: str, columns: list[str], rows: list[dict[str, object]]) -> None:
+        with (inputs / name).open("w", newline="", encoding="utf-8") as stream:
+            writer = csv.DictWriter(stream, fieldnames=columns)
+            writer.writeheader()
+            writer.writerows(rows)
+
+    write_csv(
+        "numeric_checks_input.csv",
+        [
+            "trial_id",
+            "variable",
+            "level",
+            "group",
+            "source_unit",
+            "abs_percent_delta",
+            "legacy_abs_percent_delta",
+            "compatibility_status",
+            "reported_percent",
+            "computed_percent",
+            "reported_p",
+        ],
+        [
+            {
+                "trial_id": "means_only_trial",
+                "variable": "mean",
+                "level": "all",
+                "group": "arm_a",
+                "source_unit": "Table 1",
+                "abs_percent_delta": "",
+                "legacy_abs_percent_delta": "",
+                "compatibility_status": "indeterminate",
+                "reported_percent": "",
+                "computed_percent": "",
+                "reported_p": "",
+            }
+        ],
+    )
+    write_csv("statcheck_input.csv", ["trial_id", "source_unit"], [])
+    (inputs / "statcheck_text.txt").write_text("", encoding="utf-8")
+    write_csv(
+        "rsprite2_input.csv",
+        [
+            "trial_id",
+            "variable",
+            "level",
+            "group_a",
+            "group_b",
+            "percent_a",
+            "percent_b",
+            "abs_percent_between_arms",
+        ],
+        [
+            {
+                "trial_id": "means_only_trial",
+                "variable": "sex",
+                "level": "female",
+                "group_a": "A",
+                "group_b": "B",
+                "percent_a": "51",
+                "percent_b": "56",
+                "abs_percent_between_arms": "5",
+            }
+        ],
+    )
+    write_csv("scrutiny_cases.csv", ["trial_id", "case_id"], [])
+    for name in (
+        "scrutiny_grim_input.csv",
+        "scrutiny_grimmer_input.csv",
+        "scrutiny_debit_input.csv",
+    ):
+        write_csv(name, ["trial_id", "case_id"], [])
+    write_csv(
+        "scrutiny_duplicates_input.csv",
+        ["trial_id", "case_id", "source_unit", "variable", "level", "group", "x", "sd", "n"],
+        [],
+    )
+    write_csv("scrutiny_rounding_bias_input.csv", ["trial_id", "x", "digits_x"], [])
+
+    output_dir = tmp_path / "outputs"
+    script = Path(__file__).resolve().parents[1] / "scripts" / "run_numeric_forensics.R"
+    subprocess.run(
+        [rscript, str(script), "--in", str(input_dir), "--out", str(output_dir)],
+        cwd=Path(__file__).resolve().parents[1],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    standardized = pd.read_csv(output_dir / "numeric_standardized_results.csv")
+    receipts = pd.read_csv(output_dir / "numeric_method_receipts.csv")
+    summary = pd.read_csv(output_dir / "numeric_summary.csv")
+    descriptive = pd.read_csv(output_dir / "numeric_descriptive_arm_differences.csv")
+
+    assert "rsprite2_stub" not in set(standardized["method"])
+    sprite_receipt = receipts[receipts["method_id"] == "rsprite2"].iloc[0]
+    assert sprite_receipt["execution"] == "not_implemented"
+    assert pd.isna(sprite_receipt["n_flagged"])
+    grim_receipt = receipts[receipts["method_id"] == "scrutiny_grim_map"].iloc[0]
+    assert grim_receipt["execution"] in {"dependency_missing", "blocked"}
+    assert pd.isna(grim_receipt["n_flagged"])
+    assert summary.loc[0, "trial_id"] == "means_only_trial"
+    assert len(descriptive) == 1
 
 
 def test_scrutiny_builders_return_header_only_when_empty() -> None:
