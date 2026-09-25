@@ -1,0 +1,171 @@
+---
+title: "INSPECT-SR Human Review"
+subtitle: "Pinned guidance, evidence, and recorded reviewer decisions"
+format:
+  html:
+    toc: true
+    number-sections: true
+  pdf:
+    toc: true
+    number-sections: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+report_path <- Sys.getenv("INSPECT_SR_REPORT_JSON", unset = "")
+if (!nzchar(report_path) || !file.exists(report_path)) {
+  stop("INSPECT_SR_REPORT_JSON must point to an explicit, current review report model.")
+}
+if (!requireNamespace("jsonlite", quietly = TRUE)) {
+  stop("The Quarto report requires the R package jsonlite; method packages are optional.")
+}
+report <- jsonlite::fromJSON(report_path, simplifyVector = FALSE)
+checks <- report$checks
+`%||%` <- function(x, y) if (is.null(x) || length(x) == 0) y else x
+```
+
+## Review overview
+
+**`r report$report_status`**
+
+| Field | Recorded value |
+|---|---|
+| Trial | `r report$trial_id` |
+| Assessment | `r report$assessment_id` |
+| Guidance | `r report$guidance_version` (`r report$guidance_sha256`) |
+| Finalization | `r report$finalization_id %||% "None"` |
+
+```{r}
+if (is.null(report$judgments)) {
+  cat("No human overall judgment is finalized for this report revision. No legacy score or computed trustworthiness category is displayed.")
+} else {
+  if (length(report$domain_judgments) > 0) {
+    domain_table <- do.call(rbind, lapply(report$domain_judgments, function(x) {
+      data.frame(domain_id = x$domain_id, judgment = x$judgment,
+                 rationale = x$rationale, stringsAsFactors = FALSE)
+    }))
+    print(knitr::kable(domain_table, caption = "Human domain judgments"))
+  }
+  cat("**Overall human judgment:** ", report$judgments$overall$judgment, "\n\n", sep = "")
+  cat("**Rationale:** ", report$judgments$overall$rationale, "\n\n", sep = "")
+  if (!is.null(report$judgments$overall$justification)) {
+    cat("**Lower overall judgment justification:** ", report$judgments$overall$justification, "\n\n", sep = "")
+  }
+  cat("**Finalization:** ", report$report_status, "\n", sep = "")
+}
+```
+
+### Source versions
+
+```{r}
+if (length(report$source_versions) == 0) {
+  cat("No source versions were attached to this report model.")
+} else {
+  source_table <- do.call(rbind, lapply(report$source_versions, function(x) {
+    data.frame(source_id = x$source_id %||% NA_character_,
+               source_version_id = x$source_version_id %||% NA_character_,
+               sha256 = x$content_sha256 %||% NA_character_,
+               stringsAsFactors = FALSE)
+  }))
+  knitr::kable(source_table)
+}
+```
+
+```{r}
+if (knitr::is_latex_output()) cat("\\newpage\n")
+```
+
+## Check records and evidence
+
+Each check remains a distinct evidence and human-response record. Candidate method outputs are leads for review and never official responses.
+
+```{r}
+check_table <- do.call(rbind, lapply(checks, function(x) {
+  data.frame(check_id = x$check_id,
+             official_wording = x$official_wording,
+             workflow_status = x$workflow_status,
+             response = x$response %||% NA_character_,
+             rationale = x$rationale %||% NA_character_,
+             evidence_ids = paste(unlist(x$evidence_ids), collapse = "; "),
+             stringsAsFactors = FALSE)
+}))
+knitr::kable(check_table, longtable = TRUE)
+```
+
+### Evidence locators, observations, and alternatives
+
+```{r}
+for (check in checks) {
+  cat("\n\n#### Check ", check$check_id, "\n\n", check$official_wording, "\n\n", sep = "")
+  records <- c(check$evidence_records, check$manual_evidence, check$candidate_evidence)
+  if (length(records) == 0) {
+    cat("No evidence records are attached.\n\n")
+  } else {
+    rows <- do.call(rbind, lapply(records, function(item) {
+      data.frame(kind = item$record_type %||% item$candidate_kind %||% "candidate",
+                 evidence_or_candidate_id = item$evidence_id %||% item$candidate_id %||% NA_character_,
+                 locator = item$locator %||% item$source_locator %||% NA_character_,
+                 observation_or_details = item$observation %||% item$details %||% "",
+                 explanation_or_limitations = item$explanation %||% item$limitations %||% "",
+                 alternate_explanations = paste(unlist(item$alternate_explanations), collapse = "; "),
+                 stringsAsFactors = FALSE)
+    }))
+    print(knitr::kable(rows))
+  }
+}
+```
+
+## Method coverage and reviewer history
+
+```{r}
+if (length(report$method_receipts) == 0) {
+  cat("No method receipts were attached. Missing receipts are not negative findings.")
+} else {
+  method_table <- do.call(rbind, lapply(report$method_receipts, function(x) {
+    data.frame(method_id = x$method_id %||% NA_character_,
+               execution = x$execution %||% NA_character_,
+               n_eligible = x$n_eligible %||% NA_integer_,
+               n_evaluated = x$n_evaluated %||% NA_integer_,
+               n_failed = x$n_failed %||% NA_integer_,
+               stringsAsFactors = FALSE)
+  }))
+  knitr::kable(method_table)
+}
+```
+
+```{r}
+if (length(report$reviewer_submissions) == 0) {
+  cat("No reviewer submissions were attached.")
+} else {
+  review_history <- do.call(rbind, lapply(report$reviewer_submissions, function(x) {
+    data.frame(reviewer_id = x$reviewer_id %||% NA_character_,
+               submission_id = x$submission_id %||% NA_character_,
+               source_snapshot_sha256 = x$source_snapshot_sha256 %||% NA_character_,
+               workflow_status = x$workflow_status %||% NA_character_,
+               stringsAsFactors = FALSE)
+  }))
+  knitr::kable(review_history)
+}
+if (!is.null(report$adjudication)) {
+  cat("\n\n**Adjudication ID:** ", report$adjudication$adjudication_id, "\n", sep = "")
+}
+```
+
+## Unresolved items
+
+```{r}
+if (length(report$unresolved_items) == 0) {
+  cat("No checks remain pending or unassessed in this review record.")
+} else {
+  unresolved <- do.call(rbind, lapply(report$unresolved_items, function(x) {
+    data.frame(check_id = x$check_id,
+               workflow_status = x$workflow_status,
+               response = x$response %||% NA_character_,
+               stringsAsFactors = FALSE)
+  }))
+  knitr::kable(unresolved)
+}
+```
