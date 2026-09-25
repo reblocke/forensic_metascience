@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shutil
+import subprocess
 from pathlib import Path
 
 import pandas as pd
@@ -162,14 +164,146 @@ def test_scrutiny_case_eligibility_and_method_inputs() -> None:
     rounding_bias_input = build_scrutiny_rounding_bias_input(cases)
 
     assert len(cases) == 3
-    assert cases["eligible_grim"].sum() == 3
-    assert cases["eligible_grimmer"].sum() == 2
-    assert cases["eligible_debit"].sum() == 1
-    assert len(grim_input) == 3
-    assert len(grimmer_input) == 2
-    assert len(debit_input) == 1
+    assert cases["eligible_grim"].sum() == 0
+    assert cases["eligible_grimmer"].sum() == 0
+    assert cases["eligible_debit"].sum() == 0
+    assert len(grim_input) == 0
+    assert len(grimmer_input) == 0
+    assert len(debit_input) == 0
+    assert cases.loc[0, "statistic_kind"] == "median"
+    assert cases.loc[0, "exclude_reason_grim"] == "statistic_not_arithmetic_mean"
+    assert cases.loc[2, "exclude_reason_debit"] == "measurement_scale_not_bernoulli"
     assert len(duplicate_input) == 3
     assert len(rounding_bias_input) == 3
+
+
+def test_scrutiny_eligibility_requires_documented_summary_semantics() -> None:
+    common = {
+        "trial_id": "trial_x",
+        "source_pdf": "report.pdf",
+        "source_table": "table2",
+        "source_page": 4,
+        "variable": "Outcome",
+        "level": "all",
+        "group": "arm_a",
+        "n": 100,
+        "x_str": "0.60",
+        "sd_str": "0.20",
+        "digits_x": 2,
+        "digits_sd": 2,
+        "statistic_kind": "arithmetic_mean",
+        "measurement_scale": "integer_valued",
+        "raw_or_adjusted": "raw",
+        "weighting": "unweighted",
+        "analysis_n": 100,
+        "imputation_status": "not_imputed",
+        "transformation_status": "none",
+        "granularity_transformation": "",
+        "eligibility_evidence": "Table 2 footnote: unadjusted arithmetic mean; integer score.",
+    }
+    rows = [
+        common,
+        {
+            **common,
+            "variable": "Bounded continuous outcome",
+            "measurement_scale": "continuous_bounded",
+            "eligibility_evidence": "Table 2 reports a bounded continuous score.",
+        },
+        {
+            **common,
+            "variable": "Binary outcome",
+            "measurement_scale": "bernoulli",
+            "eligibility_evidence": "Methods: coded 0/1; unadjusted arm mean and SD.",
+        },
+        {
+            **common,
+            "variable": "Adjusted score",
+            "raw_or_adjusted": "adjusted",
+            "eligibility_evidence": "Adjusted model estimate.",
+        },
+        {
+            **common,
+            "variable": "Unknown scale",
+            "measurement_scale": "unknown",
+            "eligibility_evidence": "No measurement-scale description found.",
+        },
+        {**common, "variable": "Weighted summary", "weighting": "weighted"},
+        {**common, "variable": "Imputed summary", "imputation_status": "imputed"},
+        {
+            **common,
+            "variable": "Unsupported transformation",
+            "transformation_status": "transformed",
+        },
+        {**common, "variable": "Mismatched n", "analysis_n": 90},
+    ]
+    cases = build_scrutiny_cases(
+        scrutiny_input=pd.DataFrame(),
+        numeric_summary_long=pd.DataFrame(rows),
+    )
+    grim_input = build_scrutiny_grim_input(cases)
+    grimmer_input = build_scrutiny_grimmer_input(cases)
+    debit_input = build_scrutiny_debit_input(cases)
+
+    assert cases["eligible_grim"].tolist() == [
+        True,
+        False,
+        True,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+    ]
+    assert cases["eligible_grimmer"].tolist() == cases["eligible_grim"].tolist()
+    assert cases["eligible_debit"].tolist() == [
+        False,
+        False,
+        True,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+    ]
+    assert cases.loc[1, "exclude_reason_debit"] == "measurement_scale_not_bernoulli"
+    assert len(grim_input) == len(grimmer_input) == 2
+    assert len(debit_input) == 1
+    assert set(grim_input["method_revision"]) == {"numeric_eligibility_v2"}
+    assert set(debit_input["measurement_scale"]) == {"bernoulli"}
+
+
+def test_numeric_r_boundary_revalidates_method_eligibility() -> None:
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        raise RuntimeError("Rscript is required for the numeric eligibility boundary regression.")
+    expression = r"""
+source("scripts/run_numeric_forensics.R")
+valid <- tibble::tibble(
+  n = c(100, 100, 100, 100), analysis_n = c(100, 100, 100, 100),
+  x = c("0.60", "0.60", "0.60", "0.60"),
+  sd = c("0.20", "0.20", "0.20", "0.20"),
+  statistic_kind = c("arithmetic_mean", "median", "arithmetic_mean", "arithmetic_mean"),
+  measurement_scale = c("integer_valued", "integer_valued", "continuous_bounded", "bernoulli"),
+  raw_or_adjusted = "raw", weighting = "unweighted",
+  imputation_status = "not_imputed", transformation_status = "none",
+  granularity_transformation = "",
+  eligibility_evidence = "Methods describe the summary and scale.",
+  method_revision = "numeric_eligibility_v2"
+)
+stopifnot(nrow(validate_scrutiny_input(valid, "grim")) == 2L)
+stopifnot(nrow(validate_scrutiny_input(valid, "debit")) == 1L)
+legacy <- valid[, setdiff(names(valid), c("measurement_scale", "method_revision"))]
+stopifnot(nrow(validate_scrutiny_input(legacy, "grim")) == 0L)
+"""
+    subprocess.run(
+        [rscript, "-e", expression],
+        cwd=Path(__file__).resolve().parents[1],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_scrutiny_builders_return_header_only_when_empty() -> None:

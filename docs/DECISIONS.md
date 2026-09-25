@@ -1,5 +1,17 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-09-25: Gate GRIM, GRIMMER, and DEBIT by documented summary semantics
+- **Date:** 2026-09-25
+- **Decision:** Introduce numeric eligibility method revision `numeric_eligibility_v2`; retain baseline medians as median observations and exclude them from GRIM/GRIMMER/DEBIT. Eligibility requires explicit statistic kind, supported measurement scale, raw status, unweighted analysis, matching analysis n, documented non-imputation/transformation status, and evidence. DEBIT additionally requires an explicitly Bernoulli scale.
+- **Context:** Existing code routed continuous median/range observations to GRIM and treated bounded values as binary based on their numeric range.
+- **Options considered:** Continue inferring semantics from numeric ranges; or fail closed when extraction metadata does not establish method applicability.
+- **Why this choice:** Numeric values alone do not establish the statistic or measurement scale required by these methods. Unknown legacy metadata therefore remains unevaluated.
+- **Consequences / follow-ups:** Existing stored study outputs are immutable and are not rewritten. New generated scrutiny cases and method inputs carry method revision and eligibility metadata. Missing metadata maps to method-specific ineligibility reasons and null method findings; it does not create an INSPECT response or study judgment.
+- **Methods/packages affected:** Python numeric input builders; R `scrutiny::grim_map`, `grimmer_map`, and `debit_map` entry points.
+- **Assumptions locked in:** Arithmetic mean means an explicitly reported arithmetic mean; `integer_valued` and `bernoulli` require source evidence. A granularity adjustment is accepted only when explicitly documented. No new transformation formula is introduced.
+- **Output impact:** Affected generated artifacts are `scrutiny_input.csv`, `scrutiny_cases.csv`, and method-specific `scrutiny_{grim,grimmer,debit}_input.csv`; each case now includes `numeric_eligibility_v2` and per-method eligibility reasons. Historical reports and raw extraction records are unchanged.
+- **Verification evidence:** Failing regressions were recorded before the fix. `PYTHONPATH=src .venv/bin/python -m pytest -q` passed (41 tests); `ruff check .` and `ruff format . --check` passed; R script syntax parsing passed. The direct R eligibility-boundary regression passed. R 4.6.0 and `readr`/`dplyr` were available; `scrutiny` was not installed, so package-native method execution was not tested.
+
 Record decisions that affect reproducibility and interpretation.
 
 ## Template

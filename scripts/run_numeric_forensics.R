@@ -64,6 +64,43 @@ safe_package_version <- function(package_name) {
   as.character(utils::packageVersion(package_name))
 }
 
+validate_scrutiny_input <- function(input, method = c("grim", "grimmer", "debit")) {
+  method <- match.arg(method)
+  required <- c(
+    "statistic_kind", "measurement_scale", "raw_or_adjusted", "weighting",
+    "analysis_n", "imputation_status", "transformation_status",
+    "granularity_transformation", "eligibility_evidence", "method_revision"
+  )
+  if (!all(required %in% names(input)) || nrow(input) == 0) {
+    return(input[0, , drop = FALSE])
+  }
+  normalized <- lapply(required, function(column) {
+    tolower(trimws(as.character(input[[column]])))
+  })
+  names(normalized) <- required
+  known_integer_scale <- normalized$measurement_scale %in% c("integer_valued", "bernoulli")
+  transformation_supported <- normalized$transformation_status == "none" |
+    (normalized$transformation_status == "granularity_adjustment" &
+      nzchar(normalized$granularity_transformation))
+  base_eligible <- normalized$statistic_kind == "arithmetic_mean" &
+    known_integer_scale &
+    normalized$raw_or_adjusted == "raw" &
+    normalized$weighting == "unweighted" &
+    !is.na(input$analysis_n) &
+    !is.na(input$n) &
+    as.numeric(input$analysis_n) == as.numeric(input$n) &
+    nzchar(normalized$eligibility_evidence) &
+    normalized$imputation_status == "not_imputed" &
+    transformation_supported &
+    normalized$method_revision == "numeric_eligibility_v2"
+  method_eligible <- if (method == "debit") {
+    base_eligible & normalized$measurement_scale == "bernoulli"
+  } else {
+    base_eligible
+  }
+  input[!is.na(method_eligible) & method_eligible, , drop = FALSE]
+}
+
 empty_scrutiny_grim_raw <- function() {
   tibble(
     x = character(),
@@ -911,6 +948,9 @@ main <- function() {
     file.path(in_dir, "inputs", "scrutiny_debit_input.csv"),
     show_col_types = FALSE
   )
+  scrutiny_grim_input <- validate_scrutiny_input(scrutiny_grim_input, "grim")
+  scrutiny_grimmer_input <- validate_scrutiny_input(scrutiny_grimmer_input, "grimmer")
+  scrutiny_debit_input <- validate_scrutiny_input(scrutiny_debit_input, "debit")
   scrutiny_duplicates_input <- read_csv(
     file.path(in_dir, "inputs", "scrutiny_duplicates_input.csv"),
     show_col_types = FALSE
@@ -1138,4 +1178,6 @@ main <- function() {
   cat("Wrote ", standardized_path, "\n", sep = "")
 }
 
-main()
+if (sys.nframe() == 0) {
+  main()
+}

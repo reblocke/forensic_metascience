@@ -21,12 +21,38 @@ SCRUTINY_CASE_COLUMNS = [
     "sd_str",
     "digits_x",
     "digits_sd",
+    "statistic_kind",
+    "measurement_scale",
+    "raw_or_adjusted",
+    "weighting",
+    "analysis_n",
+    "imputation_status",
+    "transformation_status",
+    "granularity_transformation",
+    "eligibility_evidence",
+    "method_revision",
     "is_binary",
     "eligible_grim",
+    "exclude_reason_grim",
     "eligible_grimmer",
+    "exclude_reason_grimmer",
     "eligible_debit",
+    "exclude_reason_debit",
     "exclude_reason",
 ]
+
+SUMMARY_METADATA_COLUMNS = (
+    "statistic_kind",
+    "measurement_scale",
+    "raw_or_adjusted",
+    "weighting",
+    "analysis_n",
+    "imputation_status",
+    "transformation_status",
+    "granularity_transformation",
+    "eligibility_evidence",
+)
+NUMERIC_METHOD_REVISION = "numeric_eligibility_v2"
 
 
 def compute_percent_from_count(
@@ -105,7 +131,16 @@ def build_scrutiny_input(table1_long: pd.DataFrame) -> pd.DataFrame:
     continuous["decimals"] = (
         pd.to_numeric(continuous["decimals"], errors="coerce").fillna(0).astype(int)
     )
-    return continuous[["trial_id", "item_label", "n", "x", "decimals"]]
+    continuous["statistic_kind"] = "median"
+    continuous["measurement_scale"] = continuous.get("measurement_scale", "unknown")
+    continuous["raw_or_adjusted"] = continuous.get("raw_or_adjusted", "unknown")
+    continuous["weighting"] = continuous.get("weighting", "unknown")
+    continuous["analysis_n"] = continuous.get("analysis_n", pd.NA)
+    continuous["imputation_status"] = continuous.get("imputation_status", "unknown")
+    continuous["transformation_status"] = continuous.get("transformation_status", "unknown")
+    continuous["granularity_transformation"] = continuous.get("granularity_transformation", "")
+    continuous["eligibility_evidence"] = continuous.get("eligibility_evidence", "")
+    return continuous[["trial_id", "item_label", "n", "x", "decimals", *SUMMARY_METADATA_COLUMNS]]
 
 
 def build_statcheck_stub(table1_long: pd.DataFrame) -> pd.DataFrame:
@@ -168,19 +203,65 @@ def _source_unit(variable: str, level: str, group: str) -> str:
     return f"{variable} [{group}]"
 
 
-def _exclude_reason(
+def _metadata_value(row: pd.Series, column: str) -> str:
+    value = row.get(column, "unknown")
+    if pd.isna(value):
+        return "unknown"
+    text = str(value).strip().lower()
+    return text or "unknown"
+
+
+def _eligibility_reasons(
     *,
-    eligible_grim: bool,
-    eligible_grimmer: bool,
-    eligible_debit: bool,
-) -> str:
-    if not eligible_grim:
-        return "missing_x_or_n"
-    if not eligible_grimmer:
-        return "missing_sd"
-    if not eligible_debit:
-        return "not_binary"
-    return ""
+    x_str: str,
+    sd_str: str,
+    n_value: int | None,
+    digits_sd: int | None,
+    metadata: dict[str, str],
+) -> dict[str, str]:
+    """Return method-specific reasons, failing closed when semantics are unknown."""
+
+    base_reason = ""
+    if not x_str or n_value is None or n_value <= 0:
+        base_reason = "missing_x_or_valid_n"
+    elif metadata["statistic_kind"] != "arithmetic_mean":
+        base_reason = "statistic_not_arithmetic_mean"
+    elif metadata["measurement_scale"] not in {"integer_valued", "bernoulli"}:
+        base_reason = "measurement_scale_not_documented_integer"
+    elif metadata["raw_or_adjusted"] != "raw":
+        base_reason = "summary_not_documented_raw"
+    elif metadata["weighting"] != "unweighted":
+        base_reason = "weighting_not_documented_unweighted"
+    elif metadata["analysis_n"] == "unknown" or not metadata["analysis_n"].isdigit():
+        base_reason = "analysis_n_unknown_or_invalid"
+    elif int(metadata["analysis_n"]) != n_value:
+        base_reason = "analysis_n_mismatch"
+    elif metadata["eligibility_evidence"] in {"", "unknown"}:
+        base_reason = "eligibility_evidence_missing"
+    elif metadata["imputation_status"] != "not_imputed":
+        base_reason = "imputation_status_not_documented_unimputed"
+    elif metadata["transformation_status"] == "unknown":
+        base_reason = "transformation_status_unknown"
+    elif metadata["transformation_status"] not in {"none", "granularity_adjustment"}:
+        base_reason = "summary_transformation_unsupported"
+    elif metadata["transformation_status"] == "granularity_adjustment" and metadata[
+        "granularity_transformation"
+    ] in {"", "unknown"}:
+        base_reason = "granularity_transformation_undocumented"
+
+    grim_reason = base_reason
+    grimmer_reason = base_reason
+    debit_reason = base_reason
+    if metadata["measurement_scale"] != "bernoulli":
+        debit_reason = "measurement_scale_not_bernoulli"
+    if not grim_reason and (not sd_str or digits_sd is None or digits_sd < 0):
+        grimmer_reason = "missing_sd_or_precision"
+        debit_reason = "missing_sd_or_precision"
+    return {
+        "exclude_reason_grim": grim_reason,
+        "exclude_reason_grimmer": grimmer_reason,
+        "exclude_reason_debit": debit_reason,
+    }
 
 
 def build_scrutiny_cases(
@@ -208,17 +289,18 @@ def build_scrutiny_cases(
             x_str = _format_numeric_string(row["x"], digits_x)
             sd_str = ""
             digits_sd = None
-            x_numeric = _to_float(x_str)
-            sd_numeric = _to_float(sd_str)
-            is_binary = (
-                x_numeric is not None
-                and sd_numeric is not None
-                and 0.0 <= x_numeric <= 1.0
-                and 0.0 <= sd_numeric <= 1.0
+            metadata = {column: _metadata_value(row, column) for column in SUMMARY_METADATA_COLUMNS}
+            metadata["statistic_kind"] = "median"
+            reasons = _eligibility_reasons(
+                x_str=x_str,
+                sd_str=sd_str,
+                n_value=n_value,
+                digits_sd=digits_sd,
+                metadata=metadata,
             )
-            eligible_grim = bool(x_str and n_value is not None and n_value > 0)
-            eligible_grimmer = bool(eligible_grim and sd_str)
-            eligible_debit = bool(eligible_grimmer and is_binary)
+            eligible_grim = not reasons["exclude_reason_grim"]
+            eligible_grimmer = not reasons["exclude_reason_grimmer"]
+            eligible_debit = not reasons["exclude_reason_debit"]
             rows.append(
                 {
                     "case_id": "",
@@ -234,15 +316,14 @@ def build_scrutiny_cases(
                     "sd_str": sd_str,
                     "digits_x": digits_x,
                     "digits_sd": digits_sd,
-                    "is_binary": is_binary,
+                    **metadata,
+                    "method_revision": NUMERIC_METHOD_REVISION,
+                    "is_binary": metadata["measurement_scale"] == "bernoulli",
                     "eligible_grim": eligible_grim,
+                    **reasons,
                     "eligible_grimmer": eligible_grimmer,
                     "eligible_debit": eligible_debit,
-                    "exclude_reason": _exclude_reason(
-                        eligible_grim=eligible_grim,
-                        eligible_grimmer=eligible_grimmer,
-                        eligible_debit=eligible_debit,
-                    ),
+                    "exclude_reason": next((reason for reason in reasons.values() if reason), ""),
                 }
             )
 
@@ -277,19 +358,18 @@ def build_scrutiny_cases(
             if digits_sd is None and sd_str:
                 digits_sd = _digits_from_str(sd_str)
             n_value = _to_int(row["n"])
-            x_numeric = _to_float(x_str)
-            sd_numeric = _to_float(sd_str)
-            is_binary = (
-                x_numeric is not None
-                and sd_numeric is not None
-                and 0.0 <= x_numeric <= 1.0
-                and 0.0 <= sd_numeric <= 1.0
+            metadata = {column: _metadata_value(row, column) for column in SUMMARY_METADATA_COLUMNS}
+            metadata["analysis_n"] = str(_to_int(row.get("analysis_n")) or "unknown")
+            reasons = _eligibility_reasons(
+                x_str=x_str,
+                sd_str=sd_str,
+                n_value=n_value,
+                digits_sd=digits_sd,
+                metadata=metadata,
             )
-            eligible_grim = bool(x_str and n_value is not None and n_value > 0)
-            eligible_grimmer = bool(
-                eligible_grim and sd_str and digits_sd is not None and digits_sd >= 0
-            )
-            eligible_debit = bool(eligible_grimmer and is_binary)
+            eligible_grim = not reasons["exclude_reason_grim"]
+            eligible_grimmer = not reasons["exclude_reason_grimmer"]
+            eligible_debit = not reasons["exclude_reason_debit"]
             rows.append(
                 {
                     "case_id": "",
@@ -305,15 +385,14 @@ def build_scrutiny_cases(
                     "sd_str": sd_str,
                     "digits_x": digits_x,
                     "digits_sd": digits_sd,
-                    "is_binary": is_binary,
+                    **metadata,
+                    "method_revision": NUMERIC_METHOD_REVISION,
+                    "is_binary": metadata["measurement_scale"] == "bernoulli",
                     "eligible_grim": eligible_grim,
+                    **reasons,
                     "eligible_grimmer": eligible_grimmer,
                     "eligible_debit": eligible_debit,
-                    "exclude_reason": _exclude_reason(
-                        eligible_grim=eligible_grim,
-                        eligible_grimmer=eligible_grimmer,
-                        eligible_debit=eligible_debit,
-                    ),
+                    "exclude_reason": next((reason for reason in reasons.values() if reason), ""),
                 }
             )
 
@@ -344,6 +423,8 @@ def build_scrutiny_grim_input(scrutiny_cases: pd.DataFrame) -> pd.DataFrame:
         "n",
         "x",
         "digits_x",
+        *SUMMARY_METADATA_COLUMNS,
+        "method_revision",
     ]
     if scrutiny_cases.empty:
         return pd.DataFrame(columns=columns)
@@ -376,6 +457,8 @@ def build_scrutiny_grimmer_input(scrutiny_cases: pd.DataFrame) -> pd.DataFrame:
         "sd",
         "digits_x",
         "digits_sd",
+        *SUMMARY_METADATA_COLUMNS,
+        "method_revision",
     ]
     if scrutiny_cases.empty:
         return pd.DataFrame(columns=columns)
@@ -408,6 +491,8 @@ def build_scrutiny_debit_input(scrutiny_cases: pd.DataFrame) -> pd.DataFrame:
         "sd",
         "digits_x",
         "digits_sd",
+        *SUMMARY_METADATA_COLUMNS,
+        "method_revision",
     ]
     if scrutiny_cases.empty:
         return pd.DataFrame(columns=columns)
