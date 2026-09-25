@@ -250,3 +250,12 @@ bash scripts/run_pipeline.sh --forensics all
 - FM-07 is complete and committed after final verification.
 - FM-06 still has an open seeded `simdistr` numerical-reproducibility gate because `simdistr` is unavailable locally; no installation/network access was attempted. The API gate itself safely reports the dependency as missing.
 - Continue with FM-08 next, following the packet dependency order. Do not call the packet integrated until FM-12 and native R/report verification are complete.
+
+## 2026-09-25 INSPECT-SR packet blocker: FM-08 to FM-11
+
+- **FM-08 open:** No implementation edits made. The ticket requires exact official v1.1.2 check wording, an immutable snapshot/hash, retrieval date, citation, and license/terms. The supplied ZIP has no guidance snapshot; its `SOURCES.md` only points to the live site and changelog. The local FM-08 target paths do not exist.
+- **Network boundary:** User instruction requires explicit opt-in before network or interactive work. No retrieval was attempted and no check wording or hash was fabricated.
+- **Action to unblock:** Provide the exact v1.1.2 snapshot and license/terms locally, or explicitly opt in to retrieving them. Resume FM-08 only after the exact content and hash can be verified.
+- **FM-09, FM-10, FM-11 open:** Not implemented because their declared dependencies require FM-08, then FM-09, then FM-10. Building those records without a frozen catalogue would violate the packet contract.
+- **Verification:** Read FM-08 and FM-09 through FM-11 tickets, FM-08 shared contract, source register, and the source files explicitly named by FM-08. No tests were run for these blocked tickets because no code changed.
+- **Next after unblock:** FM-08 catalogue/records; FM-09 evidence mapping/manual routes; FM-10 independent review/adjudication; FM-11 report/synthesis export; then FM-12 integration/release gate. FM-13 remains optional/deferred.
