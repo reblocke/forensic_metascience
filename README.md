@@ -33,7 +33,7 @@ transcription. Neither path is a clone-only analysis.
 | Layer | What the repository establishes |
 | --- | --- |
 | Shell and Python | `bash`, Python `>=3.11` in `pyproject.toml`, and `uv`. `uv.lock` locks the Python tooling used by `scripts/run_pipeline.sh`; that script calls `uv run python`. |
-| R | `Rscript`; the prior README records testing with R 4.5.x. The base R packages `readr`, `dplyr`, `tidyr`, and `tibble` are needed by the R stages. `simdistr` is needed for randomization, which also runs before numeric and meta. R packages are not pinned by the Python lock. |
+| R | `Rscript`; the prior README named R 4.5.x as tested, without a retained runtime receipt. The base R packages `readr`, `dplyr`, `tidyr`, and `tibble` are needed by the R stages. `simdistr` is needed for randomization, which also runs before numeric and meta. R packages are not pinned by the Python lock. |
 | Optional methods | `scrutiny`, `statcheck`, and `metaDigitise` enable their respective checks when eligible inputs exist. Missing packages or ineligible inputs can produce schema-valid empty outputs. `rsprite2` is stub-only in this runner even if installed. |
 | Reports | Quarto CLI and a LaTeX/PDF engine are needed for report rendering; this repository does not pin their versions. |
 | Sources | `config/studies/lungtime.sh` points to two tracked PDFs under `Checkpoint Inhib Time of Day/` for report/baseline and protocol/supplement roles. `config/studies/pronto.sh` points to three PDFs under `data/raw/studies/pronto/`, which are not staged in a fresh clone inspected here. The pipeline checks every configured PDF before starting work. |
@@ -84,8 +84,9 @@ It creates a four-row fake CSV under pytest's temporary directory, checks
 the processed `value_z` column, and writes no study report. A passing test
 confirms that narrow Python path only; it does not execute R methods, parse a
 source PDF, render Quarto, or validate a scientific claim.
-For this documentation revision, the test passed with CPython 3.12.11;
-the public R/Quarto route was not rerun.
+The dated [documentation check](docs/HANDOFF.md#2026-09-24-readme-13-documentation-check)
+records the interpreter and test result for this revision. The public R/Quarto
+route was not rerun.
 
 For a configured **public-paper** check, first confirm every path in
 `config/studies/lungtime.sh` exists and that the R/Quarto/PDF prerequisites
@@ -338,7 +339,11 @@ See `AGENTS.md` for detailed operating conventions and `docs/DECISIONS.md` for s
 
 ### Data and Reuse
 
-Public replication data; verify source licenses
+The data-free setup check uses a generated four-row CSV. Configured paper runs
+need the named source PDFs and a review of publisher rights before sharing
+them or derived reports. Private manuscript PDFs, transcriptions, and review
+outputs require authorization and stay in ignored local paths. A runnable
+example does not grant redistribution permission.
 
 ### Citation
 
