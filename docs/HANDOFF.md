@@ -1,5 +1,49 @@
 # Handoff (for multi-session work)
 
+## Latest status — 2026-09-25
+
+Current implementation base is `428bc948d8bd5bb56256ecbc67b1cc4d50ee4b6b`;
+the pre-existing untracked `run-b2.html` artifact is preserved. No source-paper
+analysis or repository output regeneration was run.
+
+- **FM-01–FM-11:** Implemented. FM-03–FM-07 corrections have regression-first
+  coverage. FM-08 uses a 26-file source snapshot at the official guidance commit
+  with the complete 21-check catalogue and verified per-file hashes. FM-09–FM-11
+  keep candidates, manual evidence, reviewer submissions, adjudication, reports,
+  and policy-controlled synthesis exports as separate records.
+- **FM-12:** Local release-gate verification passed. The exact native R methods
+  and seeded simdistr path ran from temporary libraries, and current-run HTML/PDF
+  report fixtures rendered to temporary paths. CI now has distinct locked Python,
+  required native R, and Quarto report-review jobs; hosted Actions have not yet
+  run this diff.
+- **FM-13:** Deferred.
+
+### Latest verification receipts
+
+- `PYTHONPATH=src uv run pytest -q -o addopts='' -ra` — 114 passed, 2 skipped
+  in 34.08s. The two skips are the pinned-package tests in the Python-only lane;
+  the required native lane below runs them without skips.
+- `FORENSICS_REQUIRE_R_INTEGRATION=1 R_LIBS_USER=/tmp/fm-inspect-r.locked-library PYTHONPATH=src uv run pytest -q -o addopts='' -ra tests/test_r_integration.py` — 3 passed in 3.71s. Native receipts showed positive evaluated coverage for GRIM, GRIMMER, DEBIT, duplicate, rounding-bias, statcheck, and seeded simdistr at the pinned versions.
+- `PYTHONPATH=src uv run pytest -q -o addopts='' tests/test_inspect_sr_reporting.py tests/test_pipeline.py::test_randomization_report_renders_only_current_run_inputs -ra` — 7 passed in 19.38s, including HTML and PDF renders.
+- `uv run ruff check .` and `uv run ruff format . --check` — passed (54 files already formatted).
+- `bash -n scripts/run_pipeline.sh scripts/run_manuscript_review.sh scripts/install_inspect_sr_r_methods.sh`; R parsing of the numeric, randomization, meta, and receipt scripts; official guidance `SHA256SUMS`; method lock JSON; and `git diff --check` — passed.
+- `R_LIBS_USER=/tmp/fm-inspect-r.locked-library bash scripts/install_inspect_sr_r_methods.sh` — verified and installed `scrutiny 0.6.2`, `statcheck 1.5.0`, and `simdistr 1.0.1`; R 4.6.0 session details were printed. The package archive hashes are recorded in `config/inspect_sr/r_method_packages.lock.json`.
+
+Remaining release follow-up: run the three configured GitHub Actions jobs on the committed head. The Python-only job intentionally does not contain native method packages; its skips cannot substitute for the required native job. Transitive R imports are installed from CRAN during test-environment preparation and are recorded in `sessionInfo()`, not separately locked. No source-paper analysis or report-data regeneration was performed.
+
+### FM-08–FM-12 artifact map
+
+- **FM-08:** Added `config/inspect_sr/v1.1.2/` with 26 retrieved guidance/source files, `catalogue.json`, retrieval/license metadata, and `SHA256SUMS`. Added the persistent record model in `src/research_project/inspect_sr/records.py` and its tests. New record schemas include `inspect_sr_catalogue_v1`, `inspect_sr_assessment_v1`, and `inspect_sr_record_model_v1`. Initial checks are pending with null responses.
+- **FM-09:** Added method candidate routes in `src/research_project/inspect_sr/adapters.py` and human observation records in `manual_evidence.py`; tests are in `tests/test_inspect_sr_evidence.py`. Candidate outputs use `inspect_sr_candidate_evidence_v1`; manual observations use `inspect_sr_manual_evidence_v1`. Existing v2 method receipts are required, with same-run and source-version checks. Unvalidated checks remain manual-only.
+- **FM-10:** Added independent reviewer submission, disagreement, adjudication, resolution, finalization, and query draft records in `review.py`/`validation.py`; tests are in `tests/test_inspect_sr_review.py`. Schemas include `inspect_sr_reviewer_submission_v1`, `inspect_sr_adjudication_v1`, `inspect_sr_resolved_review_v1`, and `inspect_sr_finalization_v1`. Human records are written separately and are not regenerated from candidates.
+- **FM-11:** Added the private review model/report in `reporting.py` and `notebooks/inspect_sr_assessment.qmd`, plus explicit policy validation and export in `synthesis_export.py`; tests are in `tests/test_inspect_sr_reporting.py`. Schemas include `inspect_sr_report_model_v1`, `inspect_sr_synthesis_policy_v1`, and `inspect_sr_synthesis_export_v1`. The QMD accepts only an explicit model path; public export is explicitly allowlisted.
+- **FM-12:** Added `tests/test_r_integration.py`, the source/hash manifest `config/inspect_sr/r_method_packages.lock.json`, test-only installer `scripts/install_inspect_sr_r_methods.sh`, and separate CI jobs in `.github/workflows/ci.yml`. The pinned scrutiny adapter affects `numeric_scrutiny_{grim,grimmer,debit}_{raw,audit}.csv`, `numeric_standardized_results.csv`, and `numeric_method_receipts.csv` in new run directories; the statcheck receipt uses report text as its single input/evaluation unit. The seeded simdistr test reads/writes only temporary fixtures and verifies repeatability at a fixed seed.
+
+The earlier notes below are chronological receipts from prior stages. Where they
+say FM-08 is blocked by a missing source snapshot or native packages are absent,
+those statements are superseded by the current pinned snapshot and the isolated
+native test environment recorded in the latest decision entry.
+
 ## INSPECT-SR packet — 2026-09-25
 
 ### Completed
@@ -251,7 +295,7 @@ bash scripts/run_pipeline.sh --forensics all
 - FM-06 still has an open seeded `simdistr` numerical-reproducibility gate because `simdistr` is unavailable locally; no installation/network access was attempted. The API gate itself safely reports the dependency as missing.
 - Continue with FM-08 next, following the packet dependency order. Do not call the packet integrated until FM-12 and native R/report verification are complete.
 
-## 2026-09-25 INSPECT-SR packet blocker: FM-08 to FM-11
+## Historical checkpoint (superseded): INSPECT-SR snapshot blocker
 
 - **FM-08 open:** No implementation edits made. The ticket requires exact official v1.1.2 check wording, an immutable snapshot/hash, retrieval date, citation, and license/terms. The supplied ZIP has no guidance snapshot; its `SOURCES.md` only points to the live site and changelog. The local FM-08 target paths do not exist.
 - **Network boundary:** User instruction requires explicit opt-in before network or interactive work. No retrieval was attempted and no check wording or hash was fabricated.
