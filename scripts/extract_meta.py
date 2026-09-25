@@ -72,6 +72,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--study-id", type=str, default="lungtime")
     parser.add_argument("--repo-root", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--reports-root", type=Path, default=None)
+    parser.add_argument("--run-manifest", type=Path, default=None)
+    parser.add_argument(
+        "--legacy-layout",
+        action="store_true",
+        help="Read historical reports/<category>/<study_id>/ outputs explicitly.",
+    )
     parser.add_argument(
         "--requested-categories",
         default=",".join(SUMMARY_FILES),
@@ -92,10 +99,62 @@ def main() -> None:
     unknown = requested_categories - set(SUMMARY_FILES)
     if unknown:
         raise ValueError(f"Unknown requested meta categories: {sorted(unknown)}")
+    reports_root = args.reports_root or args.repo_root / "reports"
+    if args.legacy_layout and args.run_manifest:
+        raise ValueError("Legacy report layout cannot be combined with a run manifest.")
+    run_manifest = None
+    if args.run_manifest:
+        run_manifest = json.loads(args.run_manifest.read_text(encoding="utf-8"))
+        if run_manifest.get("study_id") != args.study_id:
+            raise ValueError("Run manifest study_id does not match requested study.")
+        if run_manifest.get("schema_version") != "forensics_run_v1":
+            raise ValueError("Unsupported or missing run manifest schema.")
+        if run_manifest.get("status") != "running":
+            raise ValueError("Meta extraction requires an active run manifest.")
+        run_categories = set(run_manifest.get("requested_categories", [])) - {"meta"}
+        if requested_categories != run_categories:
+            raise ValueError("Requested meta categories do not match the active run manifest.")
+        for fingerprint in run_manifest.get("input_fingerprints", []):
+            file_path = (
+                args.repo_root / fingerprint["path"]
+                if not Path(fingerprint["path"]).is_absolute()
+                else Path(fingerprint["path"])
+            )
+            currently_available = file_path.is_file()
+            if currently_available != fingerprint["available"]:
+                raise ValueError(f"Run input availability changed before aggregation: {file_path}")
+            if fingerprint["available"] and _sha256(file_path) != fingerprint["sha256"]:
+                raise ValueError(f"Run input changed before aggregation: {file_path}")
+        expected_root = (args.run_manifest.resolve().parent / "reports").resolve()
+        if reports_root.resolve() != expected_root:
+            raise ValueError("Meta extraction reports root must belong to the active run.")
 
     for category, filename in SUMMARY_FILES.items():
-        path = args.repo_root / "reports" / category / args.study_id / filename
+        category_root = reports_root / category
+        if args.legacy_layout:
+            category_root /= args.study_id
+        path = category_root / filename
         requested = category in requested_categories
+        if run_manifest is not None and requested:
+            stage_name = f"{category}_methods"
+            stage = run_manifest.get("stages", {}).get(stage_name, {})
+            if stage.get("status") != "completed":
+                raise ValueError(f"Requested category {category!r} has no completed run receipt.")
+            artifact_rel = f"reports/{category}/{filename}"
+            artifact = next(
+                (
+                    item
+                    for item in run_manifest.get("artifacts", [])
+                    if item.get("path") == artifact_rel
+                ),
+                None,
+            )
+            if not artifact or not artifact.get("available"):
+                raise ValueError(
+                    f"Requested category {category!r} lacks artifact receipt {artifact_rel}."
+                )
+            if not path.is_file() or _sha256(path) != artifact.get("sha256"):
+                raise ValueError(f"Requested category artifact changed after completion: {path}")
         summary = pd.read_csv(path) if requested and path.exists() else pd.DataFrame()
         report_available: bool | None = (
             bool(path.exists() and not summary.empty) if requested else None
@@ -127,11 +186,11 @@ def main() -> None:
             result_name, flag_column, assessed_column = CANDIDATE_FILES[category]
             candidate_rows.extend(
                 _candidate_records(
-                    path.parent / result_name, category, flag_column, assessed_column
+                    category_root / result_name, category, flag_column, assessed_column
                 )
             )
 
-    raw = pd.DataFrame(rows)
+    raw = pd.DataFrame(rows, columns=["study_id", "category", "metric", "value", "source_file"])
     inputs_dir = args.out / "inputs"
     metadata_dir = args.out / "metadata"
     inputs_dir.mkdir(parents=True, exist_ok=True)
@@ -167,22 +226,36 @@ def main() -> None:
     ).to_csv(metadata_path, index=False)
 
     manifest = manifest_path(args.repo_root, args.study_id)
-    upsert_manifest_row(
-        manifest,
-        study_id=args.study_id,
-        source_pdf="derived_from_category_reports",
-        category="meta",
-        extract_confidence="medium",
-        page_ref="n/a",
-        table_ref="category_summary_tables",
-        analysis_ready=False,
-    )
+    if args.run_manifest is None:
+        upsert_manifest_row(
+            manifest,
+            study_id=args.study_id,
+            source_pdf="derived_from_category_reports",
+            category="meta",
+            extract_confidence="medium",
+            page_ref="n/a",
+            table_ref="category_summary_tables",
+            analysis_ready=False,
+        )
 
     print(f"Wrote {raw_path}")
     print(f"Wrote {coverage_path}")
     print(f"Wrote {candidate_path}")
     print(f"Wrote {metadata_path}")
-    print(f"Updated {manifest}")
+    if args.run_manifest is not None:
+        print(f"Run receipt: {args.run_manifest}")
+    else:
+        print(f"Updated {manifest}")
+
+
+def _sha256(path: Path) -> str:
+    import hashlib
+
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 if __name__ == "__main__":

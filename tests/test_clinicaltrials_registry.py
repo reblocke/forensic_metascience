@@ -121,6 +121,26 @@ def test_fetch_local_and_normalize_current_record(tmp_path) -> None:
     assert "Mortality at 30 days" in current.iloc[0]["primary_outcomes"]
 
 
+def test_network_disabled_uses_no_transport_even_with_registry_id(monkeypatch) -> None:
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Disabled registry networking must not call the transport.")
+
+    monkeypatch.setattr(
+        "research_project.clinicaltrials_registry.urllib.request.urlopen", forbidden
+    )
+    result = fetch_current_record(
+        study_id="trial_x",
+        registry_id="NCT12345678",
+        registry_id_source="config_registry_id",
+        registry_url="",
+        current_json_path=None,
+        allow_network=False,
+    )
+
+    assert result.record is None
+    assert result.metadata.iloc[0]["fetch_status"] == "network_disabled"
+
+
 def test_clinicaltrials_claims_include_prospective_and_overdue_flags() -> None:
     current = normalize_current_record(
         study_id="trial_x",

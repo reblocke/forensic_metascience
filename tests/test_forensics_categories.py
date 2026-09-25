@@ -876,6 +876,7 @@ def test_extract_meta_records_coverage_and_existing_candidate_flags(tmp_path: Pa
             str(tmp_path / "repo"),
             "--requested-categories",
             "numeric",
+            "--legacy-layout",
             "--out",
             str(output),
         ],
@@ -1077,3 +1078,39 @@ def test_manifest_upsert_replaces_existing_category(tmp_path: Path) -> None:
     manifest = load_manifest(manifest_path)
     assert len(manifest) == 1
     assert bool(manifest.iloc[0]["analysis_ready"]) is True
+
+
+def test_run_scoped_extraction_can_preserve_shared_human_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest_path = tmp_path / "forensics_manifest.csv"
+    original = pd.DataFrame(
+        [
+            {
+                "study_id": "trial_x",
+                "source_pdf": "reviewed.pdf",
+                "category": "numeric",
+                "extract_confidence": "human",
+                "page_ref": "Table 1",
+                "table_ref": "reviewed",
+                "analysis_ready": True,
+            }
+        ]
+    )
+    original.to_csv(manifest_path, index=False)
+    monkeypatch.setenv("FORENSICS_DISABLE_SHARED_MANIFEST", "true")
+
+    result = upsert_manifest_row(
+        manifest_path,
+        study_id="trial_x",
+        source_pdf="new-run.pdf",
+        category="numeric",
+        extract_confidence="low",
+        page_ref="new extraction",
+        table_ref="new extraction",
+        analysis_ready=False,
+    )
+
+    pd.testing.assert_frame_equal(pd.read_csv(manifest_path), original)
+    assert result.loc[0, "source_pdf"] == "reviewed.pdf"
+    assert bool(result.loc[0, "analysis_ready"])
