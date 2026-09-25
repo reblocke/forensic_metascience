@@ -1,0 +1,378 @@
+"""Candidate-only routes from method receipts to INSPECT-SR evidence dossiers."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+from collections.abc import Mapping, Sequence
+from typing import Any
+
+
+def _route(
+    label: str, methods: tuple[str, ...], manual_route: str, limitations: str
+) -> dict[str, Any]:
+    return {
+        "short_label": label,
+        "method_ids": methods,
+        "manual_route": manual_route,
+        "limitations": limitations,
+    }
+
+
+CHECK_ROUTES: dict[str, dict[str, Any]] = {
+    "1.1": _route(
+        "Retraction",
+        (),
+        "Record dated notice, source, relevance, and resolution.",
+        "No search is not a negative search; notice identity and relevance require review.",
+    ),
+    "1.2": _route(
+        "Other post-publication notices",
+        (),
+        "Record correction, expression of concern, or other notice and its resolution.",
+        "A benign amendment or corrected typo is not automatically concerning.",
+    ),
+    "1.3": _route(
+        "Related-team concerns",
+        (),
+        "Record a verified related-work source and identity link.",
+        "Name similarity or association alone is not index-study evidence.",
+    ),
+    "2.1": _route(
+        "Ethics approval",
+        (),
+        "Record ethics/governance statements and searched sources.",
+        "Unavailable documentation does not establish that approval was absent.",
+    ),
+    "2.2": _route(
+        "Registration timing",
+        (),
+        "Record registration source, dates, precision, and retrieval status.",
+        "Date screens are metadata candidates; unavailable retrieval is not a negative.",
+    ),
+    "2.3": _route(
+        "Registry/report consistency",
+        (),
+        "Compare semantically equivalent protocol/report/registry claims.",
+        "Do not route outcome-reporting-only risk-of-bias questions here.",
+    ),
+    "2.4": _route(
+        "Recruitment feasibility",
+        (),
+        "Record recruitment interval, sites, capacity, and supporting sources.",
+        "A large sample or short interval alone does not establish implausibility.",
+    ),
+    "2.5": _route(
+        "Methods/resources plausibility",
+        (),
+        "Record field-expert context and actual resource evidence.",
+        "Requires contextual expertise; unusual methods alone are not a verdict.",
+    ),
+    "3.1": _route(
+        "Text/table consistency",
+        (),
+        "Record exact cross-source text/table claims and context.",
+        "Boilerplate, expected structure, and figure mentions need contextual review.",
+    ),
+    "3.2": _route(
+        "Figure integrity",
+        (),
+        "Inspect and record actual images/panels, source version, and visual reviewer.",
+        "No current method receipt routes caption or numbering signals; "
+        "image inspection requires a human image or panel record.",
+    ),
+    "4.1": _route(
+        "Eligibility/data agreement",
+        (),
+        "Compare eligibility criteria with the analyzed population and exceptions.",
+        "Confirm population and legitimate exclusions from source evidence.",
+    ),
+    "4.2": _route(
+        "Allocation counts",
+        (),
+        "Record randomization-list counts, design, strata, and exclusions.",
+        "Use randomized counts and account for every allocation list.",
+    ),
+    "4.3": _route(
+        "Baseline plausibility",
+        (),
+        "Review design-qualified descriptive and expert diagnostics.",
+        "No unqualified pooled-P or 1-P interpretation.",
+    ),
+    "4.4": _route(
+        "Within-report result agreement",
+        (),
+        "Link typed text/table/figure evidence for the same outcome and estimand.",
+        "Compare matching population, time, unit, and estimand only.",
+    ),
+    "4.5": _route(
+        "Follow-up plausibility",
+        (),
+        "Record retention and follow-up accounting by population/timepoint.",
+        "Good retention alone is not suspicious.",
+    ),
+    "4.6": _route(
+        "Participant accounting",
+        (),
+        "Record verified participant-flow relationships and arithmetic.",
+        "Categories must be mutually exclusive and share population/timepoint.",
+    ),
+    "4.7": _route(
+        "Outcome plausibility",
+        (),
+        "Record contextual clinical/outcome review and revisit at synthesis.",
+        "A surprising effect size is not itself a mathematical contradiction.",
+    ),
+    "4.8": _route(
+        "Integer-summary compatibility",
+        ("scrutiny_grim_map", "scrutiny_grimmer_map", "scrutiny_debit_map"),
+        "Record statistic kind, scale, n, denominator, and printed precision.",
+        "Only eligible mean/count summaries with validated source semantics are in scope.",
+    ),
+    "4.9": _route(
+        "Statistical consistency",
+        ("statcheck",),
+        "Record source report text and test definition including tail, adjustment, and comparator.",
+        "Preserve scope, rounding, and inequality; incomplete parsing is indeterminate.",
+    ),
+    "4.10": _route(
+        "Other numerical contradictions",
+        ("scrutiny_duplicates", "scrutiny_rounding_bias"),
+        "Record each scoped arithmetic constraint and source locator.",
+        "A small tested subset cannot support a global consistency conclusion.",
+    ),
+    "4.11": _route(
+        "Between-report consistency",
+        (),
+        "Link reviewed report/trial mappings and compare source versions.",
+        "Do not combine distinct cohorts, analyses, or corrected versions indiscriminately.",
+    ),
+}
+
+METHOD_TO_CHECKS: dict[str, tuple[str, ...]] = {
+    method_id: tuple(
+        check_id for check_id, route in CHECK_ROUTES.items() if method_id in route["method_ids"]
+    )
+    for method_id in sorted(
+        {method for route in CHECK_ROUTES.values() for method in route["method_ids"]}
+    )
+}
+
+
+def _validate_method_receipt(receipt: Mapping[str, Any]) -> None:
+    if receipt.get("schema_version") != "method_receipt_v2":
+        raise ValueError("Candidate mapping requires a validated method_receipt_v2 record.")
+    required = {
+        "run_id",
+        "method_id",
+        "method_version",
+        "package_name",
+        "package_version",
+        "unit_of_evaluation",
+        "input_evidence_ids",
+        "parameters",
+        "applicability",
+        "execution",
+        "result_status",
+        "n_input",
+        "n_eligible",
+        "n_evaluated",
+        "n_failed",
+        "n_flagged",
+        "output_reference",
+        "diagnostic",
+    }
+    if required - receipt.keys() or any(
+        not str(receipt.get(field, "")).strip()
+        for field in ("run_id", "method_id", "method_version", "package_name", "unit_of_evaluation")
+    ):
+        raise ValueError("Method receipt is missing required v2 provenance fields.")
+    if receipt.get("execution") not in {
+        "not_requested",
+        "not_implemented",
+        "dependency_missing",
+        "blocked",
+        "failed",
+        "partial",
+        "completed",
+    }:
+        raise ValueError("Method receipt has an unknown execution state.")
+    try:
+        n_input = int(receipt["n_input"])
+        n_eligible = int(receipt["n_eligible"])
+        n_evaluated = int(receipt["n_evaluated"])
+        n_failed = int(receipt["n_failed"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError(
+            "Method receipt requires valid input, eligible, evaluated, and failed counts."
+        ) from exc
+    if min(n_input, n_eligible, n_evaluated, n_failed) < 0:
+        raise ValueError("Method receipt counts cannot be negative.")
+    if n_eligible > n_input or n_evaluated > n_eligible or n_evaluated + n_failed > n_eligible:
+        raise ValueError("Method receipt counts violate eligibility/evaluation bounds.")
+    flagged = receipt.get("n_flagged")
+    if isinstance(flagged, float) and math.isnan(flagged):
+        flagged = None
+    if flagged is not None:
+        try:
+            flagged = int(flagged)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Method receipt n_flagged must be an integer or null.") from exc
+        if flagged < 0 or flagged > n_evaluated:
+            raise ValueError("Method receipt flagged count exceeds evaluated units.")
+    execution = receipt["execution"]
+    if execution == "completed" and (
+        n_evaluated < 1 or n_failed != 0 or n_evaluated != n_eligible or flagged is None
+    ):
+        raise ValueError("Completed receipts require full evaluated coverage and a flag count.")
+    if execution == "partial" and (
+        n_evaluated < 1 or n_failed < 1 or n_evaluated + n_failed != n_eligible
+    ):
+        raise ValueError("Partial receipts must account for every eligible unit.")
+    if execution in {"not_requested", "not_implemented", "dependency_missing", "blocked"} and (
+        n_evaluated != 0 or flagged is not None
+    ):
+        raise ValueError("An unexecuted receipt cannot claim evaluated results or flags.")
+
+
+def _stable_candidate_id(result: Mapping[str, Any], evidence_ids: list[str]) -> str:
+    identity = {
+        "method_id": result["method_id"],
+        "result_id": result["result_id"],
+        "evidence_ids": sorted(evidence_ids),
+    }
+    encoded = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+    return "candidate_" + hashlib.sha256(encoded).hexdigest()
+
+
+def map_candidate_result(
+    result: Mapping[str, Any],
+    method_receipts: Sequence[Mapping[str, Any]],
+    evidence_records: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    """Map one result row to candidate records only after receipt/evidence validation."""
+    method_id = str(result.get("method_id", ""))
+    result_run_id = str(result.get("run_id", "")).strip()
+    if (
+        not result_run_id
+        or not str(result.get("result_id", "")).strip()
+        or not str(result.get("source_locator", "")).strip()
+    ):
+        raise ValueError("Candidate result requires a stable result ID and exact source locator.")
+    matches = [
+        item
+        for item in method_receipts
+        if item.get("method_id") == method_id and item.get("run_id") == result_run_id
+    ]
+    if len(matches) > 1:
+        raise ValueError("Candidate result has ambiguous matching method receipts.")
+    receipt = matches[0] if matches else None
+    if receipt is None:
+        return []
+    _validate_method_receipt(receipt)
+    if receipt.get("execution") not in {"completed", "partial"}:
+        return []
+    try:
+        evaluated = int(receipt.get("n_evaluated") or 0)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Method receipt n_evaluated must be an integer.") from exc
+    if evaluated < 1:
+        return []
+    checks = METHOD_TO_CHECKS.get(method_id, ())
+    if not checks:
+        return []
+    raw_ids = result.get("input_evidence_ids")
+    evidence_ids = [str(value) for value in (raw_ids or []) if str(value).strip()]
+    if not evidence_ids:
+        raise ValueError("Candidate result requires exact input evidence IDs.")
+    evidence_by_id = {str(row.get("evidence_id")): row for row in evidence_records}
+    missing = sorted(set(evidence_ids) - evidence_by_id.keys())
+    if missing:
+        raise ValueError(f"Candidate result references unavailable evidence IDs: {missing}")
+    for evidence_id in evidence_ids:
+        if not evidence_by_id[evidence_id].get("source_version_id"):
+            raise ValueError(f"Candidate evidence {evidence_id} lacks a source version.")
+    candidate_id = _stable_candidate_id(result, evidence_ids)
+    candidates = []
+    for check_id in checks:
+        route = CHECK_ROUTES[check_id]
+        candidate = {
+            "schema_version": "inspect_sr_candidate_evidence_v1",
+            "candidate_id": candidate_id,
+            "check_id": check_id,
+            "run_id": str(receipt.get("run_id", "")),
+            "method_id": method_id,
+            "candidate_kind": str(result.get("candidate_kind", "method_result")),
+            "evidence_ids": evidence_ids,
+            "source_locator": str(result.get("source_locator", "")),
+            "details": result.get("details", ""),
+            "candidate_status": "candidate_only",
+            "method_execution": receipt["execution"],
+            "limitations": route["limitations"],
+        }
+        if check_id == "3.2":
+            candidate["image_inspection_status"] = "not_performed"
+        candidates.append(candidate)
+    return candidates
+
+
+def build_candidate_dossier(
+    method_receipts: Sequence[Mapping[str, Any]],
+    candidate_records: Sequence[Mapping[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    """Report per-check method coverage and candidate records without check responses."""
+    receipts_by_method: dict[str, list[Mapping[str, Any]]] = {}
+    for receipt in method_receipts:
+        _validate_method_receipt(receipt)
+        receipts_by_method.setdefault(str(receipt.get("method_id", "")), []).append(receipt)
+    coverage: list[dict[str, Any]] = []
+    for check_id, route in CHECK_ROUTES.items():
+        methods = route["method_ids"]
+        matched = [receipt for method in methods for receipt in receipts_by_method.get(method, [])]
+        if not methods:
+            status, reason = "manual_only", "No automated route is supported for this check."
+        elif not matched:
+            status, reason = "missing", "No method receipt is available."
+        else:
+            evaluated = []
+            for receipt in matched:
+                try:
+                    count = int(receipt.get("n_evaluated") or 0)
+                except (TypeError, ValueError):
+                    count = 0
+                if receipt.get("execution") in {"completed", "partial"} and count > 0:
+                    evaluated.append(receipt)
+            if evaluated:
+                status, reason = (
+                    "available",
+                    "Receipt confirms evaluated method coverage; "
+                    "candidate evidence still requires review.",
+                )
+            elif all(receipt.get("applicability") == "ineligible" for receipt in matched):
+                status, reason = "ineligible", "All recorded methods mark their inputs ineligible."
+            elif all(
+                receipt.get("execution") in {"not_requested", "not_implemented"}
+                for receipt in matched
+            ):
+                status, reason = "missing", "No method was executed for this check."
+            else:
+                status, reason = (
+                    "failed",
+                    "A receipt records blocked, failed, missing-dependency, "
+                    "or zero-evaluation coverage.",
+                )
+        coverage.append(
+            {
+                "check_id": check_id,
+                "status": status,
+                "reason": reason,
+                "method_ids": list(methods),
+                "candidate_count": sum(
+                    item.get("check_id") == check_id for item in candidate_records
+                ),
+                "manual_route": route["manual_route"],
+                "limitations": route["limitations"],
+            }
+        )
+    return {"coverage": coverage, "candidate_evidence": [dict(item) for item in candidate_records]}
