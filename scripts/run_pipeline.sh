@@ -418,12 +418,28 @@ run_transparency_category() {
 run_meta_category() {
   META_DATA_DIR="$REPO_ROOT/data/processed/meta/$STUDY_ID"
   META_REPORT_DIR="$REPO_ROOT/reports/meta/$STUDY_ID"
+  META_REQUESTED_CATEGORIES=""
+  for category in randomization numeric registration visual transparency; do
+    if has_category "$category"; then
+      if [ -n "$META_REQUESTED_CATEGORIES" ]; then
+        META_REQUESTED_CATEGORIES+=","
+      fi
+      META_REQUESTED_CATEGORIES+="$category"
+    fi
+  done
+  if has_category meta && ! has_category randomization; then
+    if [ -n "$META_REQUESTED_CATEGORIES" ]; then
+      META_REQUESTED_CATEGORIES+=","
+    fi
+    META_REQUESTED_CATEGORIES+="randomization"
+  fi
 
   mkdir -p "$META_DATA_DIR" "$META_REPORT_DIR"
 
   PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_meta.py \
     --study-id "$STUDY_ID" \
     --repo-root "$REPO_ROOT" \
+    --requested-categories "$META_REQUESTED_CATEGORIES" \
     --out "$META_DATA_DIR"
 
   PYTHONPATH="$REPO_ROOT/src" uv run python scripts/build_meta_inputs.py \
@@ -438,7 +454,7 @@ run_meta_category() {
     "notebooks/lungtime_meta_audit.qmd" \
     "meta" \
     "$META_REPORT_DIR" \
-    "${STUDY_ID}_meta_audit.pdf"
+    "${STUDY_ID}_meta_audit_v2.pdf"
 
   PYTHONPATH="$REPO_ROOT/src" uv run python scripts/mark_forensics_ready.py \
     --study-id "$STUDY_ID" \

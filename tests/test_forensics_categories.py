@@ -3,12 +3,18 @@ from __future__ import annotations
 import csv
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from research_project.forensics_manifest import load_manifest, upsert_manifest_row
-from research_project.meta_forensics import build_category_scores, compute_overall_meta_score
+from research_project.meta_forensics import (
+    build_evidence_coverage,
+    build_legacy_category_scores,
+    compute_legacy_overall_meta_score,
+)
 from research_project.numeric_integrity import (
     _digits_from_str,
     _to_int,
@@ -36,6 +42,12 @@ from research_project.visual_forensics import (
 def _table1_long_fixture() -> pd.DataFrame:
     return pd.DataFrame(
         [
+            {
+                "category": "numeric",
+                "metric": "trial_id",
+                "value": "trial_x",
+                "source_file": "reports/numeric/trial/numeric_summary.csv",
+            },
             {
                 "trial_id": "trial_x",
                 "variable": "Age",
@@ -751,7 +763,221 @@ def test_visual_forensics_caption_checks() -> None:
     assert gaps == []
 
 
-def test_meta_forensics_score_aggregation() -> None:
+def test_meta_coverage_keeps_missing_metrics_unavailable_and_unscored() -> None:
+    raw = pd.DataFrame(
+        [
+            {
+                "category": "numeric",
+                "metric": "grim_incons_cases",
+                "value": None,
+                "source_file": "reports/numeric/trial/numeric_summary.csv",
+            }
+        ]
+    )
+    coverage = build_evidence_coverage(raw)
+    numeric = coverage.set_index("category").loc["numeric"]
+
+    assert bool(numeric["requested"])
+    assert not bool(numeric["assessed"])
+    assert bool(numeric["unavailable"])
+    assert pd.isna(numeric["failed"])
+    assert pd.isna(numeric["unsupported"])
+    assert not {"anomaly_score", "overall_score", "risk_tier"} & set(coverage.columns)
+
+
+def test_build_meta_inputs_keeps_source_linked_candidate_concerns(tmp_path: Path) -> None:
+    input_dir = tmp_path / "processed" / "inputs"
+    input_dir.mkdir(parents=True)
+    pd.DataFrame(
+        [
+            {
+                "category": "numeric",
+                "metric": "grim_incons_cases",
+                "value": None,
+                "source_file": "reports/numeric/trial/numeric_summary.csv",
+            }
+        ]
+    ).to_csv(input_dir / "category_summaries_v2_raw.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "category": "numeric",
+                "source_file": "reports/numeric/trial/numeric_standardized_results.csv",
+                "source_unit": "Table 1 / age / arm A",
+                "method": "scrutiny_grim_map",
+                "metric": "grim_inconsistency_flag",
+                "value_numeric": 1,
+                "details": "case-1",
+                "candidate_status": "screening_signal",
+            }
+        ]
+    ).to_csv(input_dir / "candidate_concerns_v1_raw.csv", index=False)
+
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/build_meta_inputs.py",
+            "--in",
+            str(tmp_path / "processed"),
+            "--out",
+            str(tmp_path / "built"),
+        ],
+        cwd=Path(__file__).resolve().parents[1],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    coverage = pd.read_csv(tmp_path / "built/inputs/meta_evidence_coverage_v1.csv")
+    concerns = pd.read_csv(tmp_path / "built/inputs/meta_candidate_concerns_v1.csv")
+
+    assert coverage.loc[coverage["category"] == "numeric", "unavailable"].item()
+    assert concerns.loc[0, "source_unit"] == "Table 1 / age / arm A"
+    assert (
+        "anomaly_score"
+        not in pd.read_csv(tmp_path / "built/inputs/meta_evidence_coverage_v1.csv").columns
+    )
+
+
+def test_extract_meta_records_coverage_and_existing_candidate_flags(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    numeric_report = tmp_path / "repo/reports/numeric/trial_x"
+    numeric_report.mkdir(parents=True)
+    pd.DataFrame([{"trial_id": "trial_x", "grim_cases": None, "grim_incons_cases": None}]).to_csv(
+        numeric_report / "numeric_summary.csv", index=False
+    )
+    pd.DataFrame(
+        [
+            {
+                "method": "scrutiny_grim_map",
+                "source_unit": "Table 1 / age / arm A",
+                "metric": "grim_inconsistency_flag",
+                "value_numeric": 1,
+                "anomaly_flag": True,
+                "details": "case-1",
+            }
+        ]
+    ).to_csv(numeric_report / "numeric_standardized_results.csv", index=False)
+    randomization_report = tmp_path / "repo/reports/randomization/trial_x"
+    randomization_report.mkdir(parents=True)
+    pd.DataFrame([{"trial_id": "trial_x", "fisher_recalc": 0.2}]).to_csv(
+        randomization_report / "pooled_pvalues.csv", index=False
+    )
+    pd.DataFrame(
+        [{"flagged_p_delta_0_05": True, "source_table": "Table 2", "reported_p": 0.01}]
+    ).to_csv(randomization_report / "row_level_results.csv", index=False)
+    output = tmp_path / "processed"
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/extract_meta.py",
+            "--study-id",
+            "trial_x",
+            "--repo-root",
+            str(tmp_path / "repo"),
+            "--requested-categories",
+            "numeric",
+            "--out",
+            str(output),
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    coverage = pd.read_csv(output / "inputs/category_coverage_v1_raw.csv")
+    concerns = pd.read_csv(output / "inputs/candidate_concerns_v1_raw.csv")
+
+    assert len(coverage) == 5
+    assert coverage.loc[coverage["category"] == "numeric", "requested"].item()
+    randomization = coverage.loc[coverage["category"] == "randomization"].iloc[0]
+    assert not randomization["requested"]
+    assert pd.isna(randomization["report_available"])
+    assert pd.isna(coverage.loc[coverage["category"] == "numeric", "failed"].item())
+    assert concerns.loc[0, "source_unit"] == "Table 1 / age / arm A"
+    assert concerns.loc[0, "candidate_status"] == "screening_signal"
+    assert "randomization" not in set(concerns["category"])
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/build_meta_inputs.py",
+            "--in",
+            str(output),
+            "--out",
+            str(output),
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    built_coverage = pd.read_csv(output / "inputs/meta_evidence_coverage_v1.csv")
+    numeric_coverage = built_coverage.set_index("category").loc["numeric"]
+    randomization_coverage = built_coverage.set_index("category").loc["randomization"]
+    assert bool(numeric_coverage["unavailable"])
+    assert not bool(randomization_coverage["requested"])
+    assert not bool(randomization_coverage["assessed"])
+    assert not bool(randomization_coverage["unavailable"])
+
+
+def test_meta_r_runner_emits_coverage_not_composite_score(tmp_path: Path) -> None:
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        raise RuntimeError("Rscript is required for meta-runner contract regressions.")
+    inputs = tmp_path / "inputs"
+    inputs.mkdir()
+    pd.DataFrame(
+        [
+            {
+                "category": "numeric",
+                "requested": True,
+                "assessed": False,
+                "unavailable": True,
+                "failed": None,
+                "unsupported": None,
+                "n_metrics_assessed": 0,
+                "n_metrics_missing": 2,
+                "source_file": "numeric_summary.csv",
+            }
+        ]
+    ).to_csv(inputs / "meta_evidence_coverage_v1.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "category": "numeric",
+                "source_file": "numeric_standardized_results.csv",
+                "source_unit": "Table 1 / age",
+                "method": "grim",
+                "metric": "inconsistency",
+                "value_numeric": 1,
+                "details": "case-1",
+                "candidate_status": "screening_signal",
+            }
+        ]
+    ).to_csv(inputs / "meta_candidate_concerns_v1.csv", index=False)
+
+    script = Path(__file__).resolve().parents[1] / "scripts" / "run_meta_forensics.R"
+    output = tmp_path / "reports"
+    subprocess.run(
+        [rscript, str(script), "--in", str(tmp_path), "--out", str(output)],
+        cwd=Path(__file__).resolve().parents[1],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    summary = pd.read_csv(output / "meta_coverage_summary_v1.csv")
+    concerns = pd.read_csv(output / "meta_candidate_concerns_v1_out.csv")
+
+    assert summary.loc[0, "n_unavailable"] == 1
+    assert pd.isna(summary.loc[0, "n_failed"])
+    assert pd.isna(summary.loc[0, "n_unsupported"])
+    assert "overall_score" not in summary.columns
+    assert concerns.loc[0, "source_unit"] == "Table 1 / age"
+
+
+def test_legacy_composite_is_explicit_isolated_and_reproduces_fixture(tmp_path: Path) -> None:
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        raise RuntimeError("Rscript is required for legacy reproduction regressions.")
     summary_tables = {
         "randomization": pd.DataFrame([{"fisher_recalc": 0.20}]),
         "numeric": pd.DataFrame([{"median_abs_percent_delta": 0.4}]),
@@ -759,20 +985,70 @@ def test_meta_forensics_score_aggregation() -> None:
         "visual": pd.DataFrame([{"near_duplicate_rate": 0.10}]),
         "transparency": pd.DataFrame([{"transparency_evidence_burden": 0.25}]),
     }
-    scores = build_category_scores(summary_tables)
-    overall = compute_overall_meta_score(scores)
+    legacy_scores = build_legacy_category_scores(summary_tables)
+    legacy_summary = compute_legacy_overall_meta_score(legacy_scores)
+    assert legacy_scores["anomaly_score"].tolist() == [0.8, 0.2, 0.25, 0.1, 0.25]
+    assert legacy_summary["overall_score"] == pytest.approx(0.3404761904761905)
+    assert legacy_summary["risk_tier"] == "moderate"
 
-    assert set(scores["category"]) == {
-        "randomization",
-        "numeric",
-        "registration",
-        "visual",
-        "transparency",
-    }
-    assert 0.0 <= overall["overall_score"] <= 1.0
-    assert overall["evidence_burden_score"] == overall["overall_score"]
-    assert overall["risk_tier"] in {"low", "moderate", "high"}
-    assert overall["review_priority"] == overall["risk_tier"]
+    processed = tmp_path / "processed"
+    (processed / "inputs").mkdir(parents=True)
+    raw_rows = [
+        {
+            "category": category,
+            "metric": metric,
+            "value": value,
+            "source_file": f"reports/{category}/fixture/summary.csv",
+        }
+        for category, metric, value in (
+            ("randomization", "fisher_recalc", 0.20),
+            ("numeric", "median_abs_percent_delta", 0.4),
+            ("registration", "mismatch_rate", 0.25),
+            ("visual", "near_duplicate_rate", 0.10),
+            ("transparency", "transparency_evidence_burden", 0.25),
+        )
+    ]
+    pd.DataFrame(raw_rows).to_csv(processed / "inputs/category_summaries_raw.csv", index=False)
+    root = Path(__file__).resolve().parents[1]
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/build_meta_inputs.py",
+            "--in",
+            str(processed),
+            "--out",
+            str(processed),
+            "--legacy-reproduction",
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    output = tmp_path / "reports"
+    script = root / "scripts" / "run_meta_forensics.R"
+    subprocess.run(
+        [
+            rscript,
+            str(script),
+            "--in",
+            str(processed),
+            "--out",
+            str(output),
+            "--legacy-reproduction",
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    r_summary = pd.read_csv(output / "legacy/meta_overall_summary.csv")
+    provenance = pd.read_csv(output / "legacy/meta_legacy_provenance.csv")
+    assert r_summary.loc[0, "overall_score"] == pytest.approx(legacy_summary["overall_score"])
+    assert r_summary.loc[0, "risk_tier"] == "moderate"
+    assert provenance.loc[0, "schema_version"] == "legacy_composite_v1"
+    assert provenance.loc[0, "label"] == "NOT_INSPECT"
+    assert not (processed / "inputs/meta_evidence_coverage_v1.csv").exists()
 
 
 def test_manifest_upsert_replaces_existing_category(tmp_path: Path) -> None:
