@@ -82,7 +82,7 @@ main <- function() {
     return(invisible(NULL))
   }
 
-  coverage_path <- file.path(args$in_dir, "inputs", "meta_evidence_coverage_v1.csv")
+  coverage_path <- file.path(args$in_dir, "inputs", "meta_evidence_coverage_v2.csv")
   concerns_path <- file.path(args$in_dir, "inputs", "meta_candidate_concerns_v1.csv")
   if (!file.exists(coverage_path)) stop("Missing input file: ", coverage_path)
   if (!file.exists(concerns_path)) stop("Missing input file: ", concerns_path)
@@ -100,7 +100,7 @@ main <- function() {
     if (anyNA(values)) NA_integer_ else sum(as.logical(values))
   }
   summary <- tibble::tibble(
-    schema_version = "evidence_coverage_v1",
+    schema_version = "evidence_coverage_v2",
     n_requested = count_known_true("requested"),
     n_assessed = count_known_true("assessed"),
     n_unavailable = count_known_true("unavailable"),
@@ -109,10 +109,10 @@ main <- function() {
   )
 
   dir.create(args$out_dir, recursive = TRUE, showWarnings = FALSE)
-  write_csv(coverage, file.path(args$out_dir, "meta_evidence_coverage_v1_out.csv"))
+  write_csv(coverage, file.path(args$out_dir, "meta_evidence_coverage_v2_out.csv"))
   write_csv(concerns, file.path(args$out_dir, "meta_candidate_concerns_v1_out.csv"))
   write_csv(summary, file.path(args$out_dir, "meta_coverage_summary_v1.csv"))
-  cat("Wrote ", file.path(args$out_dir, "meta_evidence_coverage_v1_out.csv"), "\n", sep = "")
+  cat("Wrote ", file.path(args$out_dir, "meta_evidence_coverage_v2_out.csv"), "\n", sep = "")
   cat("Wrote ", file.path(args$out_dir, "meta_candidate_concerns_v1_out.csv"), "\n", sep = "")
   cat("Wrote ", file.path(args$out_dir, "meta_coverage_summary_v1.csv"), "\n", sep = "")
 }

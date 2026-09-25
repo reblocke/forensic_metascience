@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import os
 import shutil
 import subprocess
 import sys
@@ -546,6 +547,20 @@ statcheck_run <- receipt_from_method_run(
 )
 stopifnot(statcheck_run$execution == "completed", statcheck_run$n_evaluated == 1L,
           statcheck_run$n_flagged == 1L)
+incomplete_run <- run_receipt(
+  list(raw = data.frame(consistency = TRUE), message = "ok"), eligible_count = 2L
+)
+unknown_statcheck <- receipt_from_method_run(
+  run_id = "synthetic-run", method_id = "statcheck", method_version = "test-v1",
+  package_name = "statcheck", package_version = NA_character_,
+  unit_of_evaluation = "report_text", input_evidence_ids = "", parameters = "fixture",
+  input_count = 1L, eligible_count = 1L,
+  method_run = list(raw = data.frame(error = NA), message = "ok"),
+  output_reference = "statcheck.csv", report_text_evaluated = TRUE
+)
+stopifnot(incomplete_run$execution == "partial", incomplete_run$n_evaluated == 1L,
+          incomplete_run$n_failed == 1L,
+          unknown_statcheck$execution == "failed", is.na(unknown_statcheck$n_flagged))
 source("scripts/run_numeric_forensics.R")
 standard <- standardize_scrutiny_map(
   data.frame(case_id = "case-1", source_unit = "Table 1", trial_id = "trial_x",
@@ -793,6 +808,42 @@ def test_meta_coverage_keeps_missing_metrics_unavailable_and_unscored() -> None:
     assert not {"anomaly_score", "overall_score", "risk_tier"} & set(coverage.columns)
 
 
+def test_meta_coverage_requires_evaluation_receipt_not_populated_summary_cells() -> None:
+    raw = pd.DataFrame(
+        [
+            {
+                "category": "numeric",
+                "metric": "grim_cases",
+                "value": 0,
+                "source_file": "numeric_summary.csv",
+            },
+            {
+                "category": "numeric",
+                "metric": "grim_incons_cases",
+                "value": 0,
+                "source_file": "numeric_summary.csv",
+            },
+        ]
+    )
+    status = pd.DataFrame(
+        [
+            {
+                "category": "numeric",
+                "requested": True,
+                "report_available": True,
+                "n_evaluation_units": 0,
+            }
+        ]
+    )
+    numeric = (
+        build_evidence_coverage(raw, category_status=status).set_index("category").loc["numeric"]
+    )
+    assert bool(numeric["report_available"])
+    assert not bool(numeric["assessed"])
+    assert bool(numeric["unavailable"])
+    assert numeric["n_evaluation_units"] == 0
+
+
 def test_build_meta_inputs_keeps_source_linked_candidate_concerns(tmp_path: Path) -> None:
     input_dir = tmp_path / "processed" / "inputs"
     input_dir.mkdir(parents=True)
@@ -835,14 +886,14 @@ def test_build_meta_inputs_keeps_source_linked_candidate_concerns(tmp_path: Path
         capture_output=True,
         text=True,
     )
-    coverage = pd.read_csv(tmp_path / "built/inputs/meta_evidence_coverage_v1.csv")
+    coverage = pd.read_csv(tmp_path / "built/inputs/meta_evidence_coverage_v2.csv")
     concerns = pd.read_csv(tmp_path / "built/inputs/meta_candidate_concerns_v1.csv")
 
     assert coverage.loc[coverage["category"] == "numeric", "unavailable"].item()
     assert concerns.loc[0, "source_unit"] == "Table 1 / age / arm A"
     assert (
         "anomaly_score"
-        not in pd.read_csv(tmp_path / "built/inputs/meta_evidence_coverage_v1.csv").columns
+        not in pd.read_csv(tmp_path / "built/inputs/meta_evidence_coverage_v2.csv").columns
     )
 
 
@@ -892,8 +943,9 @@ def test_extract_meta_records_coverage_and_existing_candidate_flags(tmp_path: Pa
         check=True,
         capture_output=True,
         text=True,
+        env={**os.environ, "PYTHONPATH": str(root / "src")},
     )
-    coverage = pd.read_csv(output / "inputs/category_coverage_v1_raw.csv")
+    coverage = pd.read_csv(output / "inputs/category_coverage_v2_raw.csv")
     concerns = pd.read_csv(output / "inputs/candidate_concerns_v1_raw.csv")
 
     assert len(coverage) == 5
@@ -918,8 +970,9 @@ def test_extract_meta_records_coverage_and_existing_candidate_flags(tmp_path: Pa
         check=True,
         capture_output=True,
         text=True,
+        env={**os.environ, "PYTHONPATH": str(root / "src")},
     )
-    built_coverage = pd.read_csv(output / "inputs/meta_evidence_coverage_v1.csv")
+    built_coverage = pd.read_csv(output / "inputs/meta_evidence_coverage_v2.csv")
     numeric_coverage = built_coverage.set_index("category").loc["numeric"]
     randomization_coverage = built_coverage.set_index("category").loc["randomization"]
     assert bool(numeric_coverage["unavailable"])
@@ -948,7 +1001,7 @@ def test_meta_r_runner_emits_coverage_not_composite_score(tmp_path: Path) -> Non
                 "source_file": "numeric_summary.csv",
             }
         ]
-    ).to_csv(inputs / "meta_evidence_coverage_v1.csv", index=False)
+    ).to_csv(inputs / "meta_evidence_coverage_v2.csv", index=False)
     pd.DataFrame(
         [
             {
@@ -1057,7 +1110,7 @@ def test_legacy_composite_is_explicit_isolated_and_reproduces_fixture(tmp_path: 
     assert r_summary.loc[0, "risk_tier"] == "moderate"
     assert provenance.loc[0, "schema_version"] == "legacy_composite_v1"
     assert provenance.loc[0, "label"] == "NOT_INSPECT"
-    assert not (processed / "inputs/meta_evidence_coverage_v1.csv").exists()
+    assert not (processed / "inputs/meta_evidence_coverage_v2.csv").exists()
 
 
 def test_manifest_upsert_replaces_existing_category(tmp_path: Path) -> None:

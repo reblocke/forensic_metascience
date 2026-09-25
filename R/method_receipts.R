@@ -1,4 +1,4 @@
-METHOD_RECEIPT_SCHEMA_VERSION <- "method_receipt_v1"
+METHOD_RECEIPT_SCHEMA_VERSION <- "method_receipt_v2"
 METHOD_APPLICABILITY_STATES <- c("eligible", "ineligible", "unknown", "mixed")
 METHOD_EXECUTION_STATES <- c(
   "not_requested", "not_implemented", "dependency_missing", "blocked",
@@ -105,10 +105,14 @@ receipt_from_method_run <- function(
   } else {
     logical()
   }
+  statcheck_valid <- !report_text_evaluated || (
+    !is.null(raw) && is.data.frame(raw) && nrow(raw) > 0L &&
+      "error" %in% names(raw) && !anyNA(raw$error)
+  )
   failed_count <- if (!is.null(failed_count_override)) {
     as.integer(failed_count_override)
   } else if (length(consistency)) {
-    sum(is.na(consistency))
+    max(sum(is.na(consistency)), eligible_count - sum(!is.na(consistency)))
   } else {
     0L
   }
@@ -116,8 +120,11 @@ receipt_from_method_run <- function(
     as.integer(evaluated_count_override)
   } else if (length(consistency)) {
     sum(!is.na(consistency))
-  } else if (report_text_evaluated && !grepl("error", message, ignore.case = TRUE)) {
+  } else if (report_text_evaluated && statcheck_valid &&
+             !grepl("error", message, ignore.case = TRUE)) {
     1L
+  } else if (report_text_evaluated) {
+    0L
   } else {
     raw_count
   }
@@ -125,7 +132,7 @@ receipt_from_method_run <- function(
     as.integer(flagged_count_override)
   } else if (length(consistency)) {
     sum(!consistency, na.rm = TRUE)
-  } else if (!is.null(raw) && "error" %in% names(raw)) {
+  } else if (report_text_evaluated && statcheck_valid) {
     sum(as.logical(raw$error), na.rm = TRUE)
   } else if (evaluated_count > 0L) {
     0L
@@ -168,6 +175,14 @@ receipt_from_method_run <- function(
     if (execution == "failed") flagged_count <- NA_integer_
   } else {
     execution <- "completed"
+  }
+
+  if (requested && implemented && eligible_count > 0L && !statcheck_valid) {
+    execution <- "failed"
+    evaluated_count <- 0L
+    failed_count <- eligible_count
+    flagged_count <- NA_integer_
+    message <- paste(message, "Result schema is missing or contains unevaluated statcheck outcomes.")
   }
 
   if (execution %in% c("not_requested", "not_implemented", "dependency_missing", "blocked")) {

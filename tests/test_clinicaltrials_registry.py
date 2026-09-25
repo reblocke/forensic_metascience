@@ -542,6 +542,36 @@ def test_history_status_distinguishes_absent_undated_and_unchanged(tmp_path) -> 
     assert invalid.iloc[0]["history_status"] == "invalid_structure"
 
 
+def test_malformed_history_date_is_parse_failed_without_synthetic_events(tmp_path) -> None:
+    history_path = tmp_path / "malformed-date.json"
+    history_path.write_text(
+        json.dumps({"snapshots": [{"snapshot_date": "2026-02-30", "record": _registry_record()}]}),
+        encoding="utf-8",
+    )
+    status = build_history_status(history_path=history_path).iloc[0]
+    events = build_history_events(
+        study_id="trial_x", registry_id="NCT12345678", history_path=history_path
+    )
+    assert status["history_status"] == "parse_failed"
+    assert events.empty
+
+
+def test_registry_design_matching_rejects_negated_randomization() -> None:
+    current = normalize_current_record(
+        study_id="trial_x", record=_registry_record(), registry_source="fixture"
+    )
+    claims = derive_clinicaltrials_claims(
+        trial_id="trial_x",
+        report_text="Patients were not randomized.",
+        protocol_text="",
+        current_record=current,
+        fetch_metadata=pd.DataFrame([{"fetch_status": "loaded_local_json"}]),
+        registry_resolution={"registry_id": "NCT12345678", "resolution_message": "fixture"},
+    )
+    allocation = claims[claims["claim_id"] == "clinicaltrials_allocation_congruence"].iloc[0]
+    assert allocation["assessment_status"] == "indeterminate"
+
+
 def test_history_orders_dates_chronologically_and_rejects_undated_rows(tmp_path) -> None:
     history_path = tmp_path / "history.json"
     history_path.write_text(

@@ -36,7 +36,7 @@ def main() -> None:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     simdistr_path = out_dir / "simdistr_input_v2.csv"
-    csf_path = out_dir / "csf_input_v2.csv"
+    csf_path = out_dir / "csf_input_v3.csv"
     reported_tests_path = out_dir / "reported_tests_v1.csv"
     simdistr_df.to_csv(simdistr_path, index=False)
     csf_df.to_csv(csf_path, index=False)

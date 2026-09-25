@@ -17,10 +17,11 @@ This report compares source-linked manuscript and protocol claims with ClinicalT
 ## Load Outputs
 
 ```{r}
-repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
-study_id <- Sys.getenv("FORENSICS_STUDY_ID", "lungtime")
-report_dir <- file.path(repo_root, "reports", "registration", study_id)
-data_dir <- file.path(repo_root, "data", "processed", "registration", study_id)
+reports_root <- Sys.getenv("FORENSICS_REPORTS_ROOT", unset = "")
+processed_root <- Sys.getenv("FORENSICS_PROCESSED_ROOT", unset = "")
+if (!nzchar(reports_root) || !nzchar(processed_root)) stop("Current-run report and processed roots are required.")
+report_dir <- file.path(reports_root, "registration")
+data_dir <- file.path(processed_root, "registration")
 
 required <- c("registration_row_results.csv", "registration_summary.csv")
 missing <- required[!file.exists(file.path(report_dir, required))]

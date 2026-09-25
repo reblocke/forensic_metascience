@@ -603,7 +603,7 @@ def _claim_row(
         else:
             assessment_status = "indeterminate"
     return {
-        "schema_version": "registration_claims_v2",
+        "schema_version": "registration_claims_v3",
         "trial_id": trial_id,
         "claim_id": claim_id,
         "claim_category": claim_category,
@@ -677,6 +677,10 @@ def _contains_exact_or_token_overlap(text: str, target: str, *, min_overlap: flo
     if not normalized_target:
         return False
     if normalized_target in normalized_text:
+        for match in re.finditer(re.escape(normalized_target), normalized_text):
+            prefix = normalized_text[max(0, match.start() - 55) : match.start()]
+            if re.search(r"\b(?:not|no|never|without|neither)\b(?:\W+\w+){0,4}\W*$", prefix):
+                return False
         return True
     target_tokens = {
         token for token in re.findall(r"[a-z0-9]+", normalized_target) if len(token) > 3
@@ -1144,7 +1148,10 @@ def _events_from_snapshot_rows(
         return empty_history_events()
     dated_rows = []
     for index, row in snapshots.iterrows():
-        interval = _parse_registry_date_interval(row.get("snapshot_date"))
+        try:
+            interval = _parse_registry_date_interval(row.get("snapshot_date"))
+        except ValueError:
+            continue
         if interval is not None:
             dated_rows.append((interval, index, row))
     dated_rows.sort(key=lambda item: (item[0].start, item[0].end))
@@ -1221,7 +1228,14 @@ def build_history_events(
     if {"snapshot_date", "registry_field", "registry_value"}.issubset(history.columns):
         rows: list[dict[str, object]] = []
         history = history.copy()
-        history["_date_interval"] = history["snapshot_date"].map(_parse_registry_date_interval)
+
+        def parse_history_date(value: object) -> RegistryDateInterval | None:
+            try:
+                return _parse_registry_date_interval(value)
+            except ValueError:
+                return None
+
+        history["_date_interval"] = history["snapshot_date"].map(parse_history_date)
         history = history[history["_date_interval"].notna()].copy()
         history["_date_start"] = history["_date_interval"].map(lambda value: value.start)
         history["_date_end"] = history["_date_interval"].map(lambda value: value.end)
@@ -1358,6 +1372,7 @@ def build_history_status(
         json.JSONDecodeError,
         pd.errors.ParserError,
         pd.errors.EmptyDataError,
+        ValueError,
     ):
         base["history_status"] = "parse_failed"
     return pd.DataFrame([base], columns=HISTORY_STATUS_COLUMNS)

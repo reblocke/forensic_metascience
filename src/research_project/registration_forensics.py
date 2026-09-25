@@ -135,10 +135,10 @@ def _row(
         if compared_protocol in {"open_label", "not_blinded"}:
             compared_protocol = "not_blinded"
     match_status, assessment_status = _comparison(compared_report, compared_protocol)
-    if claim == "allocation_ratio" and (report_negated is True or protocol_negated is True):
+    if report_negated is True or protocol_negated is True:
         match_status, assessment_status = None, "indeterminate"
     return {
-        "schema_version": "registration_source_claims_v2",
+        "schema_version": "registration_source_claims_v3",
         "trial_id": trial_id,
         "claim": claim,
         "report_value": report_value,

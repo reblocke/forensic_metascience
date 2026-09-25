@@ -17,12 +17,12 @@ This report summarizes category coverage and source-linked screening signals. It
 ## Load Outputs
 
 ```{r}
-repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
-study_id <- Sys.getenv("FORENSICS_STUDY_ID", "lungtime")
-report_dir <- file.path(repo_root, "reports", "meta", study_id)
+reports_root <- Sys.getenv("FORENSICS_REPORTS_ROOT", unset = "")
+if (!nzchar(reports_root)) stop("FORENSICS_REPORTS_ROOT must point to this run's reports directory.")
+report_dir <- file.path(reports_root, "meta")
 
 required <- c(
-  "meta_evidence_coverage_v1_out.csv",
+  "meta_evidence_coverage_v2_out.csv",
   "meta_candidate_concerns_v1_out.csv",
   "meta_coverage_summary_v1.csv"
 )
@@ -31,7 +31,7 @@ if (length(missing) > 0) {
   stop("Missing files: ", paste(missing, collapse = ", "))
 }
 
-coverage <- read.csv(file.path(report_dir, "meta_evidence_coverage_v1_out.csv"), check.names = FALSE)
+coverage <- read.csv(file.path(report_dir, "meta_evidence_coverage_v2_out.csv"), check.names = FALSE)
 candidate_concerns <- read.csv(file.path(report_dir, "meta_candidate_concerns_v1_out.csv"), check.names = FALSE)
 coverage_summary <- read.csv(file.path(report_dir, "meta_coverage_summary_v1.csv"), check.names = FALSE)
 ```

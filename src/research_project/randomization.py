@@ -835,7 +835,7 @@ def build_csf_input(table1_long: pd.DataFrame) -> pd.DataFrame:
             count_late, n_late = arm_b_counts
             rows.append(
                 {
-                    "schema_version": "baseline_csf_v2",
+                    "schema_version": "baseline_csf_v3",
                     "trial_id": arm_a_series["trial_id"],
                     "parent_variable": variable_name,
                     "variable": variable_name,
@@ -847,6 +847,8 @@ def build_csf_input(table1_long: pd.DataFrame) -> pd.DataFrame:
                     "count_arm2": count_late,
                     "prop_arm1": count_early / n_early,
                     "prop_arm2": count_late / n_late,
+                    "reported_percent_raw_arm1": arm_a_series.get("reported_percent_raw"),
+                    "reported_percent_raw_arm2": arm_b_series.get("reported_percent_raw"),
                     "reported_percent_decimals_arm1": arm_a_series.get("reported_percent_decimals"),
                     "reported_percent_decimals_arm2": arm_b_series.get("reported_percent_decimals"),
                     "recalculated_test_method": "pearson_chi_square_2x2",
@@ -892,6 +894,8 @@ def build_csf_input(table1_long: pd.DataFrame) -> pd.DataFrame:
                 "count_arm2",
                 "prop_arm1",
                 "prop_arm2",
+                "reported_percent_raw_arm1",
+                "reported_percent_raw_arm2",
                 "reported_percent_decimals_arm1",
                 "reported_percent_decimals_arm2",
                 "recalculated_test_method",

@@ -18,9 +18,9 @@ It also reports pilot human-in-the-loop plot digitization coverage.
 ## Load Outputs
 
 ```{r}
-repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
-study_id <- Sys.getenv("FORENSICS_STUDY_ID", "lungtime")
-report_dir <- file.path(repo_root, "reports", "visual", study_id)
+reports_root <- Sys.getenv("FORENSICS_REPORTS_ROOT", unset = "")
+if (!nzchar(reports_root)) stop("FORENSICS_REPORTS_ROOT must point to this run's reports directory.")
+report_dir <- file.path(reports_root, "visual")
 
 required <- c("visual_row_results.csv", "visual_summary.csv", "visual_digitized_values.csv")
 missing <- required[!file.exists(file.path(report_dir, required))]

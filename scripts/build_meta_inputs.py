@@ -78,7 +78,7 @@ def main() -> None:
         print(f"Wrote isolated legacy inputs under {legacy_dir}")
         return
 
-    status_path = args.in_dir / "inputs" / "category_coverage_v1_raw.csv"
+    status_path = args.in_dir / "inputs" / "category_coverage_v2_raw.csv"
     category_status = pd.read_csv(status_path) if status_path.exists() else None
     coverage = build_evidence_coverage(raw, category_status=category_status)
     candidate_path = args.in_dir / "inputs" / "candidate_concerns_v1_raw.csv"
@@ -98,7 +98,7 @@ def main() -> None:
             ]
         )
     )
-    coverage_path = inputs_dir / "meta_evidence_coverage_v1.csv"
+    coverage_path = inputs_dir / "meta_evidence_coverage_v2.csv"
     concerns_path = inputs_dir / "meta_candidate_concerns_v1.csv"
     coverage.to_csv(coverage_path, index=False)
     concerns.to_csv(concerns_path, index=False)

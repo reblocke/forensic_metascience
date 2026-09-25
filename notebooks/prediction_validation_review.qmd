@@ -27,13 +27,15 @@ All flagged results are screening signals, not adjudications.
 ## Load Outputs
 
 ```{r}
-repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
 study_id <- Sys.getenv("REVIEW_STUDY_ID", unset = "")
 if (!nzchar(study_id)) {
   stop("Missing REVIEW_STUDY_ID environment variable.")
 }
-report_dir <- file.path(repo_root, "reports", "reviews", study_id)
-data_dir <- file.path(repo_root, "data", "processed", "reviews", study_id)
+report_root <- Sys.getenv("REVIEW_REPORTS_ROOT", unset = "")
+processed_root <- Sys.getenv("REVIEW_PROCESSED_ROOT", unset = "")
+if (!nzchar(report_root) || !nzchar(processed_root)) stop("Current private-review roots are required.")
+report_dir <- report_root
+data_dir <- processed_root
 
 required <- c(
   "review_summary.csv",

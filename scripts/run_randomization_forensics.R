@@ -116,24 +116,26 @@ build_simdistr_runtime <- function(csf_input) {
     mutate(variable_id = row_number()) %>%
     select(
       trial_id, variable_id, recalculated_test_id, n_arm1, n_arm2, prop_arm1, prop_arm2,
+      reported_percent_raw_arm1, reported_percent_raw_arm2,
       reported_percent_decimals_arm1, reported_percent_decimals_arm2
     ) %>%
     pivot_longer(
       cols = c(
         n_arm1, n_arm2, prop_arm1, prop_arm2,
+        reported_percent_raw_arm1, reported_percent_raw_arm2,
         reported_percent_decimals_arm1, reported_percent_decimals_arm2
       ),
       names_to = c(".value", "arm"),
-      names_pattern = "(n|prop|reported_percent_decimals)_arm(1|2)"
+      names_pattern = "(n|prop|reported_percent_raw|reported_percent_decimals)_arm(1|2)"
     ) %>%
     mutate(
       trial = 1L,
       variable = as.integer(variable_id),
       group = as.integer(arm),
       participants = as.integer(n),
-      mean = as.numeric(prop),
+      mean = as.numeric(reported_percent_raw) / 100,
       sd = NA_real_,
-      decimals = as.integer(reported_percent_decimals),
+      decimals = as.integer(reported_percent_decimals) + 2L,
       type = 2L,
       name = as.character(trial_id)
     ) %>%
@@ -266,15 +268,15 @@ main <- function() {
   m <- args$m
   plot_flag <- args$plot_flag
 
-  csf_path <- file.path(in_dir, "csf_input_v2.csv")
+  csf_path <- file.path(in_dir, "csf_input_v3.csv")
   if (!file.exists(csf_path)) {
     stop("Missing input file: ", csf_path)
   }
 
   csf_input <- read_csv(csf_path, show_col_types = FALSE) %>%
     arrange(recalculated_test_id)
-  if (any(csf_input$schema_version != "baseline_csf_v2")) {
-    stop("Unsupported CSF input schema; expected baseline_csf_v2.")
+  if (any(csf_input$schema_version != "baseline_csf_v3")) {
+    stop("Unsupported CSF input schema; expected baseline_csf_v3.")
   }
   reported_path <- file.path(in_dir, "reported_tests_v1.csv")
   if (!file.exists(reported_path)) stop("Missing input file: ", reported_path)
@@ -432,4 +434,4 @@ main <- function() {
   cat("Wrote ", file.path(out_dir, "simdistr_combined_descriptive_v1.csv"), "\n", sep = "")
 }
 
-main()
+if (sys.nframe() == 0L) main()

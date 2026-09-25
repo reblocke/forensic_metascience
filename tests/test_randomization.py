@@ -212,6 +212,44 @@ def test_randomization_test_ids_and_order_are_stable_under_row_reordering() -> N
     )
 
 
+def test_csf_preserves_reported_percent_for_proportion_precision() -> None:
+    table = [
+        ["Characteristic", "Arm A (n=30)", "Arm B (n=30)", "P value"],
+        ["Response (n, %)", "10 (33.3%)", "15 (50.0%)", ""],
+        ["Other", "20 (66.7%)", "15 (50.0%)", ""],
+    ]
+    csf = build_csf_input(parse_table1_long(table, "trial_x", 1))
+    response = csf.loc[csf["parent_variable"] == "Response"].iloc[0]
+    assert response["reported_percent_raw_arm1"] == "33.3"
+    assert response["reported_percent_decimals_arm1"] == 1
+
+
+def test_simdistr_runtime_converts_reported_percent_to_proportion_precision() -> None:
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        pytest.skip("Rscript is unavailable; simdistr adapter remains unverified.")
+    project_root = Path(__file__).resolve().parents[1]
+    expression = r"""
+source("scripts/run_randomization_forensics.R")
+input <- data.frame(
+  trial_id = "synthetic", recalculated_test_id = "test-1",
+  n_arm1 = 30L, n_arm2 = 30L, prop_arm1 = 10/30, prop_arm2 = 15/30,
+  reported_percent_raw_arm1 = "33.3", reported_percent_raw_arm2 = "50.0",
+  reported_percent_decimals_arm1 = 1L, reported_percent_decimals_arm2 = 1L
+)
+runtime <- build_simdistr_runtime(input)
+stopifnot(isTRUE(all.equal(runtime$mean, c(0.333, 0.5))),
+          identical(runtime$decimals, c(3L, 3L)))
+"""
+    subprocess.run(
+        [rscript, "-e", expression],
+        cwd=project_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 def test_builder_writes_separate_reported_test_records(tmp_path: Path) -> None:
     project_root = Path(__file__).resolve().parents[1]
     parsed = parse_table1_long(_table1_fixture(), "trial_x", 3)
@@ -233,7 +271,7 @@ def test_builder_writes_separate_reported_test_records(tmp_path: Path) -> None:
         env={**os.environ, "PYTHONPATH": str(project_root / "src")},
     )
     reported = pd.read_csv(output_dir / "reported_tests_v1.csv")
-    csf = pd.read_csv(output_dir / "csf_input_v2.csv")
+    csf = pd.read_csv(output_dir / "csf_input_v3.csv")
     simdistr_input = pd.read_csv(output_dir / "simdistr_input_v2.csv")
     assert reported["reported_test_id"].is_unique
     assert "reported_p" not in csf.columns
@@ -290,7 +328,10 @@ def test_randomization_r_runner_gates_design_and_fixed_block_count_check(tmp_pat
     )
     input_dir = tmp_path / "input"
     input_dir.mkdir()
-    csf.to_csv(input_dir / "csf_input_v2.csv", index=False)
+    csf["schema_version"] = "baseline_csf_v3"
+    csf["reported_percent_raw_arm1"] = ["50.0", "50.0", "0.0"]
+    csf["reported_percent_raw_arm2"] = ["0.0", "0.0", "100.0"]
+    csf.to_csv(input_dir / "csf_input_v3.csv", index=False)
     reported.to_csv(input_dir / "reported_tests_v1.csv", index=False)
 
     def run(output_name: str, *args: str) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, object]]:
@@ -399,7 +440,7 @@ def test_randomization_r_runner_gates_design_and_fixed_block_count_check(tmp_pat
     runtime_input = pd.read_csv(
         tmp_path / "seeded_missing_dependency/simdistr_runtime_input_v1.csv"
     )
-    assert set(runtime_input["decimals"]) == {0, 1, 2}
+    assert set(runtime_input["decimals"]) == {2, 3, 4}
 
 
 def test_parse_hierarchical_supplement_baseline_table() -> None:

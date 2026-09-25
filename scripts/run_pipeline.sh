@@ -160,12 +160,12 @@ render_study_report() {
   local report_dir="$3"
   local output_name="$4"
 
-  FORENSICS_STUDY_ID="$STUDY_ID" FORENSICS_STUDY_TITLE="$STUDY_TITLE" \
-    FORENSICS_REPORTS_ROOT="$REPORTS_ROOT" FORENSICS_PROCESSED_ROOT="$PROCESSED_ROOT" \
-    quarto render "$notebook_path" \
-    --to pdf \
-    --output "$output_name" \
-    --output-dir "$report_dir"
+  (
+    cd "$report_dir"
+    FORENSICS_STUDY_ID="$STUDY_ID" FORENSICS_STUDY_TITLE="$STUDY_TITLE" \
+      FORENSICS_REPORTS_ROOT="$REPORTS_ROOT" FORENSICS_PROCESSED_ROOT="$PROCESSED_ROOT" \
+      quarto render "$REPO_ROOT/$notebook_path" --to pdf --output "$output_name"
+  )
   if [[ ! -f "$report_dir/$output_name" ]]; then
     echo "Expected rendered report was not created under the run directory: $report_dir/$output_name" >&2
     return 1
@@ -250,6 +250,10 @@ fi
 RUN_INIT_ARGS=(
   init --repo-root "$REPO_ROOT" --output-root "$OUTPUT_ROOT"
   --study-id "$STUDY_ID" --categories "$FORENSICS_RAW" --config "$CONFIG_PATH"
+  --setting "network_allowed=$ALLOW_NETWORK"
+  --setting "registry_network_allowed=$REGISTRY_ALLOW_NETWORK"
+  --setting "render_reports=$RENDER_REPORTS"
+  --setting "digitize_plots=$DIGITIZE_PLOTS"
 )
 for required_source in "${REQUIRED_SOURCES[@]}"; do
   RUN_INIT_ARGS+=(--required-input "$required_source")
@@ -314,12 +318,12 @@ stage_begin() {
 stage_complete() {
   local stage="$1"
   shift
-  PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
-    --manifest "$RUN_MANIFEST" --stage "$stage" --status completed
   for artifact in "$@"; do
     PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
       --manifest "$RUN_MANIFEST" --artifact "$artifact"
   done
+  PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
+    --manifest "$RUN_MANIFEST" --stage "$stage" --status completed
 }
 
 require_file() {
@@ -624,7 +628,8 @@ run_meta_category() {
     --in "$META_DATA_DIR" \
     --out "$META_REPORT_DIR"
 
-  stage_complete meta_aggregation "$META_REPORT_DIR/meta_coverage_summary_v1.csv" \
+  stage_complete meta_aggregation "$META_REPORT_DIR/meta_evidence_coverage_v2_out.csv" \
+    "$META_REPORT_DIR/meta_coverage_summary_v1.csv" \
     "$META_REPORT_DIR/meta_candidate_concerns_v1_out.csv"
   if [ "$RENDER_REPORTS" = true ]; then
     stage_begin meta_report

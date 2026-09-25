@@ -21,6 +21,7 @@ def main() -> None:
     init.add_argument("--input", action="append", type=Path, default=[])
     init.add_argument("--required-input", action="append", type=Path, default=[])
     init.add_argument("--run-id")
+    init.add_argument("--setting", action="append", default=[])
     update = commands.add_parser("update")
     update.add_argument("--manifest", type=Path, required=True)
     update.add_argument("--stage")
@@ -33,6 +34,12 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "init":
+        settings = {}
+        for item in args.setting:
+            if "=" not in item:
+                parser.error("--setting must use KEY=VALUE")
+            key, value = item.split("=", 1)
+            settings[key] = value
         run_root, _ = create_run(
             repo_root=args.repo_root,
             output_root=args.output_root,
@@ -42,11 +49,12 @@ def main() -> None:
             input_paths=args.input,
             required_input_paths=args.required_input,
             run_id=args.run_id,
+            settings=settings,
         )
         print(run_root)
     elif args.command == "update":
-        if args.status is None:
-            parser.error("update requires --status")
+        if args.status is None and args.artifact is None and args.error is None:
+            parser.error("update requires --status, --artifact, or --error")
         update_run(
             args.manifest,
             stage=args.stage,

@@ -76,7 +76,7 @@ def test_explicit_negation_and_role_specific_masking_are_not_collapsed() -> None
     assert randomization["assessment_status"] == "indeterminate"
     assert treatment["report_value"] == "open_label"
     assert treatment["protocol_value"] == "not_blinded"
-    assert treatment["assessment_status"] == "match"
+    assert treatment["assessment_status"] == "indeterminate"
     assert outcome["report_value"] == "blinded"
     assert outcome["protocol_value"] == ""
     assert outcome["assessment_status"] == "indeterminate"
@@ -95,12 +95,26 @@ def test_expanded_claim_conversion_preserves_structured_evidence() -> None:
         (expanded["claim_id"] == "blinding_role") & (expanded["role"] == "treatment")
     ].iloc[0]
 
-    assert treatment["schema_version"] == "registration_claims_v2"
+    assert treatment["schema_version"] == "registration_claims_v3"
     assert treatment["report_evidence"] == "Treatment was open-label."
     assert treatment["protocol_evidence"] == "Treatment was not blinded."
     assert treatment["report_negated"] is False
     assert treatment["population"] == "trial participants"
     assert treatment["role"] == "treatment"
+
+
+def test_negated_blinding_claim_does_not_match_positive_claim() -> None:
+    claims = derive_registration_claims(
+        trial_id="trial_x",
+        report_page_texts=["The study was not open-label."],
+        protocol_page_texts=["The study was open-label."],
+    )
+    treatment = claims[(claims["claim"] == "blinding_role") & (claims["role"] == "treatment")].iloc[
+        0
+    ]
+    assert treatment["report_value"] == "open_label"
+    assert treatment["report_negated"] is True
+    assert treatment["assessment_status"] == "indeterminate"
 
 
 def test_registration_input_builder_keeps_unassessed_mismatch_flag_missing(tmp_path) -> None:
@@ -109,7 +123,7 @@ def test_registration_input_builder_keeps_unassessed_mismatch_flag_missing(tmp_p
     pd.DataFrame(
         [
             {
-                "schema_version": "registration_claims_v2",
+                "schema_version": "registration_claims_v3",
                 "trial_id": "trial_x",
                 "claim_id": "one",
                 "claim_category": "registry_current",
@@ -117,7 +131,7 @@ def test_registration_input_builder_keeps_unassessed_mismatch_flag_missing(tmp_p
                 "match_status": "",
             },
             {
-                "schema_version": "registration_claims_v2",
+                "schema_version": "registration_claims_v3",
                 "trial_id": "trial_x",
                 "claim_id": "two",
                 "claim_category": "report_protocol",
@@ -125,7 +139,7 @@ def test_registration_input_builder_keeps_unassessed_mismatch_flag_missing(tmp_p
                 "match_status": "true",
             },
             {
-                "schema_version": "registration_claims_v2",
+                "schema_version": "registration_claims_v3",
                 "trial_id": "trial_x",
                 "claim_id": "three",
                 "claim_category": "report_protocol",

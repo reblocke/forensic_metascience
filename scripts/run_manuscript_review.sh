@@ -127,11 +127,16 @@ if [ "$RENDER_REPORT" = true ]; then
   CURRENT_STAGE="prediction_validation_report"
   python3 scripts/forensics_run.py update --manifest "$RUN_MANIFEST" \
     --stage "$CURRENT_STAGE" --status running
-  REVIEW_STUDY_ID="$STUDY_ID" quarto render notebooks/prediction_validation_review.qmd \
-    --to pdf --output "${STUDY_ID}_prediction_validation_review_v1.pdf" \
-    --output-dir "$REVIEW_REPORT_DIR"
+  (
+    cd "$REVIEW_REPORT_DIR"
+    REVIEW_STUDY_ID="$STUDY_ID" REVIEW_REPORTS_ROOT="$REVIEW_REPORT_DIR" \
+      REVIEW_PROCESSED_ROOT="$REVIEW_DATA_DIR" \
+      quarto render "$REPO_ROOT/notebooks/prediction_validation_review.qmd" \
+      --to pdf --output "${STUDY_ID}_prediction_validation_review_v1.pdf"
+  )
   python3 scripts/forensics_run.py update --manifest "$RUN_MANIFEST" \
-    --stage "$CURRENT_STAGE" --status completed \
     --artifact "$REVIEW_REPORT_DIR/${STUDY_ID}_prediction_validation_review_v1.pdf"
+  python3 scripts/forensics_run.py update --manifest "$RUN_MANIFEST" \
+    --stage "$CURRENT_STAGE" --status completed
 fi
 printf 'Completed private review run: %s\n' "$RUN_ROOT"

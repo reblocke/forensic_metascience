@@ -5,12 +5,13 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-RUN_MANIFEST_SCHEMA = "forensics_run_v1"
+RUN_MANIFEST_SCHEMA = "forensics_run_v3"
 
 
 def sha256_file(path: Path) -> str | None:
@@ -45,6 +46,7 @@ def create_run(
     input_paths: list[Path],
     required_input_paths: list[Path] | None = None,
     run_id: str | None = None,
+    settings: dict[str, Any] | None = None,
 ) -> tuple[Path, Path]:
     """Create a fresh run directory and its initial manifest; refuse collisions."""
     repo = repo_root.resolve()
@@ -71,6 +73,7 @@ def create_run(
     required_inputs = {path.resolve() for path in (required_input_paths or [])}
     required_inputs.add(config_path.resolve())
     paths = list(dict.fromkeys([config_path, *input_paths]))
+    worktree_state = _git_worktree_state(repo)
     fingerprints = []
     for path in paths:
         resolved = path.resolve()
@@ -92,13 +95,19 @@ def create_run(
         "run_id": selected_run_id,
         "study_id": study_id,
         "repo_root": str(repo),
+        "code_revision": _git_revision(repo),
+        **worktree_state,
         "created_at": datetime.now(UTC).isoformat(),
         "status": "running",
         "requested_categories": categories,
+        "effective_settings": settings or {},
+        "effective_settings_sha256": hashlib.sha256(
+            json.dumps(settings or {}, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
         "schema_versions": {
             "run_manifest": RUN_MANIFEST_SCHEMA,
-            "numeric_method_receipt": "method_receipt_v1",
-            "meta_evidence_coverage": "evidence_coverage_v1",
+            "numeric_method_receipt": "method_receipt_v2",
+            "meta_evidence_coverage": "evidence_coverage_v2",
         },
         "method_versions": {"numeric": "numeric_eligibility_precision_v3"},
         "input_fingerprints": fingerprints,
@@ -118,6 +127,8 @@ def update_run(
     artifact: str | None = None,
 ) -> None:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("status") in {"completed", "failed"}:
+        raise ValueError("Cannot update a terminal run manifest.")
     if stage is not None and status is not None:
         manifest["stages"][stage] = {"status": status, "updated_at": datetime.now(UTC).isoformat()}
     if status in {"completed", "failed"} and stage is None:
@@ -142,3 +153,69 @@ def update_run(
             }
         )
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+
+def _git_revision(repo_root: Path) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    revision = result.stdout.strip()
+    return revision or None
+
+
+def _git_worktree_state(repo_root: Path) -> dict[str, Any]:
+    """Fingerprint source and documentation changes relative to the recorded commit."""
+    pathspecs = [
+        "R",
+        "src",
+        "scripts",
+        "notebooks",
+        "tests",
+        "config",
+        "docs",
+        "README.md",
+        "AGENTS.md",
+        ".gitignore",
+        "pyproject.toml",
+        "uv.lock",
+    ]
+    try:
+        diff = subprocess.run(
+            ["git", "diff", "--binary", "HEAD", "--", *pathspecs],
+            cwd=repo_root,
+            capture_output=True,
+            check=True,
+        ).stdout
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard", "--", *pathspecs],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.splitlines()
+    except (OSError, subprocess.CalledProcessError):
+        return {"working_tree_dirty": None, "working_tree_diff_sha256": None}
+    untracked_files = [
+        {"path": path, "sha256": sha256_file(repo_root / path)}
+        for path in sorted(untracked)
+        if (repo_root / path).is_file()
+    ]
+    fingerprint = hashlib.sha256(
+        json.dumps(
+            {
+                "tracked_diff_sha256": hashlib.sha256(diff).hexdigest(),
+                "untracked_source_files": untracked_files,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    dirty = bool(diff or untracked_files)
+    return {"working_tree_dirty": dirty, "working_tree_diff_sha256": fingerprint}

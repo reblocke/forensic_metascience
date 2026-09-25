@@ -40,6 +40,12 @@ def build_evidence_coverage(
         metric_rows = subset[~subset["metric"].astype(str).isin(metadata_metrics)]
         values = metric_rows["value"]
         n_assessed = int(values.notna().sum())
+        evaluation_units_value = status.get("n_evaluation_units", 0)
+        n_evaluation_units = (
+            int(evaluation_units_value)
+            if pd.notna(evaluation_units_value) and str(evaluation_units_value).strip()
+            else 0
+        )
         source_files = sorted(
             str(value)
             for value in subset.get("source_file", pd.Series(dtype=str)).dropna().unique()
@@ -49,16 +55,17 @@ def build_evidence_coverage(
             source_files.append(str(source))
         rows.append(
             {
-                "schema_version": "evidence_coverage_v1",
+                "schema_version": "evidence_coverage_v2",
                 "category": category,
                 "requested": category_requested,
-                "assessed": category_requested and n_assessed > 0,
-                "unavailable": category_requested and n_assessed == 0,
+                "assessed": category_requested and n_evaluation_units > 0,
+                "unavailable": category_requested and n_evaluation_units == 0,
                 "failed": status.get("failed", pd.NA),
                 "unsupported": status.get("unsupported", pd.NA),
                 "report_available": report_exists,
                 "n_metrics_assessed": n_assessed,
                 "n_metrics_missing": int(len(values) - n_assessed),
+                "n_evaluation_units": n_evaluation_units,
                 "source_file": ";".join(source_files),
             }
         )

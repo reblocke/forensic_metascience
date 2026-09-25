@@ -28,7 +28,9 @@ study_id <- Sys.getenv("FORENSICS_STUDY_ID", "lungtime")
 study_label <- Sys.getenv("FORENSICS_STUDY_TITLE", study_id)
 reports_root <- Sys.getenv("FORENSICS_REPORTS_ROOT", unset = "")
 processed_root <- Sys.getenv("FORENSICS_PROCESSED_ROOT", unset = "")
-if (!nzchar(reports_root)) stop("FORENSICS_REPORTS_ROOT must point to this run's reports directory.")
+if (!nzchar(reports_root) || !nzchar(processed_root)) {
+  stop("FORENSICS_REPORTS_ROOT and FORENSICS_PROCESSED_ROOT must point to this run.")
+}
 input_dir <- file.path(reports_root, "randomization")
 
 required_files <- c(
