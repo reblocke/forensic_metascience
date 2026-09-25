@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from research_project.randomization import build_csf_input, build_simdistr_input, parse_table1_long
+from research_project.numeric_integrity import build_numeric_table, build_scrutiny_input
+from research_project.randomization import (
+    build_csf_input,
+    build_simdistr_input,
+    parse_group_header,
+    parse_table1_long,
+)
 
 
 def _table1_fixture() -> list[list[str]]:
@@ -65,6 +71,53 @@ def test_parse_table1_long_extracts_expected_fields() -> None:
     ]
     assert len(smoking_rows) == 2
     assert smoking_rows["reported_p"].dropna().iloc[0] == 0.59
+
+
+def test_table1_preserves_source_numeric_strings_and_p_comparator() -> None:
+    table = [
+        ["Characteristics", "Arm A (n = 3)", "Arm B (n = 3)", "P value"],
+        ["Age (years, median, range)", "61.20 (33.00-80.00)", "60.10 (34.00-77.00)", "P=1.2"],
+        ["Outcome (n, %)", "1 (33%)", "1 (33.3%)", "P<0.001"],
+    ]
+    parsed = parse_table1_long(table=table, trial_id="trial_x", source_page=3)
+    arm_a = parsed[(parsed["group"] == "a") & (parsed["variable"] == "Outcome")].iloc[0]
+    assert arm_a["raw_value"] == "1 (33%)"
+    assert arm_a["source_locator"]
+    assert arm_a["reported_p_raw"] == "P<0.001"
+    assert arm_a["reported_p_comparator"] == "<"
+    assert arm_a["denominator_role"] == "unknown"
+    age = parsed[parsed["variable"].str.startswith("Age")].iloc[0]
+    assert age["raw_statistic_value"] == "61.20"
+    assert age["reported_decimals"] == 2
+    assert age["reported_p"] == 1.2
+    assert age["reported_p_raw"] == "P=1.2"
+    assert build_numeric_table(parsed[parsed["variable"] == "Outcome"])[
+        "compatibility_status"
+    ].tolist() == ["indeterminate", "indeterminate"]
+    median_inputs = build_scrutiny_input(parsed)
+    assert median_inputs.iloc[0]["x"] == "61.20"
+    assert median_inputs.iloc[0]["decimals"] == 2
+
+
+def test_malformed_counts_are_excluded_from_randomization_method_inputs() -> None:
+    table = [
+        ["Characteristics", "Arm A (n = 3)", "Arm B (n = 3)", "P value"],
+        ["Event (n, %)", "4 (133.3%)", "-1 (-33.3%)", "0.50"],
+    ]
+    parsed = parse_table1_long(table=table, trial_id="trial_x", source_page=3)
+    numeric = build_numeric_table(parsed)
+    assert numeric["input_status"].tolist() == [
+        "source_data_contradiction",
+        "source_data_contradiction",
+    ]
+    assert build_simdistr_input(parsed).empty
+    assert build_csf_input(parsed).empty
+    try:
+        parse_group_header("Arm A (n = 10.5)")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("A noninteger arm denominator must be rejected.")
 
 
 def test_build_package_inputs_shapes_and_columns() -> None:

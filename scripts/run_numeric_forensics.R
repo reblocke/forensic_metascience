@@ -64,12 +64,44 @@ safe_package_version <- function(package_name) {
   as.character(utils::packageVersion(package_name))
 }
 
+valid_printed_number <- function(value, digits) {
+  value <- trimws(as.character(value))
+  digits <- suppressWarnings(as.numeric(digits))
+  if (is.na(value) || !grepl("^[+-]?[0-9]+(\\.[0-9]*)?$", value) ||
+      is.na(digits) || !is.finite(digits) || digits < 0 || digits != floor(digits)) {
+    return(FALSE)
+  }
+  observed_digits <- if (grepl("\\.", value)) nchar(sub("^[^.]*\\.", "", value)) else 0L
+  observed_digits == digits
+}
+
+read_numeric_csv <- function(path) {
+  read_csv(
+    path,
+    col_types = cols(
+      .default = col_guess(),
+      x = col_character(),
+      sd = col_character(),
+      x_str = col_character(),
+      sd_str = col_character(),
+      raw_value = col_character(),
+      raw_count = col_character(),
+      reported_percent_raw = col_character(),
+      reported_p = col_character(),
+      reported_p_raw = col_character(),
+      reported_p_comparator = col_character()
+    ),
+    show_col_types = FALSE
+  )
+}
+
 validate_scrutiny_input <- function(input, method = c("grim", "grimmer", "debit")) {
   method <- match.arg(method)
   required <- c(
     "statistic_kind", "measurement_scale", "raw_or_adjusted", "weighting",
     "analysis_n", "imputation_status", "transformation_status",
-    "granularity_transformation", "eligibility_evidence", "method_revision"
+    "granularity_transformation", "eligibility_evidence", "method_revision",
+    "n", "analysis_n", "x", "digits_x"
   )
   if (!all(required %in% names(input)) || nrow(input) == 0) {
     return(input[0, , drop = FALSE])
@@ -79,6 +111,9 @@ validate_scrutiny_input <- function(input, method = c("grim", "grimmer", "debit"
   })
   names(normalized) <- required
   known_integer_scale <- normalized$measurement_scale %in% c("integer_valued", "bernoulli")
+  valid_x <- mapply(valid_printed_number, input$x, input$digits_x)
+  n_value <- suppressWarnings(as.numeric(input$n))
+  analysis_n <- suppressWarnings(as.numeric(input$analysis_n))
   transformation_supported <- normalized$transformation_status == "none" |
     (normalized$transformation_status == "granularity_adjustment" &
       nzchar(normalized$granularity_transformation))
@@ -86,15 +121,30 @@ validate_scrutiny_input <- function(input, method = c("grim", "grimmer", "debit"
     known_integer_scale &
     normalized$raw_or_adjusted == "raw" &
     normalized$weighting == "unweighted" &
-    !is.na(input$analysis_n) &
-    !is.na(input$n) &
-    as.numeric(input$analysis_n) == as.numeric(input$n) &
+    is.finite(analysis_n) &
+    is.finite(n_value) &
+    n_value > 0 &
+    n_value == floor(n_value) &
+    analysis_n == n_value &
+    valid_x &
     nzchar(normalized$eligibility_evidence) &
     normalized$imputation_status == "not_imputed" &
     transformation_supported &
-    normalized$method_revision == "numeric_eligibility_v2"
+    normalized$method_revision == "numeric_eligibility_precision_v3"
   method_eligible <- if (method == "debit") {
-    base_eligible & normalized$measurement_scale == "bernoulli"
+    valid_sd <- if (all(c("sd", "digits_sd") %in% names(input))) {
+      mapply(valid_printed_number, input$sd, input$digits_sd)
+    } else {
+      rep(FALSE, nrow(input))
+    }
+    base_eligible & normalized$measurement_scale == "bernoulli" & valid_sd
+  } else if (method == "grimmer") {
+    valid_sd <- if (all(c("sd", "digits_sd") %in% names(input))) {
+      mapply(valid_printed_number, input$sd, input$digits_sd)
+    } else {
+      rep(FALSE, nrow(input))
+    }
+    base_eligible & valid_sd
   } else {
     base_eligible
   }
@@ -737,13 +787,22 @@ standardize_rounding <- function(row_results) {
       trial_id = as.character(trial_id),
       method = "rounding_consistency",
       source_unit = paste(variable, level, group, sep = " / "),
-      metric = "abs_percent_delta",
-      value_numeric = as.numeric(abs_percent_delta),
+      metric = "legacy_abs_percent_delta",
+      value_numeric = as.numeric(legacy_abs_percent_delta),
       p_value = NA_real_,
-      anomaly_flag = as.logical(flag_percent_delta_0_2),
-      severity = vapply(as.numeric(abs_percent_delta), severity_from_delta, character(1)),
+      anomaly_flag = case_when(
+        compatibility_status == "incompatible" ~ TRUE,
+        compatibility_status == "compatible" ~ FALSE,
+        TRUE ~ NA
+      ),
+      severity = ifelse(
+        compatibility_status == "incompatible",
+        "medium",
+        ifelse(compatibility_status == "compatible", "low", "unknown")
+      ),
       details = paste0(
-        "reported_percent=", round(as.numeric(reported_percent), 4),
+        "legacy_delta=", round(as.numeric(legacy_abs_percent_delta), 4),
+        "; reported_percent=", round(as.numeric(reported_percent), 4),
         "; computed_percent=", round(as.numeric(computed_percent), 4)
       )
     )
@@ -919,35 +978,16 @@ main <- function() {
     stop("Missing input files: ", paste(missing_inputs, collapse = ", "))
   }
 
-  numeric <- read_csv(
-    file.path(in_dir, "inputs", "numeric_checks_input.csv"),
-    show_col_types = FALSE
-  )
-  statcheck_input <- read_csv(
-    file.path(in_dir, "inputs", "statcheck_input.csv"),
-    show_col_types = FALSE
-  )
+  numeric <- read_numeric_csv(file.path(in_dir, "inputs", "numeric_checks_input.csv"))
+  statcheck_input <- read_numeric_csv(file.path(in_dir, "inputs", "statcheck_input.csv"))
   statcheck_text <- read_file(file.path(in_dir, "inputs", "statcheck_text.txt"))
-  rsprite2_input <- read_csv(
-    file.path(in_dir, "inputs", "rsprite2_input.csv"),
-    show_col_types = FALSE
+  rsprite2_input <- read_numeric_csv(file.path(in_dir, "inputs", "rsprite2_input.csv"))
+  scrutiny_cases <- read_numeric_csv(file.path(in_dir, "inputs", "scrutiny_cases.csv"))
+  scrutiny_grim_input <- read_numeric_csv(file.path(in_dir, "inputs", "scrutiny_grim_input.csv"))
+  scrutiny_grimmer_input <- read_numeric_csv(
+    file.path(in_dir, "inputs", "scrutiny_grimmer_input.csv")
   )
-  scrutiny_cases <- read_csv(
-    file.path(in_dir, "inputs", "scrutiny_cases.csv"),
-    show_col_types = FALSE
-  )
-  scrutiny_grim_input <- read_csv(
-    file.path(in_dir, "inputs", "scrutiny_grim_input.csv"),
-    show_col_types = FALSE
-  )
-  scrutiny_grimmer_input <- read_csv(
-    file.path(in_dir, "inputs", "scrutiny_grimmer_input.csv"),
-    show_col_types = FALSE
-  )
-  scrutiny_debit_input <- read_csv(
-    file.path(in_dir, "inputs", "scrutiny_debit_input.csv"),
-    show_col_types = FALSE
-  )
+  scrutiny_debit_input <- read_numeric_csv(file.path(in_dir, "inputs", "scrutiny_debit_input.csv"))
   scrutiny_grim_input <- validate_scrutiny_input(scrutiny_grim_input, "grim")
   scrutiny_grimmer_input <- validate_scrutiny_input(scrutiny_grimmer_input, "grimmer")
   scrutiny_debit_input <- validate_scrutiny_input(scrutiny_debit_input, "debit")
@@ -965,7 +1005,17 @@ main <- function() {
   row_results <- numeric %>%
     mutate(
       abs_percent_delta = as.numeric(abs_percent_delta),
-      flag_percent_delta_0_2 = abs_percent_delta >= 0.2
+      legacy_abs_percent_delta = if ("legacy_abs_percent_delta" %in% names(numeric)) {
+        as.numeric(legacy_abs_percent_delta)
+      } else {
+        as.numeric(abs_percent_delta)
+      },
+      compatibility_status = if ("compatibility_status" %in% names(numeric)) {
+        as.character(compatibility_status)
+      } else {
+        "indeterminate"
+      },
+      flag_percent_delta_0_2 = compatibility_status == "incompatible"
     )
   write_csv(row_results, file.path(out_dir, "numeric_row_results.csv"))
 

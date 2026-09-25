@@ -9,6 +9,9 @@ import pandas as pd
 from research_project.forensics_manifest import load_manifest, upsert_manifest_row
 from research_project.meta_forensics import build_category_scores, compute_overall_meta_score
 from research_project.numeric_integrity import (
+    _digits_from_str,
+    _to_int,
+    assess_percent_compatibility,
     build_numeric_table,
     build_rsprite2_stub,
     build_scrutiny_cases,
@@ -18,6 +21,7 @@ from research_project.numeric_integrity import (
     build_scrutiny_grimmer_input,
     build_scrutiny_input,
     build_scrutiny_rounding_bias_input,
+    build_statcheck_stub,
     summarize_numeric_flags,
 )
 from research_project.registration_forensics import derive_registration_claims, extract_registry_ids
@@ -105,6 +109,171 @@ def test_numeric_rsprite2_stub_builder() -> None:
     assert rsprite2_stub.iloc[0]["variable"] == "Sex"
     assert rsprite2_stub.iloc[0]["level"] == "Male"
     assert rsprite2_stub.iloc[0]["abs_percent_between_arms"] == 1.0
+
+
+def test_numeric_precision_denominator_and_percentage_contract() -> None:
+    assert _digits_from_str("1.20") == 2
+    assert _digits_from_str("1.2") == 1
+    assert _digits_from_str("1.2e-3") is None
+    assert _to_int(10.5) is None
+    assert _to_int(-2) == -2
+    assert _to_int(float("nan")) is None
+    assert _to_int(float("inf")) is None
+
+    common = {
+        "denominator_role": "analyzed",
+        "weighting": "unweighted",
+        "rounding_convention": "nearest_half_up",
+    }
+    assert (
+        assess_percent_compatibility(
+            count=1, denominator=3, reported_percent="33", reported_decimals=0, **common
+        )
+        == "compatible"
+    )
+    assert (
+        assess_percent_compatibility(
+            count=1, denominator=3, reported_percent="33.3", reported_decimals=1, **common
+        )
+        == "compatible"
+    )
+    assert (
+        assess_percent_compatibility(
+            count=1, denominator=3, reported_percent="34.0", reported_decimals=1, **common
+        )
+        == "incompatible"
+    )
+    assert (
+        assess_percent_compatibility(
+            count=1,
+            denominator=3,
+            reported_percent="33.3",
+            reported_decimals=1,
+            denominator_role="unknown",
+            weighting="unweighted",
+            rounding_convention="unknown",
+        )
+        == "indeterminate"
+    )
+    assert (
+        assess_percent_compatibility(
+            count=4, denominator=3, reported_percent="133.3", reported_decimals=1, **common
+        )
+        == "source_data_contradiction"
+    )
+    assert (
+        assess_percent_compatibility(
+            count=1,
+            denominator=8,
+            reported_percent="12",
+            reported_decimals=0,
+            denominator_role="analyzed",
+            weighting="unweighted",
+            rounding_convention="nearest_half_even",
+        )
+        == "compatible"
+    )
+    assert (
+        assess_percent_compatibility(
+            count=1,
+            denominator=8,
+            reported_percent="13",
+            reported_decimals=0,
+            denominator_role="analyzed",
+            weighting="unweighted",
+            rounding_convention="nearest_half_up",
+        )
+        == "compatible"
+    )
+    assert (
+        assess_percent_compatibility(
+            count=1,
+            denominator=3,
+            reported_percent="33.3",
+            reported_decimals=1,
+            denominator_role="analyzed",
+            weighting="weighted",
+            rounding_convention="nearest_half_up",
+        )
+        == "indeterminate"
+    )
+
+    invalid_counts = pd.DataFrame([1, -1, 4, float("nan"), 1], columns=["count"])
+    invalid_counts["n_group"] = [3, 3, 3, 3, float("inf")]
+    numeric_rows = pd.DataFrame(
+        {
+            "trial_id": "trial_x",
+            "variable": "Event",
+            "level": "yes",
+            "group": "arm_a",
+            "value": invalid_counts["count"],
+            "n_group": invalid_counts["n_group"],
+            "percent": 33.0,
+            "reported_percent_raw": "33",
+            "reported_percent_decimals": 0,
+            "decimals": 0,
+            "reported_p": None,
+            "var_type": "categorical_count_percent",
+        }
+    )
+    assert build_numeric_table(numeric_rows)["input_status"].tolist() == [
+        "ok",
+        "source_data_contradiction",
+        "source_data_contradiction",
+        "input_error",
+        "input_error",
+    ]
+
+
+def test_p_value_inequality_and_out_of_range_value_are_preserved() -> None:
+    rows = pd.DataFrame(
+        [
+            {
+                "trial_id": "trial_x",
+                "variable": "A",
+                "reported_p": 0.001,
+                "reported_p_raw": "P<0.001",
+                "reported_p_comparator": "<",
+            },
+            {
+                "trial_id": "trial_x",
+                "variable": "B",
+                "reported_p": 1.2,
+                "reported_p_raw": "P=1.2",
+                "reported_p_comparator": "=",
+            },
+        ]
+    )
+    statcheck = build_statcheck_stub(rows)
+    assert statcheck["reported_p"].tolist() == [0.001, 1.2]
+    assert statcheck["reported_p_raw"].tolist() == ["P<0.001", "P=1.2"]
+    assert statcheck["reported_p_comparator"].tolist() == ["<", "="]
+    assert statcheck["input_status"].tolist() == ["ok", "source_value_out_of_range"]
+
+
+def test_printed_numeric_strings_survive_python_readr_python_roundtrip(tmp_path) -> None:
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        raise RuntimeError("Rscript is required for the numeric precision roundtrip regression.")
+    source = tmp_path / "numeric.csv"
+    destination = tmp_path / "roundtrip.csv"
+    pd.DataFrame({"x": ["1.20", "1.2"], "sd": ["0.40", "0.4"]}).to_csv(source, index=False)
+    expression = (
+        'source("scripts/run_numeric_forensics.R"); '
+        f'd <- read_numeric_csv("{source}"); '
+        'stopifnot(identical(d$x, c("1.20", "1.2"))); '
+        f'readr::write_csv(d, "{destination}")'
+    )
+    subprocess.run(
+        [rscript, "-e", expression],
+        cwd=Path(__file__).resolve().parents[1],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    roundtrip = pd.read_csv(destination, dtype={"x": "string", "sd": "string"})
+    assert roundtrip["x"].tolist() == ["1.20", "1.2"]
+    assert roundtrip["sd"].tolist() == ["0.40", "0.4"]
 
 
 def test_scrutiny_case_eligibility_and_method_inputs() -> None:
@@ -235,6 +404,11 @@ def test_scrutiny_eligibility_requires_documented_summary_semantics() -> None:
             "transformation_status": "transformed",
         },
         {**common, "variable": "Mismatched n", "analysis_n": 90},
+        {**common, "variable": "Noninteger n", "n": 10.5, "analysis_n": 10.5},
+        {**common, "variable": "Negative n", "n": -1, "analysis_n": -1},
+        {**common, "variable": "NaN n", "n": float("nan"), "analysis_n": float("nan")},
+        {**common, "variable": "Infinite n", "n": float("inf"), "analysis_n": float("inf")},
+        {**common, "variable": "Precision mismatch", "x_str": "1.20", "digits_x": 1},
     ]
     cases = build_scrutiny_cases(
         scrutiny_input=pd.DataFrame(),
@@ -244,33 +418,13 @@ def test_scrutiny_eligibility_requires_documented_summary_semantics() -> None:
     grimmer_input = build_scrutiny_grimmer_input(cases)
     debit_input = build_scrutiny_debit_input(cases)
 
-    assert cases["eligible_grim"].tolist() == [
-        True,
-        False,
-        True,
-        False,
-        False,
-        False,
-        False,
-        False,
-        False,
-    ]
+    assert cases["eligible_grim"].tolist() == [True, False, True] + [False] * 11
     assert cases["eligible_grimmer"].tolist() == cases["eligible_grim"].tolist()
-    assert cases["eligible_debit"].tolist() == [
-        False,
-        False,
-        True,
-        False,
-        False,
-        False,
-        False,
-        False,
-        False,
-    ]
+    assert cases["eligible_debit"].tolist() == [False, False, True] + [False] * 11
     assert cases.loc[1, "exclude_reason_debit"] == "measurement_scale_not_bernoulli"
     assert len(grim_input) == len(grimmer_input) == 2
     assert len(debit_input) == 1
-    assert set(grim_input["method_revision"]) == {"numeric_eligibility_v2"}
+    assert set(grim_input["method_revision"]) == {"numeric_eligibility_precision_v3"}
     assert set(debit_input["measurement_scale"]) == {"bernoulli"}
 
 
@@ -281,16 +435,21 @@ def test_numeric_r_boundary_revalidates_method_eligibility() -> None:
     expression = r"""
 source("scripts/run_numeric_forensics.R")
 valid <- tibble::tibble(
-  n = c(100, 100, 100, 100), analysis_n = c(100, 100, 100, 100),
-  x = c("0.60", "0.60", "0.60", "0.60"),
-  sd = c("0.20", "0.20", "0.20", "0.20"),
-  statistic_kind = c("arithmetic_mean", "median", "arithmetic_mean", "arithmetic_mean"),
-  measurement_scale = c("integer_valued", "integer_valued", "continuous_bounded", "bernoulli"),
+  n = c(100, 100, 100, 100, 10.5, 100),
+  analysis_n = c(100, 100, 100, 100, 10.5, 100),
+  digits_x = c(2, 2, 2, 2, 2, 2), digits_sd = c(2, 2, 2, 2, 2, 2),
+  x = c("0.60", "0.60", "0.60", "0.60", "0.60", "0.6"),
+  sd = c("0.20", "0.20", "0.20", "0.20", "0.20", "0.20"),
+  statistic_kind = c("arithmetic_mean", "median", rep("arithmetic_mean", 4)),
+  measurement_scale = c(
+    "integer_valued", "integer_valued", "continuous_bounded", "bernoulli",
+    "integer_valued", "integer_valued"
+  ),
   raw_or_adjusted = "raw", weighting = "unweighted",
   imputation_status = "not_imputed", transformation_status = "none",
   granularity_transformation = "",
   eligibility_evidence = "Methods describe the summary and scale.",
-  method_revision = "numeric_eligibility_v2"
+  method_revision = "numeric_eligibility_precision_v3"
 )
 stopifnot(nrow(validate_scrutiny_input(valid, "grim")) == 2L)
 stopifnot(nrow(validate_scrutiny_input(valid, "debit")) == 1L)

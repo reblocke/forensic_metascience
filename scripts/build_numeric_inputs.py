@@ -49,11 +49,48 @@ def main() -> None:
     if not metadata_path.exists():
         raise FileNotFoundError(f"Missing numeric metadata file: {metadata_path}")
 
-    numeric_table = pd.read_csv(numeric_path)
-    scrutiny_input = pd.read_csv(scrutiny_path)
-    statcheck_input = pd.read_csv(statcheck_path)
+    numeric_table = pd.read_csv(
+        numeric_path,
+        dtype={
+            "raw_value": "string",
+            "raw_count": "string",
+            "source_locator": "string",
+            "reported_percent_raw": "string",
+            "reported_p_raw": "string",
+            "reported_p_comparator": "string",
+        },
+    )
+    scrutiny_input = pd.read_csv(
+        scrutiny_path,
+        dtype={
+            "x": "string",
+            "raw_value": "string",
+            "source_locator": "string",
+            "reported_p_raw": "string",
+            "reported_p_comparator": "string",
+        },
+    )
+    statcheck_input = pd.read_csv(
+        statcheck_path,
+        dtype={
+            "reported_p": "string",
+            "reported_p_raw": "string",
+            "reported_p_comparator": "string",
+        },
+    )
     statcheck_text = statcheck_text_path.read_text(encoding="utf-8")
-    summary_long = pd.read_csv(summary_long_path)
+    summary_long = pd.read_csv(
+        summary_long_path,
+        dtype={
+            "x_str": "string",
+            "sd_str": "string",
+            "analysis_n": "string",
+            "raw_value": "string",
+            "source_locator": "string",
+            "reported_p_raw": "string",
+            "reported_p_comparator": "string",
+        },
+    )
     metadata = pd.read_csv(metadata_path)
 
     source_pdf = ""

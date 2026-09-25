@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import re
+from decimal import ROUND_DOWN, ROUND_HALF_EVEN, ROUND_HALF_UP, Decimal, InvalidOperation
 
 import pandas as pd
 
@@ -13,6 +14,11 @@ SCRUTINY_CASE_COLUMNS = [
     "source_pdf",
     "source_table",
     "source_page",
+    "source_locator",
+    "raw_value",
+    "reported_decimals",
+    "reported_p_raw",
+    "reported_p_comparator",
     "variable",
     "level",
     "group",
@@ -52,7 +58,7 @@ SUMMARY_METADATA_COLUMNS = (
     "granularity_transformation",
     "eligibility_evidence",
 )
-NUMERIC_METHOD_REVISION = "numeric_eligibility_v2"
+NUMERIC_METHOD_REVISION = "numeric_eligibility_precision_v3"
 
 
 def compute_percent_from_count(
@@ -61,11 +67,68 @@ def compute_percent_from_count(
 ) -> float | None:
     """Compute percentage from a count and group size."""
 
-    if count is None or n_group in (None, 0):
+    if count is None or n_group is None:
         return None
     if pd.isna(count) or pd.isna(n_group):
         return None
-    return float(count) * 100.0 / float(n_group)
+    count_value = _to_int(count)
+    denominator = _to_int(n_group)
+    if (
+        count_value is None
+        or denominator is None
+        or count_value < 0
+        or denominator <= 0
+        or count_value > denominator
+    ):
+        return None
+    return float(count_value) * 100.0 / float(denominator)
+
+
+def assess_percent_compatibility(
+    *,
+    count: object,
+    denominator: object,
+    reported_percent: object,
+    reported_decimals: object,
+    denominator_role: str,
+    weighting: str,
+    rounding_convention: str,
+) -> str:
+    """Compare a count-derived percentage under explicit denominator and rounding rules."""
+
+    count_value = _to_int(count)
+    denominator_value = _to_int(denominator)
+    decimals = _to_int(reported_decimals)
+    try:
+        reported = Decimal(str(reported_percent))
+    except (InvalidOperation, ValueError):
+        return "input_error"
+    if (
+        count_value is None
+        or denominator_value is None
+        or decimals is None
+        or not reported.is_finite()
+        or decimals < 0
+    ):
+        return "input_error"
+    if count_value < 0 or denominator_value <= 0 or count_value > denominator_value:
+        return "source_data_contradiction"
+    if denominator_role not in {"randomized", "observed_at_timepoint", "analyzed", "other"}:
+        return "indeterminate"
+    if weighting != "unweighted":
+        return "indeterminate"
+    rounding_modes = {
+        "nearest_half_up": ROUND_HALF_UP,
+        "nearest_half_even": ROUND_HALF_EVEN,
+        "truncate": ROUND_DOWN,
+    }
+    if rounding_convention not in rounding_modes:
+        return "indeterminate"
+    quantum = Decimal(1).scaleb(-decimals)
+    implied = (Decimal(count_value) * Decimal(100) / Decimal(denominator_value)).quantize(
+        quantum, rounding=rounding_modes[rounding_convention]
+    )
+    return "compatible" if implied == reported else "incompatible"
 
 
 def build_numeric_table(table1_long: pd.DataFrame) -> pd.DataFrame:
@@ -88,6 +151,16 @@ def build_numeric_table(table1_long: pd.DataFrame) -> pd.DataFrame:
         raise ValueError(f"Missing required columns for numeric integrity: {sorted(missing)}")
 
     categorical = table1_long[table1_long["var_type"] == "categorical_count_percent"].copy()
+    for column, default in (
+        ("raw_value", ""),
+        ("raw_count", ""),
+        ("reported_p_raw", ""),
+        ("reported_p_comparator", ""),
+        ("source_page", pd.NA),
+        ("source_locator", ""),
+    ):
+        if column not in categorical:
+            categorical[column] = default
     categorical = categorical.rename(columns={"value": "count", "percent": "reported_percent"})
     categorical["computed_percent"] = categorical.apply(
         lambda row: compute_percent_from_count(row["count"], row["n_group"]),
@@ -96,23 +169,78 @@ def build_numeric_table(table1_long: pd.DataFrame) -> pd.DataFrame:
     categorical["abs_percent_delta"] = (
         categorical["reported_percent"] - categorical["computed_percent"]
     ).abs()
-    categorical["flag_percent_delta_0_2"] = categorical["abs_percent_delta"] >= 0.2
+    categorical["legacy_abs_percent_delta"] = categorical["abs_percent_delta"]
+    categorical["legacy_flag_percent_delta_0_2"] = categorical["abs_percent_delta"] >= 0.2
+    if "reported_percent_raw" not in categorical:
+        categorical["reported_percent_raw"] = categorical["reported_percent"].map(
+            lambda value: "" if pd.isna(value) else str(value)
+        )
+    if "reported_percent_decimals" not in categorical:
+        categorical["reported_percent_decimals"] = categorical["reported_percent_raw"].map(
+            _digits_from_str
+        )
+    for column, default in (
+        ("denominator_role", "unknown"),
+        ("weighting", "unknown"),
+        ("rounding_convention", "unknown"),
+    ):
+        if column not in categorical:
+            categorical[column] = default
+    categorical["compatibility_status"] = categorical.apply(
+        lambda row: assess_percent_compatibility(
+            count=row["count"],
+            denominator=row["n_group"],
+            reported_percent=row["reported_percent_raw"],
+            reported_decimals=row["reported_percent_decimals"],
+            denominator_role=row["denominator_role"],
+            weighting=row["weighting"],
+            rounding_convention=row["rounding_convention"],
+        ),
+        axis=1,
+    )
+    categorical["input_status"] = categorical.apply(
+        lambda row: _count_input_status(row["count"], row["n_group"]), axis=1
+    )
     return categorical[
         [
             "trial_id",
             "variable",
             "level",
             "group",
+            "source_page",
+            "source_locator",
+            "raw_value",
+            "raw_count",
             "n_group",
             "count",
             "reported_percent",
             "computed_percent",
             "abs_percent_delta",
-            "flag_percent_delta_0_2",
+            "legacy_abs_percent_delta",
+            "legacy_flag_percent_delta_0_2",
+            "reported_percent_raw",
+            "reported_percent_decimals",
+            "denominator_role",
+            "weighting",
+            "rounding_convention",
+            "compatibility_status",
+            "input_status",
             "reported_p",
+            "reported_p_raw",
+            "reported_p_comparator",
             "decimals",
         ]
     ]
+
+
+def _count_input_status(count: object, denominator: object) -> str:
+    count_value = _to_int(count)
+    denominator_value = _to_int(denominator)
+    if count_value is None or denominator_value is None:
+        return "input_error"
+    if count_value < 0 or denominator_value <= 0 or count_value > denominator_value:
+        return "source_data_contradiction"
+    return "ok"
 
 
 def build_scrutiny_input(table1_long: pd.DataFrame) -> pd.DataFrame:
@@ -126,11 +254,19 @@ def build_scrutiny_input(table1_long: pd.DataFrame) -> pd.DataFrame:
     continuous = table1_long[table1_long["var_type"] == "continuous_median_range"].copy()
     continuous["item_label"] = continuous["variable"] + " [" + continuous["group"] + "]"
     continuous = continuous.rename(columns={"n_group": "n", "value": "x"})
-    continuous["x"] = pd.to_numeric(continuous["x"], errors="coerce")
+    if "raw_statistic_value" in continuous:
+        continuous["x"] = continuous["raw_statistic_value"].astype("string")
+    else:
+        continuous["x"] = pd.to_numeric(continuous["x"], errors="coerce")
     continuous["n"] = pd.to_numeric(continuous["n"], errors="coerce").astype("Int64")
-    continuous["decimals"] = (
-        pd.to_numeric(continuous["decimals"], errors="coerce").fillna(0).astype(int)
-    )
+    if "reported_decimals" in continuous:
+        continuous["decimals"] = pd.to_numeric(
+            continuous["reported_decimals"], errors="coerce"
+        ).astype("Int64")
+    else:
+        continuous["decimals"] = (
+            pd.to_numeric(continuous["decimals"], errors="coerce").fillna(0).astype(int)
+        )
     continuous["statistic_kind"] = "median"
     continuous["measurement_scale"] = continuous.get("measurement_scale", "unknown")
     continuous["raw_or_adjusted"] = continuous.get("raw_or_adjusted", "unknown")
@@ -140,7 +276,28 @@ def build_scrutiny_input(table1_long: pd.DataFrame) -> pd.DataFrame:
     continuous["transformation_status"] = continuous.get("transformation_status", "unknown")
     continuous["granularity_transformation"] = continuous.get("granularity_transformation", "")
     continuous["eligibility_evidence"] = continuous.get("eligibility_evidence", "")
-    return continuous[["trial_id", "item_label", "n", "x", "decimals", *SUMMARY_METADATA_COLUMNS]]
+    continuous["raw_value"] = continuous.get("raw_value", "")
+    continuous["source_page"] = continuous.get("source_page", pd.NA)
+    continuous["source_locator"] = continuous.get("source_locator", "")
+    continuous["reported_decimals"] = continuous.get("reported_decimals", continuous["decimals"])
+    continuous["reported_p_raw"] = continuous.get("reported_p_raw", "")
+    continuous["reported_p_comparator"] = continuous.get("reported_p_comparator", "")
+    return continuous[
+        [
+            "trial_id",
+            "item_label",
+            "n",
+            "x",
+            "decimals",
+            "raw_value",
+            "source_page",
+            "source_locator",
+            "reported_decimals",
+            "reported_p_raw",
+            "reported_p_comparator",
+            *SUMMARY_METADATA_COLUMNS,
+        ]
+    ]
 
 
 def build_statcheck_stub(table1_long: pd.DataFrame) -> pd.DataFrame:
@@ -151,10 +308,20 @@ def build_statcheck_stub(table1_long: pd.DataFrame) -> pd.DataFrame:
     if missing:
         raise ValueError(f"Missing required columns for statcheck input: {sorted(missing)}")
 
-    pvals = table1_long[["trial_id", "variable", "reported_p"]].dropna().copy()
+    columns = ["trial_id", "variable", "reported_p"]
+    columns.extend(
+        column for column in ("reported_p_raw", "reported_p_comparator") if column in table1_long
+    )
+    pvals = table1_long[columns].dropna(subset=["reported_p"]).copy()
     pvals = pvals.drop_duplicates()
     pvals["reported_p"] = pd.to_numeric(pvals["reported_p"], errors="coerce")
-    pvals["reported_p"] = pvals["reported_p"].clip(lower=0.0, upper=1.0)
+    pvals["input_status"] = pvals["reported_p"].map(
+        lambda value: "source_value_out_of_range" if value < 0 or value > 1 else "ok"
+    )
+    if "reported_p_raw" not in pvals:
+        pvals["reported_p_raw"] = pvals["reported_p"].map(str)
+    if "reported_p_comparator" not in pvals:
+        pvals["reported_p_comparator"] = "="
     return pvals.reset_index(drop=True)
 
 
@@ -162,7 +329,8 @@ def _to_float(value: object) -> float | None:
     if value is None or pd.isna(value):
         return None
     try:
-        return float(value)
+        numeric = float(value)
+        return numeric if math.isfinite(numeric) else None
     except (TypeError, ValueError):
         return None
 
@@ -171,23 +339,32 @@ def _to_int(value: object) -> int | None:
     numeric = _to_float(value)
     if numeric is None or not math.isfinite(numeric):
         return None
-    return int(round(numeric))
+    if not numeric.is_integer():
+        return None
+    return int(numeric)
 
 
-def _digits_from_str(value: str) -> int:
+def _digits_from_str(value: str) -> int | None:
+    if not isinstance(value, str):
+        return None
+    if not re.fullmatch(r"[+-]?\d+(?:\.\d*)?", value.strip()):
+        return None
     if "." not in value:
         return 0
-    return len(value.split(".", maxsplit=1)[1].rstrip("0"))
+    return len(value.strip().split(".", maxsplit=1)[1])
 
 
 def _format_numeric_string(value: object, digits: object) -> str:
-    numeric = _to_float(value)
-    if numeric is None:
+    if value is None or pd.isna(value):
         return ""
-    digits_int = _to_int(digits)
-    if digits_int is None:
-        return str(numeric)
-    return f"{numeric:.{max(digits_int, 0)}f}"
+    raw = str(value).strip()
+    if not re.fullmatch(r"[+-]?\d+(?:\.\d*)?", raw):
+        return ""
+    declared_digits = _to_int(digits)
+    observed_digits = _digits_from_str(raw)
+    if declared_digits is not None and declared_digits != observed_digits:
+        return ""
+    return raw
 
 
 def _parse_item_label(item_label: str) -> tuple[str, str]:
@@ -215,6 +392,7 @@ def _eligibility_reasons(
     *,
     x_str: str,
     sd_str: str,
+    digits_x: int | None,
     n_value: int | None,
     digits_sd: int | None,
     metadata: dict[str, str],
@@ -224,6 +402,8 @@ def _eligibility_reasons(
     base_reason = ""
     if not x_str or n_value is None or n_value <= 0:
         base_reason = "missing_x_or_valid_n"
+    elif digits_x is None or digits_x != _digits_from_str(x_str):
+        base_reason = "x_precision_unknown_or_inconsistent"
     elif metadata["statistic_kind"] != "arithmetic_mean":
         base_reason = "statistic_not_arithmetic_mean"
     elif metadata["measurement_scale"] not in {"integer_valued", "bernoulli"}:
@@ -254,7 +434,9 @@ def _eligibility_reasons(
     debit_reason = base_reason
     if metadata["measurement_scale"] != "bernoulli":
         debit_reason = "measurement_scale_not_bernoulli"
-    if not grim_reason and (not sd_str or digits_sd is None or digits_sd < 0):
+    if not grim_reason and (
+        not sd_str or digits_sd is None or digits_sd != _digits_from_str(sd_str)
+    ):
         grimmer_reason = "missing_sd_or_precision"
         debit_reason = "missing_sd_or_precision"
     return {
@@ -294,6 +476,7 @@ def build_scrutiny_cases(
             reasons = _eligibility_reasons(
                 x_str=x_str,
                 sd_str=sd_str,
+                digits_x=digits_x,
                 n_value=n_value,
                 digits_sd=digits_sd,
                 metadata=metadata,
@@ -307,7 +490,14 @@ def build_scrutiny_cases(
                     "trial_id": str(row["trial_id"]),
                     "source_pdf": source_pdf,
                     "source_table": "table1_continuous_median_range",
-                    "source_page": None,
+                    "source_page": _to_int(row.get("source_page")),
+                    "source_locator": str(row.get("source_locator", "")),
+                    "raw_value": str(row.get("raw_value", "")),
+                    "reported_decimals": _to_int(row.get("reported_decimals"))
+                    if not pd.isna(row.get("reported_decimals", pd.NA))
+                    else digits_x,
+                    "reported_p_raw": str(row.get("reported_p_raw", "")),
+                    "reported_p_comparator": str(row.get("reported_p_comparator", "")),
                     "variable": variable,
                     "level": "all",
                     "group": group or "unknown_group",
@@ -353,9 +543,9 @@ def build_scrutiny_cases(
             sd_str = str(row["sd_str"]) if not pd.isna(row["sd_str"]) else ""
             digits_x = _to_int(row["digits_x"])
             digits_sd = _to_int(row["digits_sd"])
-            if digits_x is None and x_str:
+            if "digits_x" not in row.index and x_str:
                 digits_x = _digits_from_str(x_str)
-            if digits_sd is None and sd_str:
+            if "digits_sd" not in row.index and sd_str:
                 digits_sd = _digits_from_str(sd_str)
             n_value = _to_int(row["n"])
             metadata = {column: _metadata_value(row, column) for column in SUMMARY_METADATA_COLUMNS}
@@ -363,6 +553,7 @@ def build_scrutiny_cases(
             reasons = _eligibility_reasons(
                 x_str=x_str,
                 sd_str=sd_str,
+                digits_x=digits_x,
                 n_value=n_value,
                 digits_sd=digits_sd,
                 metadata=metadata,
@@ -377,6 +568,13 @@ def build_scrutiny_cases(
                     "source_pdf": str(row["source_pdf"]),
                     "source_table": str(row["source_table"]),
                     "source_page": _to_int(row["source_page"]),
+                    "source_locator": str(row.get("source_locator", "")),
+                    "raw_value": str(row.get("raw_value", "")),
+                    "reported_decimals": _to_int(row.get("reported_decimals"))
+                    if not pd.isna(row.get("reported_decimals", pd.NA))
+                    else digits_x,
+                    "reported_p_raw": str(row.get("reported_p_raw", "")),
+                    "reported_p_comparator": str(row.get("reported_p_comparator", "")),
                     "variable": str(row["variable"]),
                     "level": str(row["level"]) if not pd.isna(row["level"]) else "all",
                     "group": str(row["group"]),
@@ -417,6 +615,11 @@ def build_scrutiny_grim_input(scrutiny_cases: pd.DataFrame) -> pd.DataFrame:
         "source_pdf",
         "source_table",
         "source_page",
+        "source_locator",
+        "raw_value",
+        "reported_decimals",
+        "reported_p_raw",
+        "reported_p_comparator",
         "variable",
         "level",
         "group",
@@ -449,6 +652,11 @@ def build_scrutiny_grimmer_input(scrutiny_cases: pd.DataFrame) -> pd.DataFrame:
         "source_pdf",
         "source_table",
         "source_page",
+        "source_locator",
+        "raw_value",
+        "reported_decimals",
+        "reported_p_raw",
+        "reported_p_comparator",
         "variable",
         "level",
         "group",
@@ -483,6 +691,11 @@ def build_scrutiny_debit_input(scrutiny_cases: pd.DataFrame) -> pd.DataFrame:
         "source_pdf",
         "source_table",
         "source_page",
+        "source_locator",
+        "raw_value",
+        "reported_decimals",
+        "reported_p_raw",
+        "reported_p_comparator",
         "variable",
         "level",
         "group",
@@ -611,7 +824,9 @@ def summarize_numeric_flags(numeric_table: pd.DataFrame) -> dict[str, float | in
 
     return {
         "n_rows": int(len(numeric_table)),
-        "n_rounding_flags": int(numeric_table["flag_percent_delta_0_2"].sum()),
+        "n_rounding_flags": int((numeric_table["compatibility_status"] == "incompatible").sum())
+        if "compatibility_status" in numeric_table
+        else 0,
         "median_abs_percent_delta": float(numeric_table["abs_percent_delta"].median()),
         "max_abs_percent_delta": float(numeric_table["abs_percent_delta"].max()),
         "n_reported_p": int(numeric_table["reported_p"].notna().sum()),

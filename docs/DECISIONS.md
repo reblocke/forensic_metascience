@@ -12,6 +12,18 @@
 - **Output impact:** Affected generated artifacts are `scrutiny_input.csv`, `scrutiny_cases.csv`, and method-specific `scrutiny_{grim,grimmer,debit}_input.csv`; each case now includes `numeric_eligibility_v2` and per-method eligibility reasons. Historical reports and raw extraction records are unchanged.
 - **Verification evidence:** Failing regressions were recorded before the fix. `PYTHONPATH=src .venv/bin/python -m pytest -q` passed (41 tests); `ruff check .` and `ruff format . --check` passed; R script syntax parsing passed. The direct R eligibility-boundary regression passed. R 4.6.0 and `readr`/`dplyr` were available; `scrutiny` was not installed, so package-native method execution was not tested.
 
+## 2026-09-25: Preserve numeric source text and require denominator context
+- **Date:** 2026-09-25
+- **Decision:** Advance numeric methods to `numeric_eligibility_precision_v3`. Preserve source cells, raw statistic/count/percentage strings, printed decimals, P-value text/comparator, and source locators through Python and R CSV boundaries. Reject nonfinite or noninteger n/count inputs instead of rounding. Percentage compatibility requires an explicit denominator role, unweighted data, and one of the implemented rounding conventions (`nearest_half_up`, `nearest_half_even`, or `truncate`); otherwise report `indeterminate`.
+- **Context:** Earlier numeric I/O stripped trailing zeros, rounded malformed n/count values, clipped P values, and used a fixed percentage-difference threshold as a finding.
+- **Options considered:** Continue applying a tolerance to parsed floats; or retain the printed representation and compare only when data and reporting conventions are established.
+- **Why this choice:** The source alone often does not say whether a table denominator is randomized, observed at a time point, or analyzed, and may omit its rounding convention. Those cases cannot support a compatibility verdict.
+- **Consequences / follow-ups:** `abs_percent_delta` remains only as descriptive legacy metadata; the old `0.2` flag is retained under a legacy name and is not used as a finding. Existing raw inputs and stored reports remain unchanged. Current extraction defaults leave denominator role and rounding convention unknown, so the existing public trial outputs are indeterminate until source evidence explicitly resolves them.
+- **Methods/packages affected:** `randomization.py` Table 1 parsing; Python numeric builders; R numeric CSV readers and method eligibility validation.
+- **Assumptions locked in:** Only explicitly supported integer counts and positive integer denominators reach numeric method builders. `P<...` is stored as its displayed threshold plus the `<` comparator; no inequality is rewritten as equality in source records. Scientific notation in method-bound summary text is unsupported.
+- **Output impact:** New generated extraction/summary records carry `raw_value`, `raw_count`, `raw_statistic_value`, `reported_decimals`, `reported_percent_raw`, `reported_p_raw`, `reported_p_comparator`, `source_locator`, `denominator_role`, `rounding_convention`, `compatibility_status`, and `input_status`. Method inputs carry the raw provenance fields and use `numeric_eligibility_precision_v3`. Historical CSVs and reports are not rewritten.
+- **Verification evidence:** `PYTHONPATH=src .venv/bin/python -m pytest -q` passed (46 collected); `ruff check .`, `ruff format . --check`, and R syntax parsing passed. Python→readr→Python round-trip retained `1.20` versus `1.2`, and R boundary tests rejected noninteger n and mismatched printed precision. R package `scrutiny` remains unavailable; package-native methods were not run.
+
 Record decisions that affect reproducibility and interpretation.
 
 ## Template
