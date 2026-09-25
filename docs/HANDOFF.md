@@ -21,13 +21,14 @@ analysis or repository output regeneration was run.
 ### Latest verification receipts
 
 - `PYTHONPATH=src uv run pytest -q -o addopts='' -ra` — 114 passed, 2 skipped
-  in 34.08s. The two skips are the pinned-package tests in the Python-only lane;
+  in 67.28s on the final committed head. The two skips are the pinned-package tests in the Python-only lane;
   the required native lane below runs them without skips.
-- `FORENSICS_REQUIRE_R_INTEGRATION=1 R_LIBS_USER=/tmp/fm-inspect-r.locked-library PYTHONPATH=src uv run pytest -q -o addopts='' -ra tests/test_r_integration.py` — 3 passed in 3.71s. Native receipts showed positive evaluated coverage for GRIM, GRIMMER, DEBIT, duplicate, rounding-bias, statcheck, and seeded simdistr at the pinned versions.
-- `PYTHONPATH=src uv run pytest -q -o addopts='' tests/test_inspect_sr_reporting.py tests/test_pipeline.py::test_randomization_report_renders_only_current_run_inputs -ra` — 7 passed in 19.38s, including HTML and PDF renders.
+- `FORENSICS_REQUIRE_R_INTEGRATION=1 R_LIBS_USER=/tmp/fm-inspect-r.locked-library PYTHONPATH=src uv run pytest -q -o addopts='' -ra tests/test_r_integration.py` — 3 passed in 5.58s on the final committed head. Native receipts showed positive evaluated coverage for GRIM, GRIMMER, DEBIT, duplicate, rounding-bias, statcheck, and seeded simdistr at the pinned versions.
+- `PYTHONPATH=src uv run pytest -q -o addopts='' tests/test_inspect_sr_reporting.py tests/test_pipeline.py::test_randomization_report_renders_only_current_run_inputs -ra` — 7 passed in 43.72s on the final committed head, including HTML and PDF renders.
 - `uv run ruff check .` and `uv run ruff format . --check` — passed (54 files already formatted).
 - `bash -n scripts/run_pipeline.sh scripts/run_manuscript_review.sh scripts/install_inspect_sr_r_methods.sh`; R parsing of the numeric, randomization, meta, and receipt scripts; official guidance `SHA256SUMS`; method lock JSON; and `git diff --check` — passed.
 - `R_LIBS_USER=/tmp/fm-inspect-r.locked-library bash scripts/install_inspect_sr_r_methods.sh` — verified and installed `scrutiny 0.6.2`, `statcheck 1.5.0`, and `simdistr 1.0.1`; R 4.6.0 session details were printed. The package archive hashes are recorded in `config/inspect_sr/r_method_packages.lock.json`.
+- `uv sync --locked --dev` — passed; workflow YAML parsed successfully.
 
 Remaining release follow-up: run the three configured GitHub Actions jobs on the committed head. The Python-only job intentionally does not contain native method packages; its skips cannot substitute for the required native job. Transitive R imports are installed from CRAN during test-environment preparation and are recorded in `sessionInfo()`, not separately locked. No source-paper analysis or report-data regeneration was performed.
 
