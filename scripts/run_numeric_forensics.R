@@ -308,14 +308,6 @@ empty_seq_audit <- function() {
   )
 }
 
-format_numeric_with_decimals <- function(x, decimals) {
-  if (is.na(x) || is.na(decimals)) {
-    return(NA_character_)
-  }
-  digits <- max(as.integer(decimals), 0L)
-  formatC(as.numeric(x), format = "f", digits = digits)
-}
-
 as_logical_count <- function(x) {
   if (length(x) == 0) {
     return(0L)
@@ -343,25 +335,11 @@ run_scrutiny_grim <- function(scrutiny_grim_input) {
 
   prepared <- scrutiny_grim_input %>%
     mutate(
-      x = if ("digits_x" %in% names(scrutiny_grim_input)) {
-        mapply(
-          format_numeric_with_decimals,
-          x = x,
-          decimals = digits_x,
-          USE.NAMES = FALSE
-        )
-      } else {
-        as.character(x)
-      },
-      x = ifelse(
-        is.na(x) | x == "",
-        NA_character_,
-        x
-      ),
+      x = suppressWarnings(as.numeric(x)),
+      digits_x = as.integer(digits_x),
       n = as.numeric(n)
     ) %>%
-    filter(!is.na(x), !is.na(n), n > 0) %>%
-    select(x, n, case_id, source_unit)
+    filter(is.finite(x), is.finite(digits_x), !is.na(n), n > 0)
 
   if (nrow(prepared) == 0) {
     return(list(
@@ -374,14 +352,35 @@ run_scrutiny_grim <- function(scrutiny_grim_input) {
 
   tryCatch(
     {
-      grim_out <- scrutiny::grim_map(
-        data = as_tibble(prepared),
-        x = "x",
-        n = "n",
-        percent = FALSE,
-        extra = Inf
+      groups <- group_split(group_by(prepared, digits_x), .keep = TRUE)
+      grim_out <- bind_rows(lapply(groups, function(group) {
+        mapped <- scrutiny::grim_map(
+          data = group %>% select(x, n),
+          digits_x = group$digits_x[[1]],
+          percent = FALSE
+        )
+        bind_cols(group %>% select(case_id, source_unit), as_tibble(mapped))
+      }))
+      group_audits <- bind_rows(lapply(groups, function(group) {
+        mapped <- scrutiny::grim_map(
+          data = group %>% select(x, n),
+          digits_x = group$digits_x[[1]],
+          percent = FALSE
+        )
+        scrutiny::audit(mapped)
+      }))
+      total_cases <- sum(group_audits$all_cases)
+      mean_probability <- weighted.mean(group_audits$mean_grim_prob, group_audits$all_cases)
+      incons_rate <- sum(group_audits$incons_cases) / total_cases
+      audit_out <- tibble(
+        incons_cases = sum(group_audits$incons_cases),
+        all_cases = total_cases,
+        incons_rate = incons_rate,
+        mean_grim_prob = mean_probability,
+        incons_to_prob = if (mean_probability > 0) incons_rate / mean_probability else NA_real_,
+        testable_cases = sum(group_audits$testable_cases),
+        testable_rate = sum(group_audits$testable_cases) / total_cases
       )
-      audit_out <- scrutiny::audit(grim_out)
       list(
         executed = TRUE,
         raw = as_tibble(grim_out),
@@ -420,13 +419,14 @@ run_scrutiny_grimmer <- function(scrutiny_grimmer_input) {
 
   prepared <- scrutiny_grimmer_input %>%
     mutate(
-      x = as.character(x),
-      sd = as.character(sd),
-      x = ifelse(is.na(x) | x == "", NA_character_, x),
-      sd = ifelse(is.na(sd) | sd == "", NA_character_, sd),
+      x = suppressWarnings(as.numeric(x)),
+      sd = suppressWarnings(as.numeric(sd)),
+      digits_x = as.integer(digits_x),
+      digits_sd = as.integer(digits_sd),
       n = as.numeric(n)
     ) %>%
-    filter(!is.na(x), !is.na(sd), !is.na(n), n > 0)
+    filter(is.finite(x), is.finite(sd), is.finite(digits_x), is.finite(digits_sd),
+      !is.na(n), n > 0)
 
   if (nrow(prepared) == 0) {
     return(list(
@@ -439,13 +439,35 @@ run_scrutiny_grimmer <- function(scrutiny_grimmer_input) {
 
   tryCatch(
     {
-      grimmer_out <- suppressWarnings(
-        scrutiny::grimmer_map(prepared %>% select(x, sd, n))
-      )
-      audit_out <- suppressWarnings(scrutiny::audit(grimmer_out))
-      mapped_out <- bind_cols(
-        prepared %>% select(case_id, source_unit, trial_id, variable, level, group),
-        as_tibble(grimmer_out)
+      groups <- group_split(group_by(prepared, digits_x, digits_sd), .keep = TRUE)
+      mapped_out <- bind_rows(lapply(groups, function(group) {
+        grimmer_out <- suppressWarnings(scrutiny::grimmer_map(
+          group %>% select(x, sd, n),
+          digits_x = group$digits_x[[1]],
+          digits_sd = group$digits_sd[[1]]
+        ))
+        bind_cols(
+          group %>% select(case_id, source_unit, trial_id, variable, level, group),
+          as_tibble(grimmer_out)
+        )
+      }))
+      group_audits <- bind_rows(lapply(groups, function(group) {
+        grimmer_out <- suppressWarnings(scrutiny::grimmer_map(
+          group %>% select(x, sd, n),
+          digits_x = group$digits_x[[1]],
+          digits_sd = group$digits_sd[[1]]
+        ))
+        suppressWarnings(scrutiny::audit(grimmer_out))
+      }))
+      total_cases <- sum(group_audits$all_cases)
+      audit_out <- tibble(
+        incons_cases = sum(group_audits$incons_cases),
+        all_cases = total_cases,
+        incons_rate = sum(group_audits$incons_cases) / total_cases,
+        fail_grim = sum(group_audits$fail_grim),
+        fail_test1 = sum(group_audits$fail_test1),
+        fail_test2 = sum(group_audits$fail_test2),
+        fail_test3 = sum(group_audits$fail_test3)
       )
       list(
         executed = TRUE,
@@ -487,14 +509,14 @@ run_scrutiny_debit <- function(scrutiny_debit_input) {
 
   prepared <- scrutiny_debit_input %>%
     mutate(
-      x = as.character(x),
-      sd = as.character(sd),
-      x = ifelse(is.na(x) | x == "", NA_character_, x),
-      sd = ifelse(is.na(sd) | sd == "", NA_character_, sd),
+      x = suppressWarnings(as.numeric(x)),
+      sd = suppressWarnings(as.numeric(sd)),
+      digits_x = as.integer(digits_x),
+      digits_sd = as.integer(digits_sd),
       n = as.numeric(n)
     ) %>%
-    filter(!is.na(x), !is.na(sd), !is.na(n), n > 0) %>%
-    select(x, sd, n, case_id, source_unit)
+    filter(is.finite(x), is.finite(sd), is.finite(digits_x), is.finite(digits_sd),
+      !is.na(n), n > 0)
 
   if (nrow(prepared) == 0) {
     return(list(
@@ -507,8 +529,32 @@ run_scrutiny_debit <- function(scrutiny_debit_input) {
 
   tryCatch(
     {
-      debit_out <- scrutiny::debit_map(prepared)
-      audit_out <- scrutiny::audit(debit_out)
+      groups <- group_split(group_by(prepared, digits_x, digits_sd), .keep = TRUE)
+      debit_out <- bind_rows(lapply(groups, function(group) {
+        mapped <- scrutiny::debit_map(
+          group %>% select(x, sd, n),
+          digits_x = group$digits_x[[1]],
+          digits_sd = group$digits_sd[[1]]
+        )
+        bind_cols(group %>% select(case_id, source_unit), as_tibble(mapped))
+      }))
+      group_audits <- bind_rows(lapply(groups, function(group) {
+        mapped <- scrutiny::debit_map(
+          group %>% select(x, sd, n),
+          digits_x = group$digits_x[[1]],
+          digits_sd = group$digits_sd[[1]]
+        )
+        scrutiny::audit(mapped)
+      }))
+      total_cases <- sum(group_audits$all_cases)
+      audit_out <- tibble(
+        incons_cases = sum(group_audits$incons_cases),
+        all_cases = total_cases,
+        incons_rate = sum(group_audits$incons_cases) / total_cases,
+        mean_x = mean(prepared$x),
+        mean_sd = mean(prepared$sd),
+        distinct_n = n_distinct(prepared$n)
+      )
       list(
         executed = TRUE,
         raw = as_tibble(debit_out),
@@ -1169,6 +1215,7 @@ main <- function() {
     receipt("statcheck", "statcheck", "report_text", statcheck_input,
       if (nzchar(trimws(statcheck_text))) 1L else 0L, statcheck_run,
       basename(statcheck_raw_path), report_text_evaluated = TRUE,
+      input_n = if (nzchar(trimws(statcheck_text))) 1L else 0L,
       eval_override = if (statcheck_run$executed) 1L else NULL,
       flag_override = if (statcheck_run$executed && nrow(statcheck_run$raw) > 0L &&
         "error" %in% names(statcheck_run$raw)) as.integer(any(statcheck_run$raw$error, na.rm = TRUE)) else NULL),

@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  python-fast:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,10 +18,66 @@ jobs:
           python -m pip install --upgrade pip
           pip install uv
       - name: Install deps
-        run: uv sync --dev
+        run: uv sync --locked --dev
       - name: Lint
         run: uv run ruff check .
       - name: Format check
         run: uv run ruff format . --check
       - name: Tests
         run: uv run pytest -q
+
+  native-r:
+    runs-on: ubuntu-latest
+    env:
+      R_LIBS_USER: ${{ runner.temp }}/inspect-sr-r-library
+      FORENSICS_REQUIRE_R_INTEGRATION: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: "4.6.0"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        run: |
+          python -m pip install --upgrade pip
+          pip install uv
+      - name: Install Python test environment
+        run: uv sync --locked --dev
+      - name: Install hash-verified method packages in isolated R library
+        run: bash scripts/install_inspect_sr_r_methods.sh
+      - name: Native Python to R method integration
+        run: uv run pytest -q tests/test_r_integration.py
+
+  report-review:
+    runs-on: ubuntu-latest
+    env:
+      R_LIBS_USER: ${{ runner.temp }}/inspect-sr-report-r-library
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: "4.6.0"
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: "1.9.37"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        run: |
+          python -m pip install --upgrade pip
+          pip install uv
+      - name: Install Python test environment
+        run: uv sync --locked --dev
+      - name: Prepare Quarto report engine
+        run: |
+          mkdir -p "$R_LIBS_USER"
+          Rscript -e 'install.packages(c("jsonlite", "knitr"), lib=Sys.getenv("R_LIBS_USER"), repos="https://cran.rstudio.com", dependencies=c("Depends", "Imports"))'
+          quarto install tinytex
+      - name: Current-run HTML/PDF and private-review report integration
+        run: |
+          uv run pytest -q \
+            tests/test_inspect_sr_reporting.py \
+            tests/test_pipeline.py::test_randomization_report_renders_only_current_run_inputs
