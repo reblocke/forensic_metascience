@@ -727,7 +727,7 @@ def test_registration_claims_and_registry_id_extraction() -> None:
     ]
     protocol_pages = [
         "Section 3.2 randomization in 1:1 ratio. Registration ISRCTN12345678.",
-        "Open-\u00adlabel trial with blinded endpoint review.",
+        "Open-\u00adlabel trial with blinded endpoint review. Outcome assessors were blinded.",
     ]
     ids = extract_registry_ids(report_pages[0])
     claims = derive_registration_claims(
@@ -745,8 +745,16 @@ def test_registration_claims_and_registry_id_extraction() -> None:
     assert registry_row["match_status"]
     randomization_row = claims[claims["claim"] == "randomization_phrase"].iloc[0]
     assert randomization_row["match_status"]
-    blinding_row = claims[claims["claim"] == "blinding_phrase"].iloc[0]
-    assert blinding_row["match_status"]
+    participant_masking = claims[
+        (claims["claim"] == "blinding_role") & (claims["role"] == "participants")
+    ].iloc[0]
+    assessor_masking = claims[
+        (claims["claim"] == "blinding_role") & (claims["role"] == "outcome_assessors")
+    ].iloc[0]
+    assert participant_masking["report_value"] == "not_blinded"
+    assert participant_masking["assessment_status"] == "indeterminate"
+    assert assessor_masking["protocol_value"] == "blinded"
+    assert assessor_masking["assessment_status"] == "indeterminate"
 
 
 def test_visual_forensics_caption_checks() -> None:

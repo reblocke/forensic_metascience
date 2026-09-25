@@ -222,3 +222,31 @@ uv run pytest -q
 bash scripts/run_pipeline.sh --forensics transparency
 bash scripts/run_pipeline.sh --forensics all
 ```
+
+## 2026-09-25 INSPECT-SR packet progress: FM-07
+
+### Completed in this ticket
+- Added v2 source claim records that carry the matched statement, page, explicit negation, population, and masking role through expanded claims. Allocation ratios now require nearby allocation/randomization context, so a time such as `12:30` is not extracted as an allocation ratio.
+- Kept treatment, participant, care-provider, and outcome-assessor masking claims separate. Unmentioned or ambiguous evidence remains indeterminate.
+- Added exact-byte SHA-256 and source-version status to current-registry fetch metadata; retain the exact bytes in `registration_registry_current_raw.json` alongside normalized JSON. Local JSON is explicitly labeled with unverified upstream version.
+- Distinguished documented HTTP 404 from fetch failure and changed direct extraction to require explicit network opt-in.
+- Normalized first-submitted, first-posted, registered-start/type, and actual recruitment-start dates separately. Prospective timing, the 365-day results-posting heuristic, and publication linkage are reported as metadata screens, never mismatch judgments.
+- Separated history status from detected change events. Missing, malformed, undated, unchanged, and interval-overlapping sources do not generate synthetic changes. Receipts include source hash, date counts, chronology, detected events, and unknown completeness.
+- Changed mismatch flags to three-state values; only `match`/`mismatch` contribute to the assessed denominator. Updated `notebooks/lungtime_registration_audit.qmd` to explain and display the v2 evidence and status fields.
+- Updated tests in `tests/test_clinicaltrials_registry.py`, `tests/test_registration_forensics.py`, and `tests/test_forensics_categories.py`.
+
+### Verification receipts
+- `PYTHONPATH=src .venv/bin/python -m pytest -q` — passed (full suite).
+- `.venv/bin/ruff check .` — passed.
+- `.venv/bin/ruff format --check .` — passed (41 files already formatted at last check).
+- `git diff --check` — passed.
+- `Rscript -e 'invisible(parse(file="scripts/run_registration_forensics.R"))'` — passed.
+- Synthetic R runner integration — passed: assessed denominator 2, mismatch count 1, unassessed mismatch flag remained NA; screen and history statuses survived into the summary.
+- Synthetic Quarto report render — HTML and PDF both passed using temporary `fm07_fixture` data, removed after rendering. The initial HTML invocation used an unsupported `--output-file` option; retry with `--output` passed.
+- `bash -n scripts/run_pipeline.sh` and Python `py_compile` for changed helpers — passed.
+- No live registry request or source-paper analysis was run. HTTP 404 coverage uses a mocked transport. No dependencies were added.
+
+### Open gates and next work
+- FM-07 is complete and committed after final verification.
+- FM-06 still has an open seeded `simdistr` numerical-reproducibility gate because `simdistr` is unavailable locally; no installation/network access was attempted. The API gate itself safely reports the dependency as missing.
+- Continue with FM-08 next, following the packet dependency order. Do not call the packet integrated until FM-12 and native R/report verification are complete.
