@@ -160,7 +160,9 @@ render_study_report() {
   local report_dir="$3"
   local output_name="$4"
 
-  FORENSICS_STUDY_ID="$STUDY_ID" FORENSICS_STUDY_TITLE="$STUDY_TITLE" quarto render "$notebook_path" \
+  FORENSICS_STUDY_ID="$STUDY_ID" FORENSICS_STUDY_TITLE="$STUDY_TITLE" \
+    FORENSICS_REPORTS_ROOT="$REPORTS_ROOT" FORENSICS_PROCESSED_ROOT="$PROCESSED_ROOT" \
+    quarto render "$notebook_path" \
     --to pdf \
     --output "$output_name" \
     --output-dir "$report_dir"
@@ -358,8 +360,13 @@ run_randomization_category() {
     --m 10000 \
     --plot false
 
-  stage_complete randomization_methods "$RANDOMIZATION_REPORT_DIR/row_level_results.csv" \
-    "$RANDOMIZATION_REPORT_DIR/pooled_pvalues.csv"
+  stage_complete randomization_methods "$RANDOMIZATION_REPORT_DIR/row_level_results_v2.csv" \
+    "$RANDOMIZATION_REPORT_DIR/reported_test_records_v1.csv" \
+    "$RANDOMIZATION_REPORT_DIR/pooled_descriptive_v2.csv" \
+    "$RANDOMIZATION_REPORT_DIR/allocation_arithmetic_v1.csv" \
+    "$RANDOMIZATION_REPORT_DIR/randomization_run_receipt_v1.csv" \
+    "$RANDOMIZATION_REPORT_DIR/simdistr_variable_pvalues_v1.csv" \
+    "$RANDOMIZATION_REPORT_DIR/simdistr_combined_descriptive_v1.csv"
   if [ "$RENDER_REPORTS" = true ]; then
     stage_begin randomization_report
     render_study_report "notebooks/lungtime_randomization_audit.qmd" "randomization" \

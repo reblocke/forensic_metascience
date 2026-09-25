@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 import re
 from collections.abc import Iterable
@@ -207,6 +208,11 @@ def _build_continuous_row(
         "reported_p": reported_p,
         "reported_p_raw": reported_p_raw,
         "reported_p_comparator": reported_p_comparator,
+        "reported_p_source_locator": (
+            f"table1:page={source_page}:row={variable_order}:reported_p"
+            if reported_p is not None
+            else ""
+        ),
         "extract_confidence": "high",
         "source_page": source_page,
         "source_locator": f"table1:page={source_page}:row={variable_order}:group={group_key}",
@@ -256,6 +262,11 @@ def _build_categorical_row(
         "reported_p": reported_p,
         "reported_p_raw": reported_p_raw,
         "reported_p_comparator": reported_p_comparator,
+        "reported_p_source_locator": (
+            f"table1:page={source_page}:row={variable_order}:level={level_order}:reported_p"
+            if reported_p is not None
+            else ""
+        ),
         "extract_confidence": "high",
         "source_page": source_page,
         "source_locator": (
@@ -287,7 +298,7 @@ def _parse_standard_table1(
     current_variable: str | None = None
     variable_order = 0
     level_order = 0
-    variable_first_pval: dict[str, tuple[float, str, str]] = {}
+    variable_first_pval: dict[str, tuple[float, str, str, str]] = {}
 
     for raw_row in table[1:]:
         row = [clean_cell(value) for value in raw_row[:4]]
@@ -311,6 +322,7 @@ def _parse_standard_table1(
                     p_value,
                     p_value_raw,
                     p_value_comparator,
+                    f"table1:page={source_page}:row={variable_order}:reported_p",
                 )
             continue
 
@@ -324,6 +336,7 @@ def _parse_standard_table1(
                     p_value,
                     p_value_raw,
                     p_value_comparator,
+                    f"table1:page={source_page}:row={variable_order}:reported_p",
                 )
 
             rows.append(
@@ -376,6 +389,7 @@ def _parse_standard_table1(
                 p_value,
                 p_value_raw,
                 p_value_comparator,
+                f"table1:page={source_page}:row={variable_order}:level={level_order}:reported_p",
             )
 
         rows.append(
@@ -425,6 +439,7 @@ def _parse_standard_table1(
         dataframe.loc[missing_mask, "reported_p"] = first_p[0]
         dataframe.loc[missing_mask, "reported_p_raw"] = first_p[1]
         dataframe.loc[missing_mask, "reported_p_comparator"] = first_p[2]
+        dataframe.loc[missing_mask, "reported_p_source_locator"] = first_p[3]
 
     return dataframe
 
@@ -621,11 +636,82 @@ def _ordered_unique(values: Iterable[object]) -> list[object]:
     return ordered
 
 
+def _stable_test_id(prefix: str, values: Iterable[object]) -> str:
+    payload = "\x1f".join("" if pd.isna(value) else str(value) for value in values)
+    return f"{prefix}_{hashlib.sha256(payload.encode('utf-8')).hexdigest()[:20]}"
+
+
+def build_reported_tests(table1_long: pd.DataFrame) -> pd.DataFrame:
+    """Build one source-linked record per distinct reported variable test."""
+    columns = [
+        "schema_version",
+        "reported_test_id",
+        "trial_id",
+        "parent_variable",
+        "reported_p",
+        "reported_p_raw",
+        "reported_p_comparator",
+        "reported_test_scope",
+        "reported_test_method",
+        "reported_test_tail",
+        "analysis_population",
+        "source_page",
+        "source_locator",
+    ]
+    if table1_long.empty:
+        return pd.DataFrame(columns=columns)
+    reported = table1_long[table1_long["reported_p"].notna()].copy()
+    if reported.empty:
+        return pd.DataFrame(columns=columns)
+    key_columns = [
+        "trial_id",
+        "variable",
+        "reported_p",
+        "reported_p_raw",
+        "reported_p_comparator",
+        "reported_p_source_locator",
+    ]
+    rows: list[dict[str, object]] = []
+    for key, group in reported.groupby(key_columns, sort=True, dropna=False):
+        trial_id, variable, reported_p, raw, comparator, source_locator = key
+        rows.append(
+            {
+                "schema_version": "reported_test_v1",
+                "reported_test_id": _stable_test_id(
+                    "reported_test", (trial_id, variable, raw, comparator, source_locator)
+                ),
+                "trial_id": trial_id,
+                "parent_variable": variable,
+                "reported_p": reported_p,
+                "reported_p_raw": raw,
+                "reported_p_comparator": comparator,
+                "reported_test_scope": "unknown",
+                "reported_test_method": "unknown",
+                "reported_test_tail": "unknown",
+                "analysis_population": "unknown",
+                "source_page": group["source_page"].iloc[0],
+                "source_locator": source_locator,
+            }
+        )
+    return (
+        pd.DataFrame(rows, columns=columns)
+        .sort_values(["trial_id", "parent_variable", "reported_test_id"], kind="mergesort")
+        .reset_index(drop=True)
+    )
+
+
 def _group_pair(table1_long: pd.DataFrame) -> tuple[str, str]:
-    groups = _ordered_unique(table1_long["group"].dropna().tolist())
+    groups = sorted({str(value) for value in table1_long["group"].dropna().tolist()})
     if len(groups) != 2:
         raise ValueError(f"Expected exactly 2 trial arms, found {groups}")
     return str(groups[0]), str(groups[1])
+
+
+def _ordered_levels(variable_rows: pd.DataFrame) -> list[str]:
+    """Preserve source level order while ignoring incidental dataframe row order."""
+    levels = variable_rows[["level_order", "level"]].drop_duplicates()
+    levels = levels.sort_values(["level_order", "level"], kind="mergesort")
+    return levels["level"].astype(str).tolist()
 
 
 def _validated_count_and_denominator(count: object, denominator: object) -> tuple[int, int] | None:
@@ -656,11 +742,11 @@ def build_simdistr_input(table1_long: pd.DataFrame) -> pd.DataFrame:
     group_a, group_b = _group_pair(categorical)
 
     rows: list[dict[str, object]] = []
-    variable_ordered = _ordered_unique(categorical["variable"].tolist())
+    variable_ordered = sorted(set(categorical["variable"].tolist()))
 
     for variable_name in variable_ordered:
         variable_rows = categorical[categorical["variable"] == variable_name].copy()
-        levels = _ordered_unique(variable_rows["level"].tolist())
+        levels = _ordered_levels(variable_rows)
         selected_levels = levels[:1] if len(levels) == 2 else levels
 
         for level_name in selected_levels:
@@ -683,13 +769,6 @@ def build_simdistr_input(table1_long: pd.DataFrame) -> pd.DataFrame:
                 continue
             count_early, n_early = arm_a_counts
             count_late, n_late = arm_b_counts
-            p_chi2 = chi_square_2x2_pvalue(
-                a=count_early,
-                b=n_early - count_early,
-                c=count_late,
-                d=n_late - count_late,
-            )
-
             rows.append(
                 {
                     "1_category": variable_name,
@@ -700,7 +779,7 @@ def build_simdistr_input(table1_long: pd.DataFrame) -> pd.DataFrame:
                     "6_n_arm2_outcome": count_late,
                     "7_prop_arm1": count_early / n_early,
                     "8_prop_arm2": count_late / n_late,
-                    "9_observed_pval": p_chi2,
+                    "9_observed_pval": None,
                 }
             )
 
@@ -716,23 +795,31 @@ def build_csf_input(table1_long: pd.DataFrame) -> pd.DataFrame:
     group_a, group_b = _group_pair(categorical)
 
     rows: list[dict[str, object]] = []
-    variable_ordered = _ordered_unique(categorical["variable"].tolist())
+    reported_tests = build_reported_tests(categorical)
+    reported_ids = {
+        (row.trial_id, row.parent_variable, row.source_locator): row.reported_test_id
+        for row in reported_tests.itertuples(index=False)
+    }
+    variable_ordered = sorted(set(categorical["variable"].tolist()))
 
     for variable_name in variable_ordered:
         variable_rows = categorical[categorical["variable"] == variable_name].copy()
-        levels = _ordered_unique(variable_rows["level"].tolist())
+        levels = _ordered_levels(variable_rows)
         selected_levels = levels[:1] if len(levels) == 2 else levels
-        if variable_rows["reported_p"].notna().any():
-            reported_p = variable_rows["reported_p"].dropna().iloc[0]
-        else:
-            reported_p = None
-
         for level_name in selected_levels:
             level_rows = variable_rows[variable_rows["level"] == level_name]
             arm_a_row = level_rows[level_rows["group"] == group_a]
             arm_b_row = level_rows[level_rows["group"] == group_b]
             if arm_a_row.empty or arm_b_row.empty:
                 continue
+
+            reported_p_rows = level_rows[level_rows["reported_p"].notna()]
+            reported_test_id = None
+            if not reported_p_rows.empty:
+                reported_p_source = str(reported_p_rows.iloc[0]["reported_p_source_locator"])
+                reported_test_id = reported_ids.get(
+                    (str(reported_p_rows.iloc[0]["trial_id"]), variable_name, reported_p_source)
+                )
 
             arm_a_series = arm_a_row.iloc[0]
             arm_b_series = arm_b_row.iloc[0]
@@ -746,27 +833,80 @@ def build_csf_input(table1_long: pd.DataFrame) -> pd.DataFrame:
                 continue
             count_early, n_early = arm_a_counts
             count_late, n_late = arm_b_counts
-
             rows.append(
                 {
+                    "schema_version": "baseline_csf_v2",
                     "trial_id": arm_a_series["trial_id"],
+                    "parent_variable": variable_name,
                     "variable": variable_name,
                     "level": level_name,
+                    "reported_test_id": reported_test_id,
                     "n_arm1": n_early,
                     "n_arm2": n_late,
                     "count_arm1": count_early,
                     "count_arm2": count_late,
                     "prop_arm1": count_early / n_early,
                     "prop_arm2": count_late / n_late,
-                    "reported_p": reported_p,
-                    "row_chisq_p": chi_square_2x2_pvalue(
-                        a=count_early,
-                        b=n_early - count_early,
-                        c=count_late,
-                        d=n_late - count_late,
+                    "reported_percent_decimals_arm1": arm_a_series.get("reported_percent_decimals"),
+                    "reported_percent_decimals_arm2": arm_b_series.get("reported_percent_decimals"),
+                    "recalculated_test_method": "pearson_chi_square_2x2",
+                    "recalculated_test_tail": "two_sided",
+                    "analysis_population": "unknown",
+                    "comparison_status": (
+                        "not_comparable" if reported_test_id else "no_reported_test"
+                    ),
+                    "comparison_reason": (
+                        "reported test scope, method, tail, and population are unknown"
+                        if reported_test_id
+                        else "no reported variable test was extracted"
+                    ),
+                    "recalculated_test_id": _stable_test_id(
+                        "recalc_test",
+                        (
+                            arm_a_series["trial_id"],
+                            variable_name,
+                            level_name,
+                            n_early,
+                            n_late,
+                            count_early,
+                            count_late,
+                            arm_a_series.get("source_page"),
+                        ),
                     ),
                     "one_vs_rest": True,
                 }
             )
 
-    return pd.DataFrame(rows)
+    if not rows:
+        return pd.DataFrame(
+            columns=[
+                "schema_version",
+                "trial_id",
+                "parent_variable",
+                "variable",
+                "level",
+                "reported_test_id",
+                "n_arm1",
+                "n_arm2",
+                "count_arm1",
+                "count_arm2",
+                "prop_arm1",
+                "prop_arm2",
+                "reported_percent_decimals_arm1",
+                "reported_percent_decimals_arm2",
+                "recalculated_test_method",
+                "recalculated_test_tail",
+                "analysis_population",
+                "comparison_status",
+                "comparison_reason",
+                "recalculated_test_id",
+                "one_vs_rest",
+            ]
+        )
+    return (
+        pd.DataFrame(rows)
+        .sort_values(
+            ["trial_id", "parent_variable", "level", "recalculated_test_id"], kind="mergesort"
+        )
+        .reset_index(drop=True)
+    )
