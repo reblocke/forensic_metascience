@@ -95,6 +95,20 @@ native test environment recorded in the latest decision entry.
 - The audit commit `30b3fc2c9ba11b0a89e62f911043f2ca2ab5917a` is absent from the local object database. Work continues from clean current head `805cb282ed0f9f974f5d977592bbf95b419fd022`; no reset or fetch was performed.
 - The disposable baseline worktree passed 39 pytest tests, Ruff check, and Ruff format check using the existing local Python environment. Offline `uv run --frozen pytest -q` could not provision uncached `ruff==0.15.0`; network access is prohibited by the packet.
 
+## 2026-09-24 README-13 documentation check
+
+This check used default `main@805cb282ed0f9f974f5d977592bbf95b419fd022`
+and existing README PR #4 at `298c80c82ffc02738799adeb9aa1129ba63da4f1`
+in an isolated checkout. On 2026-09-24 MDT, `uv sync --locked` and
+`uv run --frozen pytest -q tests/test_pipeline.py` completed with one passing
+four-row fake-CSV test under CPython 3.14.4. The uv cache and Python installation
+directory were redirected to isolated scratch; no study source PDF, registry,
+private manuscript, R method, or Quarto report was opened or run. This checks
+the Python fixture path only. The former README's R 4.5.x testing statement
+has no retained runtime receipt here, and this documentation check did not
+qualify an R, Quarto, PDF, or optional-package environment. Source findings
+and status interpretation remain subject to the contracts below.
+
 ## Current state
 - Multi-category forensic scaffold is implemented and runnable through a single pipeline entrypoint.
 - A separate private manuscript-review path exists for nonrandomized prediction-validation reviews.
