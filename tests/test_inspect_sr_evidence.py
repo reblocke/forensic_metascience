@@ -13,6 +13,7 @@ from research_project.inspect_sr.manual_evidence import (
     validate_manual_evidence,
     validate_participant_flow_relation,
 )
+from research_project.inspect_sr.records import evidence_id
 
 
 def _receipt(
@@ -23,6 +24,7 @@ def _receipt(
     evaluated: int,
     failed: int,
     flagged: int | None,
+    input_evidence_ids: str = "evidence-1",
 ) -> dict:
     return {
         "schema_version": "method_receipt_v3",
@@ -32,7 +34,7 @@ def _receipt(
         "package_name": method_id,
         "package_version": "1",
         "unit_of_evaluation": "fixture_unit",
-        "input_evidence_ids": "evidence-1",
+        "input_evidence_ids": input_evidence_ids,
         "parameters": "fixture",
         "applicability": "eligible",
         "execution": execution,
@@ -44,6 +46,20 @@ def _receipt(
         "n_flagged": flagged,
         "output_reference": "raw.csv",
         "diagnostic": "fixture",
+    }
+
+
+def _source_evidence(
+    locator: str = "page=4;paragraph=2", raw_value: str = "reported result"
+) -> dict:
+    source_version = "sourcever-1"
+    return {
+        "evidence_id": evidence_id(source_version, locator, raw_value, "pdf_text", "fixture-v1"),
+        "source_version_id": source_version,
+        "locator": locator,
+        "raw_value": raw_value,
+        "extraction_method": "pdf_text",
+        "extraction_version": "fixture-v1",
     }
 
 
@@ -60,31 +76,41 @@ def test_all_checks_have_explicit_coverage_and_manual_evidence_routes() -> None:
 
 def test_candidate_mapping_requires_completed_or_partial_receipt_and_exact_evidence() -> None:
     result = {
+        "schema_version": "numeric_result_v2",
         "method_id": "statcheck",
         "run_id": "run-1",
         "result_id": "result-1",
-        "input_evidence_ids": ["evidence-1"],
+        "input_evidence_ids": [],
         "candidate_kind": "statistical_text_discrepancy",
         "source_locator": "page=4;paragraph=2",
         "details": "synthetic result",
     }
-    receipt = _receipt("statcheck", "run-1", "completed", 1, 1, 0, 0)
-    evidence = [{"evidence_id": "evidence-1", "source_version_id": "sourcever-1"}]
+    evidence_record = _source_evidence()
+    result["input_evidence_ids"] = [evidence_record["evidence_id"]]
+    receipt = _receipt(
+        "statcheck", "run-1", "completed", 1, 1, 0, 0, evidence_record["evidence_id"]
+    )
+    evidence = [evidence_record]
     candidates = map_candidate_result(result, [receipt], evidence)
     assert candidates
     assert candidates[0]["check_id"] == "4.9"
     assert candidates[0]["candidate_status"] == "candidate_only"
-    assert candidates[0]["evidence_ids"] == ["evidence-1"]
+    assert candidates[0]["evidence_ids"] == [evidence_record["evidence_id"]]
     assert "response" not in candidates[0]
     assert not map_candidate_result(result, [{**receipt, "execution": "failed"}], evidence)
     with pytest.raises(ValueError, match="method_receipt_v3"):
         map_candidate_result(result, [{**receipt, "schema_version": "method_receipt_v2"}], evidence)
     with pytest.raises(ValueError, match="evidence"):
         map_candidate_result(result, [receipt], [])
+    with pytest.raises(ValueError, match="content identity"):
+        map_candidate_result(result, [receipt], [{**evidence_record, "raw_value": "changed"}])
+    with pytest.raises(ValueError, match="numeric_result_v2"):
+        map_candidate_result({**result, "schema_version": "numeric_result_v1"}, [receipt], evidence)
 
 
 def test_caption_signal_cannot_complete_image_integrity_route() -> None:
     result = {
+        "schema_version": "numeric_result_v2",
         "method_id": "visual_caption_similarity",
         "result_id": "figure-pair-1",
         "run_id": "run-1",
@@ -120,6 +146,7 @@ def test_dossier_separates_missing_failed_ineligible_and_available_methods() -> 
 
 def test_candidate_mapping_never_uses_a_receipt_from_another_run() -> None:
     result = {
+        "schema_version": "numeric_result_v2",
         "method_id": "statcheck",
         "run_id": "run-b",
         "result_id": "result-1",
@@ -127,7 +154,23 @@ def test_candidate_mapping_never_uses_a_receipt_from_another_run() -> None:
         "source_locator": "page=1",
     }
     receipt = _receipt("statcheck", "run-a", "completed", 1, 1, 0, 0)
-    evidence = [{"evidence_id": "evidence-1", "source_version_id": "sourcever-1"}]
+    evidence = [_source_evidence("page=1")]
+    result["input_evidence_ids"] = [evidence[0]["evidence_id"]]
+    assert map_candidate_result(result, [receipt], evidence) == []
+
+
+def test_candidate_evidence_must_be_in_exact_receipt_input_set() -> None:
+    result = {
+        "schema_version": "numeric_result_v2",
+        "method_id": "statcheck",
+        "run_id": "run-1",
+        "result_id": "result-1",
+        "input_evidence_ids": ["evidence-2"],
+        "source_locator": "page=1",
+    }
+    receipt = _receipt("statcheck", "run-1", "completed", 1, 1, 0, 0)
+    evidence = [_source_evidence("page=1")]
+    result["input_evidence_ids"] = [evidence[0]["evidence_id"]]
     assert map_candidate_result(result, [receipt], evidence) == []
 
 

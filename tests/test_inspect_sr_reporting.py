@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -41,8 +42,15 @@ def _policy(some_primary: str = "include") -> dict:
 
 def _finalization(trial_id: str, *, overall: str = "some concerns") -> dict:
     assessment = create_assessment(trial_id, "1.1.2", "a" * 64)
-    return {
-        "schema_version": "inspect_sr_finalization_v1",
+    judgment_set = {
+        "domains": [
+            {"domain_id": str(i), "judgment": overall, "rationale": "Human decision."}
+            for i in range(1, 5)
+        ],
+        "overall": {"judgment": overall, "rationale": "Human synthesis decision."},
+    }
+    finalization = {
+        "schema_version": "inspect_sr_finalization_v2",
         "record_type": "human_finalization",
         "assessment_id": assessment["assessment_id"],
         "reviewer_submission_ids": ["submission-a", "submission-b"],
@@ -51,18 +59,32 @@ def _finalization(trial_id: str, *, overall: str = "some concerns") -> dict:
         "guidance_sha256": "a" * 64,
         "source_snapshot_sha256": "c" * 64,
         "workflow_status": "finalized",
+        "review_record_id": "resolved-review",
+        "early_stop_reason": None,
         "checks": [
-            {"check_id": check_id, "workflow_status": "assessed", "response": "Unclear"}
+            {
+                "check_id": check_id,
+                "workflow_status": "assessed",
+                "response": "Unclear",
+                "rationale": f"Reviewed {check_id}.",
+                "evidence_ids": [],
+            }
             for check_id in EXPECTED_CHECK_IDS
         ],
-        "judgments": {
-            "domains": [
-                {"domain_id": str(i), "judgment": overall, "rationale": "Human decision."}
-                for i in range(1, 5)
-            ],
-            "overall": {"judgment": overall, "rationale": "Human synthesis decision."},
-        },
+        "judgments": judgment_set,
     }
+    identity = {
+        "review_record_id": finalization["review_record_id"],
+        "judgments": judgment_set,
+        "early_stop_reason": "",
+    }
+    finalization["finalization_id"] = (
+        "finalization_"
+        + hashlib.sha256(
+            json.dumps(identity, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+        ).hexdigest()
+    )
+    return finalization
 
 
 def test_synthesis_policy_requires_explicit_versioned_primary_and_sensitivity() -> None:
@@ -135,10 +157,7 @@ def test_export_requires_adjudicated_final_review_and_propagates_policy_by_trial
         "exclude",
         "exclude",
     ]
-    assert [row["effect"] for row in sensitivity["comparison_dispositions"]] == [
-        1.25,
-        0.75,
-    ]
+    assert [row["effect"] for row in sensitivity["comparison_dispositions"]] == [1.25, 0.75]
     without_adjudication = {**review, "adjudication_id": None}
     with pytest.raises(ValueError, match="finalized adjudicated review"):
         build_synthesis_export(
@@ -151,6 +170,23 @@ def test_export_requires_adjudicated_final_review_and_propagates_policy_by_trial
             unresolved_policy="block",
             policy_variant="primary",
         )
+
+
+def test_synthesis_leaves_tampered_finalization_unresolved() -> None:
+    review = _finalization("trial-tampered")
+    review["checks"] = review["checks"][:-1]
+    output = build_synthesis_export(
+        [review],
+        [],
+        [],
+        _policy(),
+        guidance_sha256="a" * 64,
+        current_source_snapshot_sha256_by_trial={"trial-tampered": "c" * 64},
+        unresolved_policy="list",
+        policy_variant="primary",
+    )
+    assert output["trial_dispositions"][0]["disposition"] == "unresolved"
+    assert output["schema_version"] == "inspect_sr_synthesis_export_v2"
 
 
 def test_unresolved_assessments_block_or_are_explicitly_listed() -> None:
@@ -228,6 +264,7 @@ def test_public_export_is_explicit_allowlisted_and_excludes_private_canaries() -
     assert "PRIVATE_SOURCE_CANARY" not in serialized
     assert "PRIVATE_REVIEW_CANARY" not in serialized
     assert "reviewer_email" not in serialized
+    assert "release-reviewer" not in serialized
     assert output["report_dispositions"][0]["report_id"] == "report-public"
 
 
@@ -274,20 +311,59 @@ def test_report_draft_has_no_computed_judgment_or_legacy_category() -> None:
 
 def test_inspect_sr_report_qmd_renders_html_and_pdf_in_requested_directory(tmp_path: Path) -> None:
     if not shutil.which("quarto"):
+        if os.environ.get("FORENSICS_REQUIRE_REPORT_INTEGRATION") == "1":
+            pytest.fail("Quarto is required by FORENSICS_REQUIRE_REPORT_INTEGRATION=1")
         pytest.skip("Quarto is unavailable; native report integration remains open.")
     model = {
+        "schema_version": "inspect_sr_report_model_v1",
         "report_status": "DRAFT — PENDING",
         "trial_id": "trial-fixture",
         "guidance_version": "1.1.2",
+        "guidance_sha256": "a" * 64,
+        "assessment_id": "assessment-fixture",
         "judgments": None,
         "checks": [
             {
-                "check_id": "1.1",
-                "official_wording": "Fixture check wording",
+                "check_id": check_id,
+                "official_wording": f"Fixture wording for {check_id}",
                 "workflow_status": "pending",
                 "response": None,
+                "rationale": None,
                 "evidence_ids": [],
+                "evidence_records": [],
+                "manual_evidence": [],
+                "candidate_evidence": [],
             }
+            for check_id in EXPECTED_CHECK_IDS
+        ],
+        "source_versions": [
+            {
+                "source_id": "source-fixture",
+                "source_version_id": "sourcever-fixture",
+                "content_sha256": "b" * 64,
+            }
+        ],
+        "method_receipts": [
+            {
+                "method_id": "scrutiny_grim_map",
+                "execution": "completed",
+                "n_eligible": 1,
+                "n_evaluated": 1,
+                "n_failed": 0,
+            }
+        ],
+        "reviewer_submissions": [
+            {
+                "reviewer_id": "private-reviewer-canary",
+                "submission_id": "submission-fixture",
+                "source_snapshot_sha256": "c" * 64,
+                "workflow_status": "in_progress",
+            }
+        ],
+        "adjudication": {"adjudication_id": "adjudication-fixture"},
+        "unresolved_items": [
+            {"check_id": check_id, "workflow_status": "pending", "response": None}
+            for check_id in EXPECTED_CHECK_IDS
         ],
     }
     review_path = tmp_path / "review.json"
@@ -323,3 +399,6 @@ def test_inspect_sr_report_qmd_renders_html_and_pdf_in_requested_directory(tmp_p
             assert "overall_score" not in contents
             assert "legacy_composite" not in contents
             assert "No human overall judgment is finalized" in contents
+            assert "4.11" in contents
+            assert "private-reviewer-canary" in contents
+            assert "adjudication-fixture" in contents

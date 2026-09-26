@@ -8,6 +8,8 @@ import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from research_project.inspect_sr.records import evidence_id as calculate_evidence_id
+
 
 def _route(
     label: str, methods: tuple[str, ...], manual_route: str, limitations: str
@@ -246,19 +248,35 @@ def _stable_candidate_id(result: Mapping[str, Any], evidence_ids: list[str]) -> 
     return "candidate_" + hashlib.sha256(encoded).hexdigest()
 
 
+def _evidence_id_list(value: Any) -> list[str]:
+    if isinstance(value, str):
+        values = value.split(";")
+    elif isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray)):
+        values = list(value)
+    else:
+        values = []
+    return list(dict.fromkeys(str(item).strip() for item in values if str(item).strip()))
+
+
+def _clean_text(value: Any) -> str:
+    if value is None or (isinstance(value, float) and math.isnan(value)):
+        return ""
+    return str(value).strip()
+
+
 def map_candidate_result(
     result: Mapping[str, Any],
     method_receipts: Sequence[Mapping[str, Any]],
     evidence_records: Sequence[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
     """Map one result row to candidate records only after receipt/evidence validation."""
-    method_id = str(result.get("method_id", ""))
-    result_run_id = str(result.get("run_id", "")).strip()
-    if (
-        not result_run_id
-        or not str(result.get("result_id", "")).strip()
-        or not str(result.get("source_locator", "")).strip()
-    ):
+    if result.get("schema_version") != "numeric_result_v2":
+        raise ValueError("Candidate mapping requires the numeric_result_v2 contract.")
+    method_id = _clean_text(result.get("method_id"))
+    result_run_id = _clean_text(result.get("run_id"))
+    result_id = _clean_text(result.get("result_id"))
+    source_locator = _clean_text(result.get("source_locator"))
+    if not result_run_id or not result_id or not source_locator:
         raise ValueError("Candidate result requires a stable result ID and exact source locator.")
     matches = [
         item
@@ -282,18 +300,39 @@ def map_candidate_result(
     checks = METHOD_TO_CHECKS.get(method_id, ())
     if not checks:
         return []
-    raw_ids = result.get("input_evidence_ids")
-    evidence_ids = [str(value) for value in (raw_ids or []) if str(value).strip()]
+    evidence_ids = _evidence_id_list(result.get("input_evidence_ids"))
     if not evidence_ids:
         raise ValueError("Candidate result requires exact input evidence IDs.")
+    receipt_evidence_ids = set(_evidence_id_list(receipt.get("input_evidence_ids")))
+    if set(evidence_ids) - receipt_evidence_ids:
+        return []
     evidence_by_id = {str(row.get("evidence_id")): row for row in evidence_records}
     missing = sorted(set(evidence_ids) - evidence_by_id.keys())
     if missing:
         raise ValueError(f"Candidate result references unavailable evidence IDs: {missing}")
     for evidence_id in evidence_ids:
-        if not evidence_by_id[evidence_id].get("source_version_id"):
+        record = evidence_by_id[evidence_id]
+        if not record.get("source_version_id"):
             raise ValueError(f"Candidate evidence {evidence_id} lacks a source version.")
-    candidate_id = _stable_candidate_id(result, evidence_ids)
+        try:
+            expected_evidence_id = calculate_evidence_id(
+                str(record["source_version_id"]),
+                str(record["locator"]),
+                str(record["raw_value"]),
+                str(record["extraction_method"]),
+                str(record["extraction_version"]),
+            )
+        except (KeyError, AttributeError) as exc:
+            raise ValueError(
+                f"Candidate evidence {evidence_id} lacks identity provenance."
+            ) from exc
+        if expected_evidence_id != evidence_id:
+            raise ValueError(
+                f"Candidate evidence {evidence_id} does not match its content identity."
+            )
+        if str(record["locator"]).strip() != source_locator:
+            return []
+    candidate_id = _stable_candidate_id({**result, "result_id": result_id}, evidence_ids)
     candidates = []
     for check_id in checks:
         route = CHECK_ROUTES[check_id]
@@ -305,7 +344,7 @@ def map_candidate_result(
             "method_id": method_id,
             "candidate_kind": str(result.get("candidate_kind", "method_result")),
             "evidence_ids": evidence_ids,
-            "source_locator": str(result.get("source_locator", "")),
+            "source_locator": source_locator,
             "details": result.get("details", ""),
             "candidate_status": "candidate_only",
             "method_execution": receipt["execution"],

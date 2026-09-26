@@ -63,8 +63,14 @@ revision with fresh pending responses; earlier assessments remain intact.
 
 `src/research_project/inspect_sr/adapters.py` routes validated method outputs to
 candidate evidence records. A candidate requires a completed or partial method
-receipt with complete v2 provenance, positive evaluated coverage for the same
-run as the result, exact input evidence IDs, and known source versions. One
+receipt with complete `method_receipt_v3` provenance, positive evaluated
+coverage for the same run as the result, input evidence IDs drawn from that
+receipt, and known source versions. Numeric extraction emits
+`numeric_standardized_results_v2.csv`; run-scoped result IDs are separate from
+source evidence IDs, which depend on source-version hashes, exact locators, raw
+extracted values, and parser identity. Missing source hashes, locators, or
+evidence IDs leave results unresolved. Older outputs remain readable as
+historical records and are not promoted into current candidates. One
 candidate can link to multiple checks while retaining one shared candidate ID;
 this is not counted as independent evidence. Current machine routes are limited
 to the numeric methods that actually emit those receipts: GRIM/GRIMMER/DEBIT,
@@ -109,9 +115,20 @@ reviewer identity keys in public source control.
 
 Independent submissions remain separate. The disagreement table is derived;
 adjudication is a new human record referencing both submissions; finalization is
-another record. A changed guidance or source hash requires a fresh review
-revision. Early-stop reviews retain each unassessed check as
+another record. Reviewer submissions and finalizations use version 2 contracts
+whose content identities are checked before comparison, resolution, finalization,
+reporting, or synthesis. Finalization preserves the resolved review, both
+reviewer-submission IDs, and the adjudication ID. A changed guidance or source
+hash requires a fresh review revision. Early-stop reviews retain each unassessed check as
 `not_assessed_early_stop`.
+
+Use `scripts/inspect_sr.py` for the local offline workflow: prepare a pending
+review, create source-versioned or manual evidence, submit independent reviews,
+compare, adjudicate, finalize, map native candidates, validate records, render
+private HTML/PDF, and export synthesis. Human records are write-once under
+`data/private/inspect_sr/`; public export is explicitly allowlisted, and its
+approver identity is stored only in a separate private receipt. Start with
+`uv run python scripts/inspect_sr.py --help`.
 
 The report model in `src/research_project/inspect_sr/reporting.py` displays
 human judgments only when current source hashes and finalized adjudication
@@ -145,7 +162,7 @@ unchanged. Public export additionally requires
 an explicit trial allowlist and reviewer identity and includes only trial,
 report/comparison IDs, dispositions, reasons, and policy metadata. The
 allowlisted public writer drops all arbitrary source text, notes, and reviewer
-fields.
+fields; approver identity remains in the private export receipt.
 
 No domain or overall judgment is computed by this package. There is no universal
 synthesis policy. FM-12 remains open until native R methods and current-run

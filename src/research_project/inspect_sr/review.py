@@ -105,7 +105,7 @@ def create_reviewer_submission(
         "checks": normalized_checks,
     }
     submission = {
-        "schema_version": "inspect_sr_reviewer_submission_v1",
+        "schema_version": "inspect_sr_reviewer_submission_v2",
         "record_type": "human_reviewer_submission",
         "submission_id": _hash_id("submission_", content_identity),
         "assessment_id": assessment["assessment_id"],
@@ -211,7 +211,7 @@ def create_adjudication_record(
         "decisions": normalized,
     }
     result = {
-        "schema_version": "inspect_sr_adjudication_v1",
+        "schema_version": "inspect_sr_adjudication_v2",
         "record_type": "human_adjudication",
         "adjudication_id": _hash_id("adjudication_", content_identity),
         "assessment_id": first["assessment_id"],
@@ -233,6 +233,24 @@ def resolve_reviews(
     expected_ids = sorted([first["submission_id"], second["submission_id"]])
     if sorted(adjudication.get("reviewer_submission_ids", [])) != expected_ids:
         raise ValueError("Adjudication does not reference these original reviewer submissions.")
+    normalized_decisions = {
+        row["check_id"]: {
+            "check_id": row["check_id"],
+            "response": row.get("response"),
+            "rationale": row.get("rationale"),
+            "evidence_ids": row.get("evidence_ids"),
+        }
+        for row in adjudication.get("decisions", [])
+    }
+    adjudication_identity = {
+        "reviewer_submission_ids": expected_ids,
+        "adjudicator_id": adjudication.get("adjudicator_id"),
+        "decisions": normalized_decisions,
+    }
+    if adjudication.get("schema_version") != "inspect_sr_adjudication_v2" or adjudication.get(
+        "adjudication_id"
+    ) != _hash_id("adjudication_", adjudication_identity):
+        raise ValueError("Adjudication content does not match its immutable identity.")
     decisions = {row["check_id"]: row for row in adjudication.get("decisions", [])}
     rows_a = {row["check_id"]: row for row in first["checks"]}
     rows_b = {row["check_id"]: row for row in second["checks"]}
@@ -263,8 +281,8 @@ def resolve_reviews(
                 "workflow_status": "pending",
             }
         resolved.append(row)
-    return {
-        "schema_version": "inspect_sr_resolved_review_v1",
+    resolved = {
+        "schema_version": "inspect_sr_resolved_review_v2",
         "record_type": "resolved_human_review",
         "assessment_id": first["assessment_id"],
         "trial_id": first["trial_id"],
@@ -275,6 +293,23 @@ def resolve_reviews(
         "source_snapshot_sha256": first["source_snapshot_sha256"],
         "checks": resolved,
     }
+    resolved["resolved_review_id"] = _hash_id(
+        "resolved_",
+        {
+            key: resolved[key]
+            for key in (
+                "assessment_id",
+                "trial_id",
+                "guidance_version",
+                "guidance_sha256",
+                "reviewer_submission_ids",
+                "adjudication_id",
+                "source_snapshot_sha256",
+                "checks",
+            )
+        },
+    )
+    return resolved
 
 
 def validate_judgment_set(judgments: Mapping[str, Any]) -> dict[str, Any]:
@@ -293,6 +328,32 @@ def finalize_review(
         "resolved_human_review",
     }:
         raise ValueError("Finalization requires a human reviewer or resolved review record.")
+    if review_record.get("record_type") == "human_reviewer_submission":
+        validate_reviewer_submission(review_record)
+    if review_record.get("record_type") == "resolved_human_review":
+        expected_resolved_id = _hash_id(
+            "resolved_",
+            {
+                key: review_record.get(key)
+                for key in (
+                    "assessment_id",
+                    "trial_id",
+                    "guidance_version",
+                    "guidance_sha256",
+                    "reviewer_submission_ids",
+                    "adjudication_id",
+                    "source_snapshot_sha256",
+                    "checks",
+                )
+            },
+        )
+        if (
+            review_record.get("schema_version") != "inspect_sr_resolved_review_v2"
+            or review_record.get("resolved_review_id") != expected_resolved_id
+            or not review_record.get("adjudication_id")
+            or len(set(review_record.get("reviewer_submission_ids", []))) != 2
+        ):
+            raise ValueError("Resolved review content does not match its immutable identity.")
     checks = [dict(row) for row in review_record["checks"]]
     if not early_stop and any(row["response"] is None for row in checks):
         raise ValueError("Finalization is blocked by pending checks.")
@@ -317,13 +378,13 @@ def finalize_review(
         for row in checks:
             row["workflow_status"] = "assessed"
     finalization = {
-        "schema_version": "inspect_sr_finalization_v1",
+        "schema_version": "inspect_sr_finalization_v2",
         "record_type": "human_finalization",
         "finalization_id": _hash_id(
             "finalization_",
             {
                 "review_record_id": review_record.get(
-                    "submission_id", review_record.get("adjudication_id")
+                    "resolved_review_id", review_record.get("submission_id")
                 ),
                 "judgments": validated_judgments,
                 "early_stop_reason": early_stop_reason,
@@ -334,9 +395,10 @@ def finalize_review(
         "guidance_version": review_record["guidance_version"],
         "guidance_sha256": review_record["guidance_sha256"],
         "review_record_id": review_record.get(
-            "submission_id", review_record.get("adjudication_id")
+            "resolved_review_id", review_record.get("submission_id")
         ),
         "reviewer_submission_ids": review_record.get("reviewer_submission_ids", []),
+        "adjudication_id": review_record.get("adjudication_id"),
         "source_snapshot_sha256": review_record["source_snapshot_sha256"],
         "workflow_status": "finalized_early_stop" if early_stop else "finalized",
         "early_stop_reason": early_stop_reason if early_stop else None,
@@ -344,12 +406,17 @@ def finalize_review(
         "judgments": validated_judgments,
         "finalized_at": datetime.now(UTC).isoformat(),
     }
+    validate_finalization(
+        finalization,
+        current_source_snapshot_sha256=str(finalization["source_snapshot_sha256"]),
+    )
     return finalization
 
 
 def create_review_revision(
     previous: Mapping[str, Any], *, source_snapshot_sha256: str, change_reason: str
 ) -> dict[str, Any]:
+    validate_reviewer_submission(previous)
     if not change_reason.strip():
         raise ValueError("A review revision requires a documented change reason.")
     source_hash = _source_hash(source_snapshot_sha256)
@@ -367,13 +434,12 @@ def create_review_revision(
     identity = {
         "assessment_id": previous["assessment_id"],
         "reviewer_id": previous["reviewer_id"],
-        "revision": revision,
         "source_snapshot_sha256": source_hash,
-        "supersedes": previous["submission_id"],
-        "change_reason": change_reason,
+        "submission_revision": revision,
+        "checks": checks,
     }
     result = {
-        "schema_version": "inspect_sr_reviewer_submission_v1",
+        "schema_version": "inspect_sr_reviewer_submission_v2",
         "record_type": "human_reviewer_submission",
         "submission_id": _hash_id("submission_", identity),
         "assessment_id": previous["assessment_id"],

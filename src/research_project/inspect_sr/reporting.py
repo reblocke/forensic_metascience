@@ -7,6 +7,7 @@ from typing import Any
 
 from research_project.inspect_sr.manual_evidence import validate_manual_evidence
 from research_project.inspect_sr.records import EXPECTED_CHECK_IDS, validate_assessment
+from research_project.inspect_sr.validation import validate_finalization
 
 
 def build_report_model(
@@ -56,6 +57,8 @@ def build_report_model(
     final_is_current = False
     finalization_source_status = "not_finalized"
     if finalization is not None:
+        if finalization.get("schema_version") != "inspect_sr_finalization_v2":
+            raise ValueError("Report finalization input must use the current v2 contract.")
         if finalization.get("record_type") != "human_finalization":
             raise ValueError(
                 "Report finalization input must be an explicit human finalization record."
@@ -64,6 +67,15 @@ def build_report_model(
             raise ValueError("Finalization belongs to a different assessment.")
         if finalization.get("guidance_sha256") != assessment_copy.get("guidance_sha256"):
             raise ValueError("Finalization guidance hash does not match the assessment.")
+        validate_finalization(
+            finalization,
+            current_source_snapshot_sha256=str(finalization.get("source_snapshot_sha256", "")),
+        )
+        if finalization.get("adjudication_id") and (
+            adjudication is None
+            or adjudication.get("adjudication_id") != finalization.get("adjudication_id")
+        ):
+            raise ValueError("Report adjudication does not match the finalization reference.")
         if not current_source_snapshot_sha256:
             raise ValueError(
                 "Current source snapshot hash is required to show finalized judgments."

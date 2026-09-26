@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Mapping
 from typing import Any
 
@@ -12,12 +14,14 @@ JUDGMENT_RANK = {"no concerns": 0, "some concerns": 1, "serious concerns": 2}
 
 
 def validate_reviewer_submission(submission: Mapping[str, Any]) -> None:
-    if submission.get("schema_version") != "inspect_sr_reviewer_submission_v1":
+    if submission.get("schema_version") != "inspect_sr_reviewer_submission_v2":
         raise ValueError("Unsupported reviewer submission schema.")
     if submission.get("record_type") != "human_reviewer_submission":
         raise ValueError("Review input must be an explicit human reviewer submission.")
     if not submission.get("reviewer_id") or not submission.get("assessment_id"):
         raise ValueError("Reviewer submission requires reviewer and assessment identities.")
+    if not submission.get("trial_id") or not submission.get("guidance_sha256"):
+        raise ValueError("Reviewer submission requires trial and guidance identities.")
     checks = submission.get("checks")
     if not isinstance(checks, list) or [row.get("check_id") for row in checks] != list(
         EXPECTED_CHECK_IDS
@@ -38,6 +42,21 @@ def validate_reviewer_submission(submission: Mapping[str, Any]) -> None:
                 raise ValueError(f"Check {row['check_id']} needs a reviewer rationale.")
             if not isinstance(row.get("evidence_ids"), list):
                 raise ValueError(f"Check {row['check_id']} evidence_ids must be a list.")
+    identity = {
+        "assessment_id": submission["assessment_id"],
+        "reviewer_id": submission["reviewer_id"],
+        "source_snapshot_sha256": submission.get("source_snapshot_sha256"),
+        "submission_revision": submission.get("submission_revision"),
+        "checks": [dict(row) for row in checks],
+    }
+    expected_id = (
+        "submission_"
+        + hashlib.sha256(
+            json.dumps(identity, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+        ).hexdigest()
+    )
+    if submission.get("submission_id") != expected_id:
+        raise ValueError("Reviewer submission content does not match its immutable identity.")
 
 
 def validate_judgment_set(judgments: Mapping[str, Any]) -> dict[str, Any]:
@@ -86,3 +105,39 @@ def validate_finalization(
         raise ValueError(
             "Source snapshot changed; a new review revision and approval are required."
         )
+    if finalization.get("schema_version") != "inspect_sr_finalization_v2":
+        raise ValueError("Unsupported finalization schema.")
+    checks = finalization.get("checks")
+    if not isinstance(checks, list) or [row.get("check_id") for row in checks] != list(
+        EXPECTED_CHECK_IDS
+    ):
+        raise ValueError("Finalization must contain all 21 checks in canonical order.")
+    for row in checks:
+        status, response = row.get("workflow_status"), row.get("response")
+        if status == "assessed":
+            if response not in CHECK_RESPONSES or not str(row.get("rationale", "")).strip():
+                raise ValueError("Finalized responses require an allowed response and rationale.")
+            if not isinstance(row.get("evidence_ids"), list):
+                raise ValueError("Finalized response evidence_ids must be a list.")
+        elif status == "not_assessed_early_stop":
+            if (
+                response is not None
+                or finalization.get("workflow_status") != "finalized_early_stop"
+            ):
+                raise ValueError("Only early-stopped finalizations may have unassessed checks.")
+        else:
+            raise ValueError("Finalization contains a pending or invalid check state.")
+    validate_judgment_set(finalization.get("judgments", {}))
+    identity = {
+        "review_record_id": finalization.get("review_record_id"),
+        "judgments": finalization.get("judgments"),
+        "early_stop_reason": finalization.get("early_stop_reason") or "",
+    }
+    expected_id = (
+        "finalization_"
+        + hashlib.sha256(
+            json.dumps(identity, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+        ).hexdigest()
+    )
+    if finalization.get("finalization_id") != expected_id:
+        raise ValueError("Finalization content does not match its immutable identity.")

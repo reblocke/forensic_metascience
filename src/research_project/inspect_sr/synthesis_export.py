@@ -8,6 +8,7 @@ from datetime import date
 from typing import Any
 
 from research_project.inspect_sr.records import EXPECTED_CHECK_IDS
+from research_project.inspect_sr.validation import validate_finalization, validate_judgment_set
 
 POLICY_SCHEMA = "inspect_sr_synthesis_policy_v1"
 DISPOSITIONS = {"include", "exclude"}
@@ -48,29 +49,53 @@ def validate_synthesis_policy(policy: Mapping[str, Any], *, guidance_sha256: str
 
 
 def _finalized_adjudicated(review: Mapping[str, Any]) -> bool:
+    if review.get("schema_version") != "inspect_sr_finalization_v2":
+        return False
     if review.get("record_type") != "human_finalization":
         return False
     if review.get("workflow_status") not in {"finalized", "finalized_early_stop"}:
         return False
     if not review.get("adjudication_id"):
         return False
-    judgments = review.get("judgments")
-    if not isinstance(judgments, Mapping) or not isinstance(judgments.get("overall"), Mapping):
+    reviewer_ids = review.get("reviewer_submission_ids")
+    if not isinstance(reviewer_ids, list) or len(set(reviewer_ids)) != 2:
         return False
-    if judgments["overall"].get("judgment") not in JUDGMENT_KEYS:
+    judgments = review.get("judgments")
+    if not isinstance(judgments, Mapping):
+        return False
+    try:
+        validate_judgment_set(judgments)
+    except (TypeError, ValueError, KeyError):
         return False
     if not review.get("trial_id") or not re.fullmatch(
         r"[a-f0-9]{64}", str(review.get("source_snapshot_sha256", ""))
     ):
+        return False
+    try:
+        validate_finalization(
+            review, current_source_snapshot_sha256=str(review.get("source_snapshot_sha256", ""))
+        )
+    except (TypeError, ValueError, KeyError):
         return False
     checks = review.get("checks")
     if not isinstance(checks, list) or [row.get("check_id") for row in checks] != list(
         EXPECTED_CHECK_IDS
     ):
         return False
-    return all(
-        row.get("workflow_status") in {"assessed", "not_assessed_early_stop"} for row in checks
-    )
+    for row in checks:
+        status = row.get("workflow_status")
+        if status not in {"assessed", "not_assessed_early_stop"}:
+            return False
+        if status == "assessed":
+            if row.get("response") not in {"Yes", "No", "Unclear", "Not applicable"}:
+                return False
+            if not str(row.get("rationale", "")).strip():
+                return False
+            if not isinstance(row.get("evidence_ids"), list):
+                return False
+        elif row.get("response") is not None:
+            return False
+    return True
 
 
 def _disposition(
@@ -197,7 +222,7 @@ def build_synthesis_export(
     report_dispositions = join_rows(report_rows, "report")
     comparison_dispositions = join_rows(comparison_rows, "comparison")
     result = {
-        "schema_version": "inspect_sr_synthesis_export_v1",
+        "schema_version": "inspect_sr_synthesis_export_v2",
         "policy_id": validated_policy["policy_id"],
         "policy_version": validated_policy["policy_version"],
         "policy_variant": policy_variant,
@@ -207,6 +232,5 @@ def build_synthesis_export(
         "report_dispositions": report_dispositions,
         "comparison_dispositions": comparison_dispositions,
         "public_export": public,
-        "public_reviewed_by": public_reviewed_by if public else None,
     }
     return result

@@ -10,9 +10,11 @@ from research_project.inspect_sr.review import (
     create_review_revision,
     create_reviewer_submission,
     finalize_review,
+    resolve_reviews,
     reviewer_export,
     validate_finalization,
     validate_judgment_set,
+    validate_reviewer_submission,
 )
 
 
@@ -55,11 +57,21 @@ def test_reviewer_submissions_are_separate_and_disagreement_does_not_edit_them()
     assert disagreement[0]["status"] == "disagreement"
     assert first["checks"][0]["response"] == original_first == "No"
     assert second["checks"][0]["response"] == "Yes"
+    same_reviewer = create_reviewer_submission(
+        create_assessment("trial-local-1", "1.1.2", "guidance-hash"),
+        reviewer_id="reviewer-a",
+        source_snapshot_sha256="a" * 64,
+        checks=_all_answers(),
+    )
     with pytest.raises(ValueError, match="distinct reviewer"):
-        build_disagreement_table(first, {**second, "reviewer_id": "reviewer-a"})
+        build_disagreement_table(first, same_reviewer)
     assert reviewer_export(first, "reviewer-a")["submission_id"] == first["submission_id"]
     with pytest.raises(ValueError, match="own submission"):
         reviewer_export(first, "reviewer-b")
+    altered = {**first, "checks": [dict(row) for row in first["checks"]]}
+    altered["checks"][0]["response"] = "Yes"
+    with pytest.raises(ValueError, match="identity"):
+        validate_reviewer_submission(altered)
 
 
 def test_consensus_is_a_separate_adjudication_referencing_both_originals() -> None:
@@ -83,6 +95,37 @@ def test_consensus_is_a_separate_adjudication_referencing_both_originals() -> No
     ]
     assert adjudication["decisions"][0]["response"] == "Unclear"
     assert first["checks"][0]["response"] == "No"
+
+
+def test_finalization_preserves_resolved_adjudication_and_reviewer_references() -> None:
+    first, second = _submissions()
+    adjudication = create_adjudication_record(
+        first,
+        second,
+        adjudicator_id="adjudicator-a",
+        decisions=[
+            {
+                "check_id": "1.1",
+                "response": "Unclear",
+                "rationale": "Source identity remains unresolved.",
+                "evidence_ids": [],
+            }
+        ],
+    )
+    resolved = resolve_reviews(first, second, adjudication)
+    judgments = {
+        "domains": [
+            {"domain_id": str(i), "judgment": "some concerns", "rationale": "Reviewed."}
+            for i in range(1, 5)
+        ],
+        "overall": {"judgment": "some concerns", "rationale": "Human synthesis."},
+    }
+    final = finalize_review(resolved, judgments)
+    assert final["adjudication_id"] == adjudication["adjudication_id"]
+    assert set(final["reviewer_submission_ids"]) == {
+        first["submission_id"],
+        second["submission_id"],
+    }
 
 
 def test_pending_checks_block_finalization_but_early_stop_is_explicit() -> None:

@@ -37,6 +37,11 @@ def manual_template(check_id: str) -> dict[str, Any]:
 
 
 def validate_manual_evidence(record: Mapping[str, Any]) -> dict[str, Any]:
+    if (
+        record.get("schema_version") != "inspect_sr_manual_evidence_v1"
+        or record.get("record_type") != "manual_observation"
+    ):
+        raise ValueError("Manual evidence requires the current observation record contract.")
     check_id = str(record.get("check_id", ""))
     if check_id not in CHECK_ROUTES:
         raise ValueError(f"Unknown INSPECT-SR check ID: {check_id}")

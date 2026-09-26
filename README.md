@@ -45,6 +45,11 @@ signals or legacy tiers into responses or judgments. See [the INSPECT-SR record
 and workflow guide](docs/INSPECT_SR.md); this workflow remains a draft until
 native R methods and the full report gate pass.
 
+The local record workflow is available through `uv run python scripts/inspect_sr.py --help`.
+It stores human material write-once under the
+ignored private review directory, keeps unresolved source evidence explicit,
+and requires an allowlist for public synthesis exports.
+
 If you are using this repository for the first time, the recommended order is:
 
 1. install the environment
