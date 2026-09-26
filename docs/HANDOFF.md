@@ -2,35 +2,49 @@
 
 ## Latest status — 2026-09-25
 
-Current implementation base is `428bc948d8bd5bb56256ecbc67b1cc4d50ee4b6b`;
-the pre-existing untracked `run-b2.html` artifact is preserved. No source-paper
-analysis or repository output regeneration was run.
+Implementation is on branch `codex/inspect-sr-resumption`, based on current
+repository HEAD rather than resetting to the audit commit. The implementation
+checkpoint commits are `d8b21a5` (source-linked native outputs), `e9a21ae`
+(private review workflow), and `cb77b76` (required CI lanes). The original
+untracked `run-b2.html` artifact is preserved and excluded from commits. No
+source-paper analysis or historical output regeneration was run.
 
-- **FM-01–FM-11:** Implemented. FM-03–FM-07 corrections have regression-first
-  coverage. FM-08 uses a 26-file source snapshot at the official guidance commit
-  with the complete 21-check catalogue and verified per-file hashes. FM-09–FM-11
-  keep candidates, manual evidence, reviewer submissions, adjudication, reports,
-  and policy-controlled synthesis exports as separate records.
-- **FM-12:** Local release-gate verification passed. The exact native R methods
-  and seeded simdistr path ran from temporary libraries, and current-run HTML/PDF
-  report fixtures rendered to temporary paths. CI now has distinct locked Python,
-  required native R, and Quarto report-review jobs; hosted Actions have not yet
-  run this diff.
+- **FM-01–FM-12:** Implemented and locally verified, pending hosted CI on the
+  final review commit. FM-03–FM-07 corrections have regression-first coverage.
+  FM-08 uses the 26-file official v1.1.2 source snapshot at
+  `a349c4f1ddd9d232dfc2632938aad31382a9a770`, with the complete 21-check
+  catalogue and per-file hashes. FM-09–FM-11 keep candidate evidence, manual
+  observations, reviewer submissions, adjudication, reports, and synthesis
+  exports as distinct records.
 - **FM-13:** Deferred.
 
-### Latest verification receipts
+### Verification receipts on the implementation code
 
-- `PYTHONPATH=src uv run pytest -q -o addopts='' -ra` — 114 passed, 2 skipped
-  in 67.28s on the final committed head. The two skips are the pinned-package tests in the Python-only lane;
-  the required native lane below runs them without skips.
-- `FORENSICS_REQUIRE_R_INTEGRATION=1 R_LIBS_USER=/tmp/fm-inspect-r.locked-library PYTHONPATH=src uv run pytest -q -o addopts='' -ra tests/test_r_integration.py` — 3 passed in 5.58s on the final committed head. Native receipts showed positive evaluated coverage for GRIM, GRIMMER, DEBIT, duplicate, rounding-bias, statcheck, and seeded simdistr at the pinned versions.
-- `PYTHONPATH=src uv run pytest -q -o addopts='' tests/test_inspect_sr_reporting.py tests/test_pipeline.py::test_randomization_report_renders_only_current_run_inputs -ra` — 7 passed in 43.72s on the final committed head, including HTML and PDF renders.
-- `uv run ruff check .` and `uv run ruff format . --check` — passed (54 files already formatted).
-- `bash -n scripts/run_pipeline.sh scripts/run_manuscript_review.sh scripts/install_inspect_sr_r_methods.sh`; R parsing of the numeric, randomization, meta, and receipt scripts; official guidance `SHA256SUMS`; method lock JSON; and `git diff --check` — passed.
-- `R_LIBS_USER=/tmp/fm-inspect-r.locked-library bash scripts/install_inspect_sr_r_methods.sh` — verified and installed `scrutiny 0.6.2`, `statcheck 1.5.0`, and `simdistr 1.0.1`; R 4.6.0 session details were printed. The package archive hashes are recorded in `config/inspect_sr/r_method_packages.lock.json`.
-- `uv sync --locked --dev` — passed; workflow YAML parsed successfully.
+- `UV_OFFLINE=1 PYTHONPATH=src uv run --offline pytest -q -o addopts='' -m 'not native_r' -ra`
+  — passed, 115 passed and 11 deselected (Python lane).
+- `FORENSICS_REQUIRE_R_INTEGRATION=1 R_LIBS_USER=/tmp/fm-inspect-r.locked-library UV_OFFLINE=1 PYTHONPATH=src uv run --offline pytest -q -o addopts='' -m native_r -ra`
+  — passed, 11 passed and 115 deselected. Native method package versions were
+  scrutiny 0.6.2, statcheck 1.5.0, and simdistr 1.0.1; method receipts showed
+  evaluated synthetic coverage for GRIM, GRIMMER, DEBIT, duplicate,
+  rounding-bias, statcheck, and seeded simdistr.
+- `FORENSICS_REQUIRE_REPORT_INTEGRATION=1 R_LIBS_USER=/tmp/fm-inspect-r.locked-library UV_OFFLINE=1 PYTHONPATH=src uv run --offline pytest -q -o addopts='' -ra tests/test_inspect_sr_reporting.py tests/test_pipeline.py::test_randomization_report_renders_only_current_run_inputs`
+  — passed, 8 tests, including current-run HTML/PDF report renders.
+- `UV_OFFLINE=1 uv run --offline ruff check .` and
+  `UV_OFFLINE=1 uv run --offline ruff format . --check` — passed; 56 files
+  formatted. `bash -n scripts/run_pipeline.sh scripts/run_manuscript_review.sh scripts/install_inspect_sr_r_methods.sh`
+  and `git diff --check` — passed.
+- Local runtime: R 4.6.1, Quarto 1.10.18. CI is configured for R 4.6.0 and
+  Quarto 1.9.37. The isolated local method library contains the three versions
+  above. The source package archives are hash-recorded in
+  `config/inspect_sr/r_method_packages.lock.json`.
 
-Remaining release follow-up: run the three configured GitHub Actions jobs on the committed head. The Python-only job intentionally does not contain native method packages; its skips cannot substitute for the required native job. Transitive R imports are installed from CRAN during test-environment preparation and are recorded in `sessionInfo()`, not separately locked. No source-paper analysis or report-data regeneration was performed.
+Hosted Actions remain the release follow-up. The three jobs are separate Python,
+required native-R, and report-review lanes; missing R/Quarto/method execution is
+configured to fail or leave the integration gate incomplete. Transitive R
+imports are installed from CRAN during test setup and are not independently
+locked. Reviewer identities, ambiguous trial/report mappings, and each review's
+synthesis policy remain explicit human inputs. No deployment, author contact,
+automatic adjudication, or historical-results rewrite is authorized.
 
 ### FM-08–FM-12 artifact map
 
