@@ -66,7 +66,7 @@ def test_cli_maps_csv_native_records_to_private_candidate_dossier(
     receipts = pd.DataFrame(
         [
             {
-                "schema_version": "method_receipt_v3",
+                "schema_version": "method_receipt_v4",
                 "run_id": "run-fixture",
                 "method_id": "statcheck",
                 "method_version": "1",
@@ -127,3 +127,37 @@ def test_cli_maps_csv_native_records_to_private_candidate_dossier(
     dossier = json.loads(output_path.read_text(encoding="utf-8"))
     assert dossier["schema_version"] == "inspect_sr_candidate_dossier_v2"
     assert dossier["candidate_evidence"][0]["candidate_status"] == "candidate_only"
+
+
+def test_csv_loader_preserves_identifiers_and_printed_precision(tmp_path: Path) -> None:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("inspect_sr_cli_csv", SCRIPT)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    path = tmp_path / "records.csv"
+    path.write_text("source_id,raw_value,printed_p\n00123,0.50,NA\n", encoding="utf-8")
+    assert module.read_records(path) == [
+        {"source_id": "00123", "raw_value": "0.50", "printed_p": "NA"}
+    ]
+
+
+def test_private_record_path_rejects_absolute_and_traversal_ids(
+    monkeypatch, tmp_path: Path
+) -> None:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("inspect_sr_cli_paths", SCRIPT)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    store = tmp_path / "data" / "private" / "inspect_sr"
+    for record_id in ("/tmp/escape", "../escape", "a/b"):
+        with pytest.raises(ValueError):
+            module.record_path(store, "reports", record_id)
+    store.mkdir(parents=True)
+    (store / "reports").symlink_to(tmp_path / "outside", target_is_directory=True)
+    with pytest.raises(ValueError, match="escapes"):
+        module.record_path(store, "reports", "review-1")

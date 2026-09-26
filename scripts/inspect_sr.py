@@ -43,6 +43,7 @@ from research_project.inspect_sr.review import (
     finalize_review,
     resolve_reviews,
 )
+from research_project.inspect_sr.snapshot import create_source_snapshot, validate_source_snapshot
 from research_project.inspect_sr.synthesis_export import build_synthesis_export
 from research_project.inspect_sr.validation import (
     validate_finalization,
@@ -56,8 +57,8 @@ def read_json(path: Path) -> Any:
 
 def read_records(path: Path) -> list[dict[str, Any]]:
     if path.suffix.lower() == ".csv":
-        frame = pd.read_csv(path)
-        return frame.astype(object).where(pd.notna(frame), None).to_dict(orient="records")
+        frame = pd.read_csv(path, dtype=str, keep_default_na=False)
+        return frame.to_dict(orient="records")
     value = read_json(path)
     if not isinstance(value, list) or any(not isinstance(row, dict) for row in value):
         raise ValueError(f"Expected a JSON list of records in {path}.")
@@ -80,7 +81,75 @@ def private_root(path: Path) -> Path:
 
 
 def record_path(store: Path, folder: str, record_id: str, suffix: str = ".json") -> Path:
-    return private_root(store) / folder / f"{record_id}{suffix}"
+    for component in (folder, record_id):
+        if not component or component in {".", ".."} or Path(component).name != component:
+            raise ValueError("Private record path components must be simple identifiers.")
+    root = private_root(store)
+    destination = root / folder / f"{record_id}{suffix}"
+    if root not in destination.resolve().parents:
+        raise ValueError("Private record destination escapes the private store.")
+    return destination
+
+
+def load_current_snapshot(store: Path, assessment: dict[str, Any], digest: str) -> dict[str, Any]:
+    if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+        raise ValueError("A current source snapshot SHA-256 is required.")
+    snapshot = read_json(record_path(store, "snapshots", digest))
+    validate_source_snapshot(
+        snapshot, assessment, snapshot["source_versions"], snapshot["evidence_records"]
+    )
+    if snapshot["source_snapshot_sha256"] != digest:
+        raise ValueError("Stored source snapshot does not match its requested identity.")
+    return snapshot
+
+
+def stored_record(
+    store: Path, folder: str, record: dict[str, Any], id_field: str
+) -> dict[str, Any]:
+    stored = read_json(record_path(store, folder, str(record[id_field])))
+    if stored != record:
+        raise ValueError(f"Referenced {folder} record differs from the private store.")
+    return stored
+
+
+def stored_review_chain(store: Path, finalization: dict[str, Any]) -> dict[str, Any]:
+    stored_record(store, "finalizations", finalization, "finalization_id")
+    assessment = read_json(record_path(store, "assessments", finalization["assessment_id"]))
+    validate_assessment(assessment)
+    snapshot = load_current_snapshot(store, assessment, finalization["source_snapshot_sha256"])
+    adjudication = read_json(record_path(store, "adjudications", finalization["adjudication_id"]))
+    if sorted(adjudication["reviewer_submission_ids"]) != sorted(
+        finalization["reviewer_submission_ids"]
+    ):
+        raise ValueError("Adjudication and finalization reviewer references differ.")
+    reviewers = [
+        read_json(record_path(store, "reviewer-submissions", item))
+        for item in adjudication["reviewer_submission_ids"]
+    ]
+    resolved = read_json(record_path(store, "resolved-reviews", finalization["review_record_id"]))
+    if resolve_reviews(reviewers[0], reviewers[1], adjudication) != resolved:
+        raise ValueError(
+            "Stored resolved review differs from its human submissions and adjudication."
+        )
+    return {
+        "assessment": assessment,
+        "source_snapshot": snapshot,
+        "source_versions": snapshot["source_versions"],
+        "evidence_records": snapshot["evidence_records"],
+        "candidate_dossier": {"coverage": [], "candidate_evidence": []},
+        "reviewer_submissions": reviewers,
+        "adjudication": adjudication,
+    }
+
+
+def command_snapshot(args: argparse.Namespace) -> None:
+    assessment = read_json(args.assessment)
+    snapshot = create_source_snapshot(
+        assessment, read_records(args.source_versions), read_records(args.evidence)
+    )
+    store = private_root(args.store)
+    write_exclusive(record_path(store, "snapshots", snapshot["source_snapshot_sha256"]), snapshot)
+    print(snapshot["source_snapshot_sha256"])
 
 
 def command_prepare(args: argparse.Namespace) -> None:
@@ -120,27 +189,33 @@ def command_prepare_evidence(args: argparse.Namespace) -> None:
     )
     store = private_root(args.store)
     source_version = {
-        "schema_version": "inspect_sr_source_version_v1",
+        "schema_version": "inspect_sr_source_version_v2",
         "record_type": "source_version",
         "source_id": args.source_id,
         "source_version_id": sourcever,
         "source_name": source.name,
+        "source_path": str(source),
         "content_sha256": content_hash,
     }
-    version_path = record_path(store, "source-versions", sourcever)
+    version_path = record_path(store, "source-versions-v2", sourcever)
     if version_path.exists():
         if read_json(version_path) != source_version:
             raise ValueError("Stored source-version identity conflicts with its content hash.")
     else:
         write_exclusive(version_path, source_version)
-    write_exclusive(record_path(store, "evidence", evidence["evidence_id"]), evidence)
+    evidence_path = record_path(store, "evidence", evidence["evidence_id"])
+    if evidence_path.exists():
+        if read_json(evidence_path) != evidence:
+            raise ValueError("Stored evidence identity conflicts with its content.")
+    else:
+        write_exclusive(evidence_path, evidence)
     print(evidence["evidence_id"])
 
 
 def command_manual_evidence(args: argparse.Namespace) -> None:
     record = validate_manual_evidence(read_json(args.record))
     version_path = record_path(
-        private_root(args.store), "source-versions", str(record["source_version_id"])
+        private_root(args.store), "source-versions-v2", str(record["source_version_id"])
     )
     if not version_path.is_file():
         raise ValueError(
@@ -160,6 +235,12 @@ def command_manual_evidence(args: argparse.Namespace) -> None:
 def command_submit(args: argparse.Namespace) -> None:
     assessment = read_json(args.assessment)
     validate_assessment(assessment)
+    snapshot = load_current_snapshot(
+        private_root(args.store), assessment, args.source_snapshot_sha256
+    )
+    available_ids = {item["evidence_id"] for item in snapshot["evidence_records"]}
+    if any(set(row.get("evidence_ids", [])) - available_ids for row in read_json(args.checks)):
+        raise ValueError("Reviewer submission references evidence outside the current snapshot.")
     submission = create_reviewer_submission(
         assessment,
         reviewer_id=args.reviewer_id,
@@ -181,6 +262,13 @@ def command_compare(args: argparse.Namespace) -> None:
 
 def command_adjudicate(args: argparse.Namespace) -> None:
     first, second = read_json(args.first), read_json(args.second)
+    store = private_root(args.store)
+    stored_record(store, "reviewer-submissions", first, "submission_id")
+    stored_record(store, "reviewer-submissions", second, "submission_id")
+    assessment = read_json(record_path(store, "assessments", first["assessment_id"]))
+    snapshot = load_current_snapshot(store, assessment, first["source_snapshot_sha256"])
+    if second["source_snapshot_sha256"] != snapshot["source_snapshot_sha256"]:
+        raise ValueError("Reviewers must use the same current source snapshot.")
     adjudication = create_adjudication_record(
         first,
         second,
@@ -188,7 +276,9 @@ def command_adjudicate(args: argparse.Namespace) -> None:
         decisions=read_json(args.decisions),
     )
     resolved = resolve_reviews(first, second, adjudication)
-    store = private_root(args.store)
+    available_ids = {item["evidence_id"] for item in snapshot["evidence_records"]}
+    if any(set(row["evidence_ids"]) - available_ids for row in resolved["checks"]):
+        raise ValueError("Adjudication references evidence outside the current snapshot.")
     write_exclusive(
         record_path(store, "adjudications", adjudication["adjudication_id"]), adjudication
     )
@@ -200,6 +290,24 @@ def command_adjudicate(args: argparse.Namespace) -> None:
 
 def command_finalize(args: argparse.Namespace) -> None:
     review = read_json(args.review)
+    store = private_root(args.store)
+    if review.get("record_type") != "resolved_human_review":
+        raise ValueError("CLI finalization requires two reviewed submissions and adjudication.")
+    stored_record(store, "resolved-reviews", review, "resolved_review_id")
+    assessment = read_json(record_path(store, "assessments", review["assessment_id"]))
+    snapshot = load_current_snapshot(store, assessment, review["source_snapshot_sha256"])
+    adjudication = read_json(record_path(store, "adjudications", review["adjudication_id"]))
+    reviewers = [
+        read_json(record_path(store, "reviewer-submissions", item))
+        for item in adjudication["reviewer_submission_ids"]
+    ]
+    if resolve_reviews(reviewers[0], reviewers[1], adjudication) != review:
+        raise ValueError("Resolved review does not match its original human record chain.")
+    available_ids = {item["evidence_id"] for item in snapshot["evidence_records"]}
+    if not available_ids or any(
+        set(row["evidence_ids"]) - available_ids for row in review["checks"]
+    ):
+        raise ValueError("Finalization requires current source evidence for every referenced ID.")
     finalization = finalize_review(
         review,
         read_json(args.judgments),
@@ -207,7 +315,7 @@ def command_finalize(args: argparse.Namespace) -> None:
         early_stop_reason=args.early_stop_reason,
     )
     write_exclusive(
-        record_path(private_root(args.store), "finalizations", finalization["finalization_id"]),
+        record_path(store, "finalizations", finalization["finalization_id"]),
         finalization,
     )
     print(finalization["finalization_id"])
@@ -266,9 +374,25 @@ def command_validate(args: argparse.Namespace) -> None:
     elif args.kind == "reviewer-submission":
         validate_reviewer_submission(record)
     elif args.kind == "finalization":
-        if not args.source_snapshot_sha256:
-            raise ValueError("Finalization validation requires the current source snapshot hash.")
-        validate_finalization(record, current_source_snapshot_sha256=args.source_snapshot_sha256)
+        chain = stored_review_chain(private_root(args.store), record)
+        validate_finalization(
+            record,
+            current_source_snapshot_sha256=chain["source_snapshot"]["source_snapshot_sha256"],
+        )
+        model = build_report_model(
+            assessment=chain["assessment"],
+            catalogue=load_catalogue(args.catalogue),
+            source_versions=chain["source_versions"],
+            evidence_records=chain["evidence_records"],
+            candidate_dossier=chain["candidate_dossier"],
+            reviewer_submissions=chain["reviewer_submissions"],
+            adjudication=chain["adjudication"],
+            finalization=record,
+            current_source_snapshot_sha256=chain["source_snapshot"]["source_snapshot_sha256"],
+            source_snapshot=chain["source_snapshot"],
+        )
+        if not model["report_status"].startswith("FINALIZED"):
+            raise ValueError("Finalization has no complete current review chain.")
     elif args.kind == "manual-evidence":
         validate_manual_evidence(record)
     elif args.kind == "catalogue":
@@ -286,19 +410,39 @@ def command_validate(args: argparse.Namespace) -> None:
 def command_render(args: argparse.Namespace) -> None:
     store = private_root(args.store)
     assessment = read_json(args.assessment)
+    snapshot = load_current_snapshot(store, assessment, args.source_snapshot_sha256)
+    sources = read_records(args.source_versions)
+    evidence = read_records(args.evidence)
+    validate_source_snapshot(snapshot, assessment, sources, evidence)
+    finalization = read_json(args.finalization) if args.finalization else None
+    reviewers = [read_json(path) for path in args.reviewer_submission]
+    adjudication = read_json(args.adjudication) if args.adjudication else None
+    if finalization is not None:
+        chain = stored_review_chain(store, finalization)
+        if (
+            chain["assessment"] != assessment
+            or {item["submission_id"]: item for item in chain["reviewer_submissions"]}
+            != {item["submission_id"]: item for item in reviewers}
+            or chain["adjudication"] != adjudication
+        ):
+            raise ValueError("Finalized report inputs differ from their stored review chain.")
+        reviewers = chain["reviewer_submissions"]
     model = build_report_model(
         assessment=assessment,
         catalogue=load_catalogue(args.catalogue),
-        source_versions=read_records(args.source_versions),
-        evidence_records=read_records(args.evidence),
+        source_versions=sources,
+        evidence_records=evidence,
         candidate_dossier=read_json(args.candidates),
-        reviewer_submissions=[read_json(path) for path in args.reviewer_submission],
-        adjudication=read_json(args.adjudication) if args.adjudication else None,
-        finalization=read_json(args.finalization) if args.finalization else None,
+        reviewer_submissions=reviewers,
+        adjudication=adjudication,
+        finalization=finalization,
         method_receipts=read_records(args.receipts),
         current_source_snapshot_sha256=args.source_snapshot_sha256,
+        source_snapshot=snapshot,
     )
-    report_dir = store / "reports" / assessment["assessment_id"] / args.revision
+    report_dir = record_path(
+        store / "reports", assessment["assessment_id"], args.revision, suffix=""
+    )
     model_path = report_dir / "report-model.json"
     write_exclusive(model_path, model)
     qmd = ROOT / "notebooks" / "inspect_sr_assessment.qmd"
@@ -324,8 +468,15 @@ def command_render(args: argparse.Namespace) -> None:
 
 
 def command_export(args: argparse.Namespace) -> None:
+    store = private_root(args.store)
+    finalizations = [read_json(path) for path in args.finalization]
+    catalogue = load_catalogue(args.catalogue)
+    contexts = {}
+    for finalization in finalizations:
+        chain = stored_review_chain(store, finalization)
+        contexts[finalization["trial_id"]] = {**chain, "catalogue": catalogue}
     output = build_synthesis_export(
-        [read_json(path) for path in args.finalization],
+        finalizations,
         read_json(args.reports),
         read_json(args.comparisons),
         read_json(args.policy),
@@ -336,8 +487,9 @@ def command_export(args: argparse.Namespace) -> None:
         public=args.public,
         public_trial_ids=args.trial_id or (),
         public_reviewed_by=args.reviewed_by,
+        review_context_by_trial=contexts,
     )
-    target = private_root(args.store) / "exports" / args.output.name
+    target = record_path(store, "exports", args.output.name, suffix="")
     if args.public:
         target = args.output.resolve()
         if private_root(args.store) in target.parents:
@@ -354,12 +506,12 @@ def command_export(args: argparse.Namespace) -> None:
             "destination": str(target),
             "trial_ids": list(args.trial_id or ()),
         }
-    write_exclusive(target, output)
     if args.public:
         write_exclusive(
-            private_root(args.store) / "public-export-approvals" / f"{payload_hash}.json",
+            record_path(store, "public-export-approvals", payload_hash),
             approval,
         )
+    write_exclusive(target, output)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -389,6 +541,13 @@ def build_parser() -> argparse.ArgumentParser:
     evidence.add_argument("--extraction-version", required=True)
     evidence.add_argument("--store", type=Path, default=ROOT / "data/private/inspect_sr")
     evidence.set_defaults(func=command_prepare_evidence)
+
+    snapshot = commands.add_parser("snapshot", help="Pin current local sources and evidence.")
+    snapshot.add_argument("--assessment", type=Path, required=True)
+    snapshot.add_argument("--source-versions", type=Path, required=True)
+    snapshot.add_argument("--evidence", type=Path, required=True)
+    snapshot.add_argument("--store", type=Path, default=ROOT / "data/private/inspect_sr")
+    snapshot.set_defaults(func=command_snapshot)
 
     manual = commands.add_parser(
         "manual-evidence", help="Validate and store one append-only human evidence record."
@@ -456,6 +615,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     validate.add_argument("--record", type=Path, required=True)
     validate.add_argument("--source-snapshot-sha256")
+    validate.add_argument(
+        "--catalogue", type=Path, default=ROOT / "config/inspect_sr/v1.1.2/catalogue.json"
+    )
+    validate.add_argument("--store", type=Path, default=ROOT / "data/private/inspect_sr")
     validate.set_defaults(func=command_validate)
 
     render = commands.add_parser(
@@ -484,6 +647,9 @@ def build_parser() -> argparse.ArgumentParser:
     export.add_argument("--comparisons", type=Path, required=True)
     export.add_argument("--policy", type=Path, required=True)
     export.add_argument("--guidance-sha256", required=True)
+    export.add_argument(
+        "--catalogue", type=Path, default=ROOT / "config/inspect_sr/v1.1.2/catalogue.json"
+    )
     export.add_argument("--current-sources", type=Path, required=True)
     export.add_argument("--unresolved", choices=["block", "list"], required=True)
     export.add_argument("--policy-variant", choices=["primary", "sensitivity"], required=True)

@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 import pytest
 
-from research_project.inspect_sr.records import EXPECTED_CHECK_IDS, create_assessment
+from research_project.inspect_sr.records import (
+    EXPECTED_CHECK_IDS,
+    create_assessment,
+    validate_assessment,
+)
 from research_project.inspect_sr.review import (
     build_disagreement_table,
     build_private_query_draft,
@@ -240,3 +246,57 @@ def test_author_contact_route_only_builds_private_draft() -> None:
     assert draft["status"] == "draft_only"
     assert draft["delivery_status"] == "not_sent"
     assert "message_sent" not in draft
+
+
+@pytest.mark.parametrize(
+    "field,value", [("trial_id", "other-trial"), ("guidance_sha256", "b" * 64)]
+)
+def test_reviewer_identity_binds_trial_and_guidance(field: str, value: str) -> None:
+    first, _ = _submissions()
+    changed = deepcopy(first)
+    changed[field] = value
+    with pytest.raises(ValueError, match="identity"):
+        validate_reviewer_submission(changed)
+
+
+def test_assessment_identity_binds_trial_and_guidance() -> None:
+    assessment = create_assessment("trial-original", "1.1.2", "a" * 64)
+    for key, value in (("trial_id", "trial-changed"), ("guidance_sha256", "b" * 64)):
+        changed = deepcopy(assessment)
+        changed[key] = value
+        with pytest.raises(ValueError, match="identity"):
+            validate_assessment(changed)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("trial_id", "other-trial"),
+        ("adjudication_id", "other-adjudication"),
+        ("guidance_sha256", "b" * 64),
+    ],
+)
+def test_finalization_identity_binds_references(field: str, value: str) -> None:
+    first, second = _submissions()
+    adjudication = create_adjudication_record(
+        first,
+        second,
+        adjudicator_id="chair",
+        decisions=[
+            {"check_id": "1.1", "response": "Unclear", "rationale": "Reviewed.", "evidence_ids": []}
+        ],
+    )
+    final = finalize_review(
+        resolve_reviews(first, second, adjudication),
+        {
+            "domains": [
+                {"domain_id": str(i), "judgment": "some concerns", "rationale": "Reviewed."}
+                for i in range(1, 5)
+            ],
+            "overall": {"judgment": "some concerns", "rationale": "Reviewed."},
+        },
+    )
+    changed = deepcopy(final)
+    changed[field] = value
+    with pytest.raises(ValueError, match="identity"):
+        validate_finalization(changed, current_source_snapshot_sha256="a" * 64)

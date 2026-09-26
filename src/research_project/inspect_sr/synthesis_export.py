@@ -8,6 +8,7 @@ from datetime import date
 from typing import Any
 
 from research_project.inspect_sr.records import EXPECTED_CHECK_IDS
+from research_project.inspect_sr.reporting import build_report_model
 from research_project.inspect_sr.validation import validate_finalization, validate_judgment_set
 
 POLICY_SCHEMA = "inspect_sr_synthesis_policy_v1"
@@ -49,7 +50,7 @@ def validate_synthesis_policy(policy: Mapping[str, Any], *, guidance_sha256: str
 
 
 def _finalized_adjudicated(review: Mapping[str, Any]) -> bool:
-    if review.get("schema_version") != "inspect_sr_finalization_v2":
+    if review.get("schema_version") != "inspect_sr_finalization_v3":
         return False
     if review.get("record_type") != "human_finalization":
         return False
@@ -129,6 +130,7 @@ def build_synthesis_export(
     public: bool = False,
     public_trial_ids: Sequence[str] = (),
     public_reviewed_by: str | None = None,
+    review_context_by_trial: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     validated_policy = validate_synthesis_policy(policy, guidance_sha256=guidance_sha256)
     if unresolved_policy not in {"block", "list"}:
@@ -151,7 +153,33 @@ def build_synthesis_export(
                 raise ValueError("Source snapshot changed; a new reviewed revision is required.")
             by_trial[trial_id] = None
         else:
-            by_trial[trial_id] = review
+            if not _finalized_adjudicated(review):
+                if unresolved_policy == "block":
+                    raise ValueError(
+                        "Unresolved assessments without a finalized adjudicated review "
+                        "block synthesis inclusion export."
+                    )
+                by_trial[trial_id] = None
+                continue
+            context = (review_context_by_trial or {}).get(trial_id)
+            if context is None:
+                if unresolved_policy == "block":
+                    raise ValueError(
+                        "Actionable export requires the complete current review chain."
+                    )
+                by_trial[trial_id] = None
+                continue
+            model = build_report_model(
+                **context,
+                finalization=review,
+                current_source_snapshot_sha256=current_source_snapshot_sha256_by_trial[trial_id],
+            )
+            if not model["report_status"].startswith("FINALIZED"):
+                if unresolved_policy == "block":
+                    raise ValueError("Actionable export requires a current finalized review chain.")
+                by_trial[trial_id] = None
+            else:
+                by_trial[trial_id] = review
     if public:
         if not public_reviewed_by or not public_trial_ids:
             raise ValueError("Public export requires explicit trial selection and review identity.")
@@ -222,7 +250,7 @@ def build_synthesis_export(
     report_dispositions = join_rows(report_rows, "report")
     comparison_dispositions = join_rows(comparison_rows, "comparison")
     result = {
-        "schema_version": "inspect_sr_synthesis_export_v2",
+        "schema_version": "inspect_sr_synthesis_export_v3",
         "policy_id": validated_policy["policy_id"],
         "policy_version": validated_policy["policy_version"],
         "policy_variant": policy_variant,

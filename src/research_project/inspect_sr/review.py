@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any
 
 from research_project.inspect_sr.records import CHECK_RESPONSES, EXPECTED_CHECK_IDS
 from research_project.inspect_sr.validation import (
+    immutable_record_id,
+    validate_reviewer_submission,
+)
+from research_project.inspect_sr.validation import (
     validate_finalization as _validate_finalization,
 )
 from research_project.inspect_sr.validation import (
     validate_judgment_set as _validate_judgment_set,
-)
-from research_project.inspect_sr.validation import (
-    validate_reviewer_submission,
 )
 
 __all__ = [
@@ -39,11 +38,6 @@ def validate_finalization(
     _validate_finalization(
         finalization, current_source_snapshot_sha256=current_source_snapshot_sha256
     )
-
-
-def _hash_id(prefix: str, record: Mapping[str, Any]) -> str:
-    payload = json.dumps(record, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    return prefix + hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _source_hash(value: str) -> str:
@@ -97,17 +91,9 @@ def create_reviewer_submission(
                 "evidence_ids": list(dict.fromkeys(str(item) for item in evidence_ids)),
             }
         )
-    content_identity = {
-        "assessment_id": assessment["assessment_id"],
-        "reviewer_id": reviewer_id,
-        "source_snapshot_sha256": source_hash,
-        "submission_revision": submission_revision,
-        "checks": normalized_checks,
-    }
     submission = {
-        "schema_version": "inspect_sr_reviewer_submission_v2",
+        "schema_version": "inspect_sr_reviewer_submission_v3",
         "record_type": "human_reviewer_submission",
-        "submission_id": _hash_id("submission_", content_identity),
         "assessment_id": assessment["assessment_id"],
         "trial_id": assessment["trial_id"],
         "guidance_version": assessment["guidance_version"],
@@ -123,6 +109,7 @@ def create_reviewer_submission(
         ),
         "checks": normalized_checks,
     }
+    submission["submission_id"] = immutable_record_id(submission, "submission_id", "submission_")
     validate_reviewer_submission(submission)
     return submission
 
@@ -205,15 +192,9 @@ def create_adjudication_record(
             "rationale": rationale,
             "evidence_ids": list(dict.fromkeys(str(item) for item in evidence_ids)),
         }
-    content_identity = {
-        "reviewer_submission_ids": sorted([first["submission_id"], second["submission_id"]]),
-        "adjudicator_id": adjudicator_id,
-        "decisions": normalized,
-    }
     result = {
-        "schema_version": "inspect_sr_adjudication_v2",
+        "schema_version": "inspect_sr_adjudication_v3",
         "record_type": "human_adjudication",
-        "adjudication_id": _hash_id("adjudication_", content_identity),
         "assessment_id": first["assessment_id"],
         "reviewer_submission_ids": [first["submission_id"], second["submission_id"]],
         "reviewer_ids": [first["reviewer_id"], second["reviewer_id"]],
@@ -223,6 +204,7 @@ def create_adjudication_record(
         "decisions": [normalized[key] for key in EXPECTED_CHECK_IDS if key in normalized],
         "disagreement_table": disagreements,
     }
+    result["adjudication_id"] = immutable_record_id(result, "adjudication_id", "adjudication_")
     return result
 
 
@@ -233,23 +215,9 @@ def resolve_reviews(
     expected_ids = sorted([first["submission_id"], second["submission_id"]])
     if sorted(adjudication.get("reviewer_submission_ids", [])) != expected_ids:
         raise ValueError("Adjudication does not reference these original reviewer submissions.")
-    normalized_decisions = {
-        row["check_id"]: {
-            "check_id": row["check_id"],
-            "response": row.get("response"),
-            "rationale": row.get("rationale"),
-            "evidence_ids": row.get("evidence_ids"),
-        }
-        for row in adjudication.get("decisions", [])
-    }
-    adjudication_identity = {
-        "reviewer_submission_ids": expected_ids,
-        "adjudicator_id": adjudication.get("adjudicator_id"),
-        "decisions": normalized_decisions,
-    }
-    if adjudication.get("schema_version") != "inspect_sr_adjudication_v2" or adjudication.get(
+    if adjudication.get("schema_version") != "inspect_sr_adjudication_v3" or adjudication.get(
         "adjudication_id"
-    ) != _hash_id("adjudication_", adjudication_identity):
+    ) != immutable_record_id(adjudication, "adjudication_id", "adjudication_"):
         raise ValueError("Adjudication content does not match its immutable identity.")
     decisions = {row["check_id"]: row for row in adjudication.get("decisions", [])}
     rows_a = {row["check_id"]: row for row in first["checks"]}
@@ -282,7 +250,7 @@ def resolve_reviews(
             }
         resolved.append(row)
     resolved = {
-        "schema_version": "inspect_sr_resolved_review_v2",
+        "schema_version": "inspect_sr_resolved_review_v3",
         "record_type": "resolved_human_review",
         "assessment_id": first["assessment_id"],
         "trial_id": first["trial_id"],
@@ -293,21 +261,8 @@ def resolve_reviews(
         "source_snapshot_sha256": first["source_snapshot_sha256"],
         "checks": resolved,
     }
-    resolved["resolved_review_id"] = _hash_id(
-        "resolved_",
-        {
-            key: resolved[key]
-            for key in (
-                "assessment_id",
-                "trial_id",
-                "guidance_version",
-                "guidance_sha256",
-                "reviewer_submission_ids",
-                "adjudication_id",
-                "source_snapshot_sha256",
-                "checks",
-            )
-        },
+    resolved["resolved_review_id"] = immutable_record_id(
+        resolved, "resolved_review_id", "resolved_"
     )
     return resolved
 
@@ -331,24 +286,9 @@ def finalize_review(
     if review_record.get("record_type") == "human_reviewer_submission":
         validate_reviewer_submission(review_record)
     if review_record.get("record_type") == "resolved_human_review":
-        expected_resolved_id = _hash_id(
-            "resolved_",
-            {
-                key: review_record.get(key)
-                for key in (
-                    "assessment_id",
-                    "trial_id",
-                    "guidance_version",
-                    "guidance_sha256",
-                    "reviewer_submission_ids",
-                    "adjudication_id",
-                    "source_snapshot_sha256",
-                    "checks",
-                )
-            },
-        )
+        expected_resolved_id = immutable_record_id(review_record, "resolved_review_id", "resolved_")
         if (
-            review_record.get("schema_version") != "inspect_sr_resolved_review_v2"
+            review_record.get("schema_version") != "inspect_sr_resolved_review_v3"
             or review_record.get("resolved_review_id") != expected_resolved_id
             or not review_record.get("adjudication_id")
             or len(set(review_record.get("reviewer_submission_ids", []))) != 2
@@ -378,18 +318,8 @@ def finalize_review(
         for row in checks:
             row["workflow_status"] = "assessed"
     finalization = {
-        "schema_version": "inspect_sr_finalization_v2",
+        "schema_version": "inspect_sr_finalization_v3",
         "record_type": "human_finalization",
-        "finalization_id": _hash_id(
-            "finalization_",
-            {
-                "review_record_id": review_record.get(
-                    "resolved_review_id", review_record.get("submission_id")
-                ),
-                "judgments": validated_judgments,
-                "early_stop_reason": early_stop_reason,
-            },
-        ),
         "assessment_id": review_record["assessment_id"],
         "trial_id": review_record["trial_id"],
         "guidance_version": review_record["guidance_version"],
@@ -406,6 +336,9 @@ def finalize_review(
         "judgments": validated_judgments,
         "finalized_at": datetime.now(UTC).isoformat(),
     }
+    finalization["finalization_id"] = immutable_record_id(
+        finalization, "finalization_id", "finalization_"
+    )
     validate_finalization(
         finalization,
         current_source_snapshot_sha256=str(finalization["source_snapshot_sha256"]),
@@ -431,17 +364,9 @@ def create_review_revision(
         }
         for check_id in EXPECTED_CHECK_IDS
     ]
-    identity = {
-        "assessment_id": previous["assessment_id"],
-        "reviewer_id": previous["reviewer_id"],
-        "source_snapshot_sha256": source_hash,
-        "submission_revision": revision,
-        "checks": checks,
-    }
     result = {
-        "schema_version": "inspect_sr_reviewer_submission_v2",
+        "schema_version": "inspect_sr_reviewer_submission_v3",
         "record_type": "human_reviewer_submission",
-        "submission_id": _hash_id("submission_", identity),
         "assessment_id": previous["assessment_id"],
         "trial_id": previous["trial_id"],
         "guidance_version": previous["guidance_version"],
@@ -454,6 +379,7 @@ def create_review_revision(
         "workflow_status": "requires_reapproval",
         "checks": checks,
     }
+    result["submission_id"] = immutable_record_id(result, "submission_id", "submission_")
     validate_reviewer_submission(result)
     return result
 

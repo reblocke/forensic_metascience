@@ -7,7 +7,12 @@ from typing import Any
 
 from research_project.inspect_sr.manual_evidence import validate_manual_evidence
 from research_project.inspect_sr.records import EXPECTED_CHECK_IDS, validate_assessment
-from research_project.inspect_sr.validation import validate_finalization
+from research_project.inspect_sr.review import resolve_reviews
+from research_project.inspect_sr.snapshot import validate_source_snapshot
+from research_project.inspect_sr.validation import (
+    validate_finalization,
+    validate_reviewer_submission,
+)
 
 
 def build_report_model(
@@ -22,6 +27,7 @@ def build_report_model(
     finalization: Mapping[str, Any] | None,
     method_receipts: Sequence[Mapping[str, Any]] = (),
     current_source_snapshot_sha256: str | None = None,
+    source_snapshot: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     assessment_copy = dict(assessment)
     validate_assessment(assessment_copy)
@@ -57,8 +63,8 @@ def build_report_model(
     final_is_current = False
     finalization_source_status = "not_finalized"
     if finalization is not None:
-        if finalization.get("schema_version") != "inspect_sr_finalization_v2":
-            raise ValueError("Report finalization input must use the current v2 contract.")
+        if finalization.get("schema_version") != "inspect_sr_finalization_v3":
+            raise ValueError("Report finalization input must use the current v3 contract.")
         if finalization.get("record_type") != "human_finalization":
             raise ValueError(
                 "Report finalization input must be an explicit human finalization record."
@@ -67,24 +73,58 @@ def build_report_model(
             raise ValueError("Finalization belongs to a different assessment.")
         if finalization.get("guidance_sha256") != assessment_copy.get("guidance_sha256"):
             raise ValueError("Finalization guidance hash does not match the assessment.")
+        if not source_versions or not evidence_records or len(reviewer_submissions) != 2:
+            raise ValueError(
+                "Finalized reports require source, evidence, and two reviewer records."
+            )
+        if source_snapshot is None:
+            raise ValueError("Finalized reports require a verified local source snapshot.")
+        validate_source_snapshot(
+            source_snapshot, assessment_copy, source_versions, evidence_records
+        )
+        if current_source_snapshot_sha256 != source_snapshot["source_snapshot_sha256"]:
+            raise ValueError("Report source snapshot does not match current records.")
+        if catalogue.get("guidance_sha256") != assessment_copy["guidance_sha256"]:
+            raise ValueError("Report catalogue guidance differs from the assessment.")
         validate_finalization(
             finalization,
-            current_source_snapshot_sha256=str(finalization.get("source_snapshot_sha256", "")),
+            current_source_snapshot_sha256=current_source_snapshot_sha256,
         )
-        if finalization.get("adjudication_id") and (
-            adjudication is None
-            or adjudication.get("adjudication_id") != finalization.get("adjudication_id")
+        for submission in reviewer_submissions:
+            validate_reviewer_submission(submission)
+            if (
+                any(
+                    submission.get(key) != assessment_copy.get(key)
+                    for key in ("assessment_id", "trial_id", "guidance_sha256")
+                )
+                or submission.get("source_snapshot_sha256") != current_source_snapshot_sha256
+            ):
+                raise ValueError("Reviewer submission does not match current assessment or source.")
+        if adjudication is None:
+            raise ValueError("Finalized report requires its adjudication record.")
+        resolved = resolve_reviews(reviewer_submissions[0], reviewer_submissions[1], adjudication)
+        if (
+            finalization.get("review_record_id") != resolved["resolved_review_id"]
+            or finalization.get("adjudication_id") != adjudication.get("adjudication_id")
+            or sorted(finalization.get("reviewer_submission_ids", []))
+            != resolved["reviewer_submission_ids"]
         ):
-            raise ValueError("Report adjudication does not match the finalization reference.")
+            raise ValueError("Finalization references do not match the complete reviewed chain.")
+        for recorded, expected in zip(finalization["checks"], resolved["checks"], strict=True):
+            if any(
+                recorded.get(key) != expected.get(key)
+                for key in ("check_id", "response", "rationale", "evidence_ids")
+            ):
+                raise ValueError("Finalized response differs from its resolved human review.")
+        available_ids = {item["evidence_id"] for item in evidence_records}
+        for row in finalization["checks"]:
+            if set(row.get("evidence_ids", [])) - available_ids:
+                raise ValueError("Finalized response references missing source evidence.")
         if not current_source_snapshot_sha256:
             raise ValueError(
                 "Current source snapshot hash is required to show finalized judgments."
             )
-        final_is_current = (
-            finalization.get("source_snapshot_sha256") == current_source_snapshot_sha256
-            and bool(finalization.get("adjudication_id"))
-            and finalization.get("workflow_status") in {"finalized", "finalized_early_stop"}
-        )
+        final_is_current = True
         if finalization.get("source_snapshot_sha256") != current_source_snapshot_sha256:
             finalization_source_status = "changed_requires_reapproval"
         elif not finalization.get("adjudication_id"):

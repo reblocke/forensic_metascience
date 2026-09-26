@@ -216,6 +216,16 @@ def create_assessment(trial_id: str, guidance_version: str, guidance_sha256: str
 def validate_assessment(assessment: dict[str, Any]) -> None:
     if assessment.get("schema_version") != ASSESSMENT_SCHEMA:
         raise ValueError("Unsupported INSPECT-SR assessment schema.")
+    expected_id = _stable_id(
+        "assessment",
+        {
+            "trial_id": assessment.get("trial_id"),
+            "guidance_version": assessment.get("guidance_version"),
+            "guidance_sha256": assessment.get("guidance_sha256"),
+        },
+    )
+    if assessment.get("assessment_id") != expected_id:
+        raise ValueError("Assessment identity does not match trial and guidance content.")
     checks = assessment.get("checks")
     if not isinstance(checks, list) or [item.get("check_id") for item in checks] != list(
         EXPECTED_CHECK_IDS
