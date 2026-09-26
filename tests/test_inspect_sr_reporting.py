@@ -378,6 +378,7 @@ def test_report_draft_has_no_computed_judgment_or_legacy_category() -> None:
         adjudication=None,
         finalization=None,
     )
+    assert model["schema_version"] == "inspect_sr_report_model_v2"
     assert model["report_status"] == "DRAFT — PENDING"
     assert model["judgments"] is None
     assert all(check["workflow_status"] == "pending" for check in model["checks"])
@@ -402,13 +403,45 @@ def test_report_draft_has_no_computed_judgment_or_legacy_category() -> None:
         )
 
 
+def test_report_rejects_candidate_without_current_receipt_and_evidence() -> None:
+    assessment = create_assessment("trial-candidate", "1.1.2", "a" * 64)
+    with pytest.raises(ValueError, match="Candidate"):
+        build_report_model(
+            assessment=assessment,
+            catalogue={
+                "checks": [
+                    {"check_id": check_id, "official_wording": check_id}
+                    for check_id in EXPECTED_CHECK_IDS
+                ]
+            },
+            source_versions=[],
+            evidence_records=[],
+            candidate_dossier={
+                "coverage": [],
+                "candidate_evidence": [
+                    {
+                        "check_id": "1.1",
+                        "method_id": "scrutiny_grim_map",
+                        "run_id": "old-run",
+                        "evidence_ids": ["missing"],
+                        "candidate_status": "candidate_only",
+                    }
+                ],
+            },
+            reviewer_submissions=[],
+            adjudication=None,
+            finalization=None,
+            method_receipts=[],
+        )
+
+
 def test_inspect_sr_report_qmd_renders_html_and_pdf_in_requested_directory(tmp_path: Path) -> None:
     if not shutil.which("quarto"):
         if os.environ.get("FORENSICS_REQUIRE_REPORT_INTEGRATION") == "1":
             pytest.fail("Quarto is required by FORENSICS_REQUIRE_REPORT_INTEGRATION=1")
         pytest.skip("Quarto is unavailable; native report integration remains open.")
     model = {
-        "schema_version": "inspect_sr_report_model_v1",
+        "schema_version": "inspect_sr_report_model_v2",
         "report_status": "DRAFT — PENDING",
         "trial_id": "trial-fixture",
         "guidance_version": "1.1.2",

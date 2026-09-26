@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+env:
+  PYTHONPATH: src
+
 jobs:
   python-fast:
     runs-on: ubuntu-latest

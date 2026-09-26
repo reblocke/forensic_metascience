@@ -1,5 +1,32 @@
 # Handoff (for multi-session work)
 
+## Hosted acceptance continuation — 2026-09-25
+
+Draft PR #5 remains open and unmerged. On commit `a353f3d`, hosted Actions
+runs `36212282299` and `36212284401` exposed two environment failures:
+`python-fast` could not import the local `research_project` package in a
+subprocess because the workflow lacked `PYTHONPATH=src`; `report-review`
+reached Quarto but R could not load `rmarkdown`. The Python import failure was
+reproduced locally without `PYTHONPATH` and corrected in the workflow. Adding
+the missing R package to the hosted report environment awaits dependency
+approval under `AGENTS.md`; the report lane and FM-12 remain blocked until it
+is approved and passes. Both `native-r` jobs then failed during isolated R
+setup: `fs` could not find libuv headers and transitive `cpp11`/`progress`
+were unavailable, so scrutiny could not be installed. Repair of that hosted
+test environment also awaits approval; neither native-R job reached its tests.
+
+An additional failing regression showed that a report could accept candidate
+evidence without a matching current method receipt or source evidence. The
+report builder now checks candidate routes, evidence IDs and locators against
+the receipt inputs, and derives supplied coverage from validated receipts.
+New models use `inspect_sr_report_model_v2`; existing v1 models are retained as
+historical outputs and must be rebuilt from current records for review.
+After that change, `UV_OFFLINE=1 PYTHONPATH=src uv run --offline pytest -q -o
+addopts='' -m 'not native_r' -ra` passed **128 tests** with 13 native tests
+deselected. The required local report command recorded below passed **11
+tests**. The workflow fix and candidate guard require a new hosted run on the
+committed head before acceptance.
+
 ## Latest repair continuation — 2026-09-25
 
 The prior "FM-01–FM-12 implemented and locally verified" sentence below was

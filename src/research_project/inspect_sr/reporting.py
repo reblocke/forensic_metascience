@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from research_project.inspect_sr.adapters import METHOD_TO_CHECKS, build_candidate_dossier
 from research_project.inspect_sr.manual_evidence import validate_manual_evidence
 from research_project.inspect_sr.records import EXPECTED_CHECK_IDS, validate_assessment
 from research_project.inspect_sr.review import resolve_reviews
@@ -41,6 +42,34 @@ def build_report_model(
     if not isinstance(candidate_evidence, list) or not isinstance(coverage, list):
         raise ValueError("Candidate dossier must expose candidate evidence and coverage lists.")
     evidence_by_id = {str(item.get("evidence_id")): dict(item) for item in evidence_records}
+    expected_coverage = build_candidate_dossier(method_receipts, candidate_evidence)["coverage"]
+    if (candidate_evidence and not coverage) or (coverage and coverage != expected_coverage):
+        raise ValueError("Candidate coverage differs from its current method receipts.")
+    for item in candidate_evidence:
+        method_id = str(item.get("method_id", ""))
+        check_id = str(item.get("check_id", ""))
+        ids = item.get("evidence_ids")
+        if (
+            item.get("candidate_status") != "candidate_only"
+            or check_id not in METHOD_TO_CHECKS.get(method_id, ())
+            or not isinstance(ids, list)
+            or not ids
+            or set(ids) - evidence_by_id.keys()
+        ):
+            raise ValueError("Candidate lacks a validated check route and current source evidence.")
+        matching = [
+            receipt
+            for receipt in method_receipts
+            if receipt.get("method_id") == method_id and receipt.get("run_id") == item.get("run_id")
+        ]
+        if len(matching) != 1 or matching[0].get("execution") not in {"completed", "partial"}:
+            raise ValueError("Candidate lacks one current evaluated method receipt.")
+        receipt_ids = set(str(matching[0].get("input_evidence_ids", "")).split(";"))
+        if set(ids) - receipt_ids or any(
+            evidence_by_id[evidence_id].get("locator") != item.get("source_locator")
+            for evidence_id in ids
+        ):
+            raise ValueError("Candidate source evidence differs from receipt inputs or locator.")
     candidate_by_check: dict[str, list[dict[str, Any]]] = {
         check_id: [] for check_id in EXPECTED_CHECK_IDS
     }
@@ -172,7 +201,7 @@ def build_report_model(
     elif finalization_source_status == "adjudication_required":
         status = "DRAFT — ADJUDICATION REQUIRED"
     return {
-        "schema_version": "inspect_sr_report_model_v1",
+        "schema_version": "inspect_sr_report_model_v2",
         "record_type": "inspect_sr_review_report_model",
         "report_status": status,
         "trial_id": assessment_copy["trial_id"],
