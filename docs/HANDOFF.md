@@ -27,6 +27,19 @@ deselected. The required local report command recorded below passed **11
 tests**. The workflow fix and candidate guard require a new hosted run on the
 committed head before acceptance.
 
+On commit `b0804de`, the hosted `python-fast` job in run
+[`36212736603`](https://github.com/reblocke/forensic_metascience/actions/runs/36212736603)
+passed install, Ruff lint, Ruff format, and tests. The same committed head
+passed locally with **13 native R tests** (`FORENSICS_REQUIRE_R_INTEGRATION=1
+R_LIBS_USER=/tmp/fm-inspect-r.locked-library UV_OFFLINE=1 PYTHONPATH=src uv run
+--offline pytest -q -o addopts='' -m native_r -ra`; 128 deselected) and **11
+report/review tests** (`FORENSICS_REQUIRE_REPORT_INTEGRATION=1
+R_LIBS_USER=/tmp/fm-inspect-r.locked-library UV_OFFLINE=1 PYTHONPATH=src uv run
+--offline pytest -q -o addopts='' -ra tests/test_inspect_sr_reporting.py
+tests/test_inspect_sr_cli_workflow.py
+tests/test_pipeline.py::test_randomization_report_renders_only_current_run_inputs`).
+These local passes do not clear the hosted R/report setup failures.
+
 ## Latest repair continuation — 2026-09-25
 
 The prior "FM-01–FM-12 implemented and locally verified" sentence below was
