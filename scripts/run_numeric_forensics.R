@@ -47,6 +47,9 @@ parse_args <- function() {
       !grepl("^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$", parsed$run_id)) {
     stop("Invalid run ID: ", parsed$run_id)
   }
+  if (parsed$scrutiny_seq) {
+    stop("Optional scrutiny sequence diagnostics are blocked pending independent qualification.")
+  }
   parsed
 }
 
@@ -625,15 +628,9 @@ run_scrutiny_duplicates <- function(scrutiny_duplicates_input) {
       duplicate_tally <- suppressWarnings(
         as_tibble(scrutiny::duplicate_tally(prepared %>% select(x, sd, n)))
       )
-      for (column_name in c("x_dup", "sd_dup", "n_dup")) {
-        if (!column_name %in% names(duplicate_detect)) {
-          duplicate_detect[[column_name]] <- FALSE
-        }
-      }
-      for (column_name in c("x_n", "sd_n", "n_n")) {
-        if (!column_name %in% names(duplicate_tally)) {
-          duplicate_tally[[column_name]] <- 0L
-        }
+      if (!all(c("x_dup", "sd_dup", "n_dup") %in% names(duplicate_detect)) ||
+          !all(c("x_n", "sd_n", "n_n") %in% names(duplicate_tally))) {
+        stop("scrutiny duplicate output is missing required columns.")
       }
       duplicate_out <- bind_cols(
         prepared %>% select(case_id, trial_id, source_unit,
@@ -1254,6 +1251,15 @@ main <- function() {
                       output, requested = TRUE, implemented = TRUE, applicability = NULL,
                       report_text_evaluated = FALSE, eval_override = NULL,
                       fail_override = NULL, flag_override = NULL, input_n = nrow(tbl)) {
+    eligible_unit_ids <- if (unit == "trial_digits_group") {
+      prepared <- tbl %>%
+        mutate(x = as.numeric(x), digits_x = as.integer(digits_x)) %>%
+        filter(!is.na(x), !is.na(digits_x), digits_x >= 0) %>%
+        distinct(trial_id, digits_x)
+      paste(prepared$trial_id, prepared$digits_x, sep = "|")
+    } else if (unit == "summary_case" && "case_id" %in% names(tbl)) {
+      as.character(tbl$case_id)
+    } else NULL
     receipt_from_method_run(
       run_id = run_id, method_id = method_id,
       method_version = "numeric_eligibility_precision_v3",
@@ -1266,7 +1272,8 @@ main <- function() {
       report_text_evaluated = report_text_evaluated,
       evaluated_count_override = eval_override,
       failed_count_override = fail_override,
-      flagged_count_override = flag_override
+      flagged_count_override = flag_override,
+      eligible_unit_ids = eligible_unit_ids
     )
   }
   zero_run <- function(message) list(raw = tibble(), message = message)

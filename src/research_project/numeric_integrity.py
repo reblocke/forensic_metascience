@@ -74,12 +74,23 @@ def attach_source_evidence(
 ) -> tuple[pd.DataFrame, list[dict[str, str]]]:
     """Attach content-and-locator identities only when source provenance is complete."""
     result = cases.copy()
-    versions_by_name = {row["source_name"]: row for row in source_versions}
+    versions_by_name: dict[str, list[dict[str, str]]] = {}
+    versions_by_id = {row["source_id"]: row for row in source_versions}
+    for version in source_versions:
+        versions_by_name.setdefault(version["source_name"], []).append(version)
     evidence_records: list[dict[str, str]] = []
     source_ids: list[str | None] = []
     evidence_ids: list[str | None] = []
     for _, row in result.iterrows():
-        version = versions_by_name.get(_text_or_empty(row.get("source_pdf", "")))
+        explicit_id = _text_or_empty(row.get("source_id", "")).strip()
+        if explicit_id:
+            version = versions_by_id.get(explicit_id)
+            claimed_name = _text_or_empty(row.get("source_pdf", "")).strip()
+            if version is not None and claimed_name and version["source_name"] != claimed_name:
+                version = None
+        else:
+            matches = versions_by_name.get(_text_or_empty(row.get("source_pdf", "")), [])
+            version = matches[0] if len(matches) == 1 else None
         locator = _text_or_empty(row.get("source_locator", "")).strip()
         raw_value = _text_or_empty(row.get("raw_value", "")).strip()
         if not raw_value:

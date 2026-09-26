@@ -163,8 +163,8 @@ METHOD_TO_CHECKS: dict[str, tuple[str, ...]] = {
 
 
 def _validate_method_receipt(receipt: Mapping[str, Any]) -> None:
-    if receipt.get("schema_version") != "method_receipt_v3":
-        raise ValueError("Candidate mapping requires a validated method_receipt_v3 record.")
+    if receipt.get("schema_version") != "method_receipt_v4":
+        raise ValueError("Candidate mapping requires a validated method_receipt_v4 record.")
     required = {
         "run_id",
         "method_id",
@@ -189,7 +189,7 @@ def _validate_method_receipt(receipt: Mapping[str, Any]) -> None:
         not str(receipt.get(field, "")).strip()
         for field in ("run_id", "method_id", "method_version", "package_name", "unit_of_evaluation")
     ):
-        raise ValueError("Method receipt is missing required v3 provenance fields.")
+        raise ValueError("Method receipt is missing required v4 provenance fields.")
     if receipt.get("execution") not in {
         "not_requested",
         "not_implemented",

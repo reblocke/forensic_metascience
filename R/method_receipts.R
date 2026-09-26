@@ -1,4 +1,4 @@
-METHOD_RECEIPT_SCHEMA_VERSION <- "method_receipt_v3"
+METHOD_RECEIPT_SCHEMA_VERSION <- "method_receipt_v4"
 METHOD_APPLICABILITY_STATES <- c("eligible", "ineligible", "unknown", "mixed")
 METHOD_EXECUTION_STATES <- c(
   "not_requested", "not_implemented", "dependency_missing", "blocked",
@@ -78,6 +78,47 @@ new_method_receipt <- function(
   )
 }
 
+method_result_schema_problem <- function(method_id, raw, eligible_unit_ids, report_text_evaluated) {
+  if (is.null(raw) || !is.data.frame(raw)) return("Result is not a data frame.")
+  if (report_text_evaluated) {
+    if (!"error" %in% names(raw) || !is.logical(raw$error) || anyNA(raw$error)) {
+      return("Statcheck error field is missing or contains unevaluated outcomes.")
+    }
+    return(NULL)
+  }
+  if (grepl("_seq$", method_id)) return("Sequence diagnostics are not qualified.")
+  if (grepl("rounding_bias", method_id)) {
+    required <- c("trial_id", "digits_x", "anomaly_flag")
+    if (!all(required %in% names(raw)) || !is.logical(raw$anomaly_flag) ||
+        anyNA(raw$anomaly_flag)) return("Rounding-bias result schema is invalid.")
+    returned <- paste(raw$trial_id, raw$digits_x, sep = "|")
+  } else {
+    required <- if (grepl("duplicates", method_id)) {
+      c("case_id", "x_dup", "sd_dup", "n_dup")
+    } else {
+      c("case_id", "consistency")
+    }
+    if (!all(required %in% names(raw))) return("Method result schema is missing required fields.")
+    flags <- if (grepl("duplicates", method_id)) c("x_dup", "sd_dup", "n_dup") else "consistency"
+    if (any(!vapply(raw[flags], is.logical, logical(1)))) {
+      return("Method result flags must be logical.")
+    }
+    if (grepl("duplicates", method_id) && anyNA(raw[flags])) {
+      return("Duplicate result flags contain unevaluated outcomes.")
+    }
+    returned <- as.character(raw$case_id)
+  }
+  if (is.null(eligible_unit_ids) || length(eligible_unit_ids) == 0L ||
+      anyNA(eligible_unit_ids) || anyDuplicated(eligible_unit_ids)) {
+    return("Eligible evaluation-unit identities are missing or duplicated.")
+  }
+  if (anyNA(returned) || anyDuplicated(returned) ||
+      !all(returned %in% eligible_unit_ids) || length(returned) > length(eligible_unit_ids)) {
+    return("Returned evaluation-unit identities do not reconcile with eligible inputs.")
+  }
+  NULL
+}
+
 receipt_from_method_run <- function(
   run_id,
   method_id,
@@ -97,7 +138,8 @@ receipt_from_method_run <- function(
   report_text_evaluated = FALSE,
   evaluated_count_override = NULL,
   failed_count_override = NULL,
-  flagged_count_override = NULL
+  flagged_count_override = NULL,
+  eligible_unit_ids = NULL
 ) {
   raw <- method_run$raw
   message <- as.character(method_run$message %||% "")
@@ -139,8 +181,12 @@ receipt_from_method_run <- function(
     sum(!consistency, na.rm = TRUE)
   } else if (report_text_evaluated && statcheck_valid && evaluated_count > 0L) {
     sum(as.logical(raw$error), na.rm = TRUE)
-  } else if (evaluated_count > 0L) {
-    0L
+  } else if (evaluated_count > 0L && grepl("duplicates", method_id) &&
+             all(c("x_dup", "sd_dup", "n_dup") %in% names(raw))) {
+    sum(raw$x_dup | raw$sd_dup | raw$n_dup, na.rm = TRUE)
+  } else if (evaluated_count > 0L && grepl("rounding_bias", method_id) &&
+             "anomaly_flag" %in% names(raw)) {
+    sum(raw$anomaly_flag, na.rm = TRUE)
   } else {
     NA_integer_
   }
@@ -182,13 +228,18 @@ receipt_from_method_run <- function(
     execution <- "completed"
   }
 
-  if (requested && implemented && eligible_count > 0L && !statcheck_valid &&
+  schema_problem <- if (requested && implemented && eligible_count > 0L &&
+                        !grepl("not installed|dependency missing", message, ignore.case = TRUE)) {
+    method_result_schema_problem(method_id, raw, eligible_unit_ids, report_text_evaluated)
+  } else NULL
+  if (requested && implemented && eligible_count > 0L &&
+      (!statcheck_valid || !is.null(schema_problem)) &&
       !grepl("not installed|dependency missing", message, ignore.case = TRUE)) {
     execution <- "failed"
     evaluated_count <- 0L
     failed_count <- eligible_count
     flagged_count <- NA_integer_
-    message <- paste(message, "Result schema is missing or contains unevaluated statcheck outcomes.")
+    message <- paste(message, schema_problem %||% "Statcheck outcomes are unevaluated.")
   }
 
   if (execution %in% c("not_requested", "not_implemented", "dependency_missing", "blocked")) {

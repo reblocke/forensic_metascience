@@ -178,6 +178,76 @@ def test_malformed_simdistr_output_raises_instead_of_becoming_no_finding() -> No
     subprocess.run([rscript, "-e", expression], check=True, capture_output=True, text=True)
 
 
+def test_native_method_adapters_match_independent_synthetic_expectations() -> None:
+    rscript = _rscript()
+    _require_pinned_r_packages(rscript)
+    expression = r"""
+source("scripts/run_numeric_forensics.R")
+base <- tibble::tibble(
+  case_id = c("valid", "invalid"), trial_id = "synthetic", source_unit = "table:row",
+  variable = "binary_count", level = "event", group = "arm",
+  x = c("0.25", "0.26"), sd = c("0.50", "0.51"), n = c(4, 4),
+  digits_x = c(2L, 2L), digits_sd = c(2L, 2L)
+)
+# Four binary observations with one event have mean 0.25 and sample SD 0.50.
+# A mean of 0.26 or SD of 0.51 is incompatible at two printed decimals.
+grim <- run_scrutiny_grim(base)$raw
+grimmer <- run_scrutiny_grimmer(dplyr::mutate(base, x = "0.25"))$raw
+debit <- run_scrutiny_debit(dplyr::mutate(base, x = "0.25"))$raw
+stopifnot(identical(grim$consistency, c(TRUE, FALSE)))
+stopifnot(identical(grimmer$consistency, c(TRUE, FALSE)))
+stopifnot(identical(debit$consistency, c(TRUE, FALSE)))
+duplicates <- run_scrutiny_duplicates(tibble::tibble(
+  case_id = c("a", "b", "c"), trial_id = "synthetic", source_unit = "table:row",
+  variable = "binary_count", level = "event", group = "arm",
+  x = c("0.25", "0.25", "0.75"), sd = c("0.50", "0.50", "0.43"), n = c(4, 4, 4)
+))$raw
+stopifnot(identical(duplicates$x_dup, c(TRUE, TRUE, FALSE)))
+statcheck <- run_statcheck("t(28) = 2.20, p = .036. t(28) = 2.20, p = .90.")$raw
+stopifnot(identical(statcheck$error, c(FALSE, TRUE)))
+stopifnot(all(abs(statcheck$computed_p - 0.0362) < 0.001))
+"""
+    subprocess.run([rscript, "-e", expression], check=True, capture_output=True, text=True)
+    blocked = subprocess.run(
+        [
+            rscript,
+            "scripts/run_numeric_forensics.R",
+            "--in",
+            "input",
+            "--out",
+            "output",
+            "--scrutiny-seq",
+            "true",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert blocked.returncode != 0 and "blocked" in blocked.stderr
+
+
+def test_simdistr_extreme_binary_fixtures_have_known_outputs() -> None:
+    rscript = _rscript()
+    _require_pinned_r_packages(rscript)
+    expression = r"""
+runtime <- data.frame(
+  trial = c(1, 1), variable = c(1, 1), group = c(1, 2),
+  participants = c(100, 100), mean = c(0, 0), sd = c(NA, NA),
+  decimals = c(2, 2), type = c(2, 2), name = c("synthetic", "synthetic")
+)
+set.seed(123)
+equal <- capture.output(simdistr::sim_distr(100, runtime, FALSE))
+# Both arms are deterministically all zero, so all simulated squared differences
+# equal the observed zero: (Pr[<] + Pr[<=]) / 2 = (0 + 1) / 2.
+stopifnot(any(grepl("synthetic[[:space:]]+0[.]5", equal)))
+runtime$mean <- c(0, 1)
+set.seed(123)
+separated <- capture.output(simdistr::sim_distr(100, runtime, FALSE))
+# A 0-versus-1 difference is the maximum possible binary-arm difference.
+stopifnot(any(grepl("synthetic[[:space:]]+1([[:space:]]|$)", separated)))
+"""
+    subprocess.run([rscript, "-e", expression], check=True, capture_output=True, text=True)
+
+
 def test_numeric_production_runner_executes_pinned_method_packages(tmp_path: Path) -> None:
     rscript = _rscript()
     _require_pinned_r_packages(rscript)

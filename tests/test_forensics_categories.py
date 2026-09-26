@@ -398,6 +398,32 @@ def test_numeric_evidence_identity_requires_source_hash_locator_and_raw_value() 
     assert records_without_source == []
 
 
+def test_source_evidence_does_not_choose_last_duplicate_filename() -> None:
+    cases = pd.DataFrame(
+        [{"source_pdf": "table.pdf", "source_locator": "page=1", "raw_value": "0.50"}]
+    )
+    versions = [
+        {
+            "source_id": key,
+            "source_version_id": key,
+            "source_name": "table.pdf",
+            "content_sha256": "a" * 64,
+        }
+        for key in ("source-a", "source-b")
+    ]
+    unresolved, evidence = attach_source_evidence(cases, versions)
+    assert pd.isna(unresolved.loc[0, "source_version_id"])
+    assert evidence == []
+    cases["source_id"] = "source-a"
+    matched, evidence = attach_source_evidence(cases, versions)
+    assert matched.loc[0, "source_version_id"] == "source-a"
+    assert len(evidence) == 1
+    cases["source_pdf"] = "different.pdf"
+    mismatched, evidence = attach_source_evidence(cases, versions)
+    assert pd.isna(mismatched.loc[0, "source_version_id"])
+    assert evidence == []
+
+
 def test_scrutiny_eligibility_requires_documented_summary_semantics() -> None:
     common = {
         "trial_id": "trial_x",
@@ -525,7 +551,7 @@ def test_r_method_receipt_contract_has_truthful_outcomes() -> None:
         raise RuntimeError("Rscript is required for method receipt contract regressions.")
     expression = r"""
 source("R/method_receipts.R")
-stopifnot(METHOD_RECEIPT_SCHEMA_VERSION == "method_receipt_v3")
+stopifnot(METHOD_RECEIPT_SCHEMA_VERSION == "method_receipt_v4")
 base <- list(
   run_id = "synthetic-run", method_id = "grim", method_version = "test-v1",
   package_name = "scrutiny", package_version = "not-installed",
@@ -563,7 +589,8 @@ run_receipt <- function(method_run, eligible_count = 1L) {
     package_name = "scrutiny", package_version = NA_character_,
     unit_of_evaluation = "summary_case", input_evidence_ids = "case-1",
     parameters = "fixture", input_count = eligible_count, eligible_count = eligible_count,
-    method_run = method_run, output_reference = "raw.csv"
+    method_run = method_run, output_reference = "raw.csv",
+    eligible_unit_ids = paste0("case-", seq_len(eligible_count))
   )
 }
 failed_run <- run_receipt(list(
@@ -571,11 +598,12 @@ failed_run <- run_receipt(list(
 ))
 stopifnot(failed_run$execution == "failed", is.na(failed_run$n_flagged))
 partial_run <- run_receipt(list(
-  raw = data.frame(consistency = c(TRUE, NA)), message = "ok"
+  raw = data.frame(case_id = c("case-1", "case-2"), consistency = c(TRUE, NA)), message = "ok"
 ), eligible_count = 2L)
 stopifnot(partial_run$execution == "partial", partial_run$n_evaluated == 1L)
 empty_run <- run_receipt(
-  list(raw = data.frame(consistency = logical()), message = "No eligible rows."), 0L
+  list(raw = data.frame(case_id = character(), consistency = logical()),
+       message = "No eligible rows."), 0L
 )
 stopifnot(empty_run$execution == "blocked", is.na(empty_run$n_flagged))
 statcheck_run <- receipt_from_method_run(
@@ -589,8 +617,13 @@ statcheck_run <- receipt_from_method_run(
 stopifnot(statcheck_run$execution == "completed", statcheck_run$n_evaluated == 1L,
           statcheck_run$n_flagged == 1L)
 incomplete_run <- run_receipt(
-  list(raw = data.frame(consistency = TRUE), message = "ok"), eligible_count = 2L
+  list(raw = data.frame(case_id = "case-1", consistency = TRUE), message = "ok"),
+  eligible_count = 2L
 )
+malformed_run <- run_receipt(list(raw = data.frame(unrelated = 1), message = "ok"))
+duplicate_units <- run_receipt(list(raw = data.frame(
+  case_id = c("case-1", "case-1"), consistency = c(TRUE, TRUE)
+), message = "ok"), eligible_count = 2L)
 unknown_statcheck <- receipt_from_method_run(
   run_id = "synthetic-run", method_id = "statcheck", method_version = "test-v1",
   package_name = "statcheck", package_version = NA_character_,
@@ -605,7 +638,7 @@ partial_without_consistency <- receipt_from_method_run(
   unit_of_evaluation = "summary_case", input_evidence_ids = "case-1;case-2",
   parameters = "fixture", input_count = 2L, eligible_count = 2L,
   method_run = list(raw = data.frame(anomaly_flag = FALSE), message = "ok"),
-  output_reference = "duplicates.csv"
+  output_reference = "duplicates.csv", eligible_unit_ids = c("case-1", "case-2")
 )
 unknown_type_statcheck <- receipt_from_method_run(
   run_id = "synthetic-run", method_id = "statcheck", method_version = "test-v1",
@@ -635,10 +668,11 @@ empty_statcheck <- receipt_from_method_run(
 )
 stopifnot(incomplete_run$execution == "partial", incomplete_run$n_evaluated == 1L,
           incomplete_run$n_failed == 1L,
+          malformed_run$execution == "failed", is.na(malformed_run$n_flagged),
+          duplicate_units$execution == "failed", is.na(duplicate_units$n_flagged),
           unknown_statcheck$execution == "failed", is.na(unknown_statcheck$n_flagged),
-          partial_without_consistency$execution == "partial",
-          partial_without_consistency$n_evaluated == 1L,
-          partial_without_consistency$n_failed == 1L,
+          partial_without_consistency$execution == "failed",
+          is.na(partial_without_consistency$n_flagged),
           unknown_type_statcheck$execution == "failed",
           is.na(unknown_type_statcheck$n_flagged),
           missing_statcheck$execution == "dependency_missing",
