@@ -18,6 +18,14 @@ source-paper analysis or historical output regeneration was run.
   exports as distinct records.
 - **FM-13:** Deferred.
 
+Draft PR [#5](https://github.com/reblocke/forensic_metascience/pull/5) is open.
+Hosted run `36205920711` was created for commit `5b3ca7537d483aa2a372e83642d8970eed86d854`
+but concluded `failure` with zero jobs; `gh pr checks 5` reported no checks,
+the jobs API returned `total_count: 0`, and GitHub provided no run log and refused
+to retry it. Therefore hosted Python/native-R/report checks have not passed and
+FM-12 remains open for hosted verification. The failure cause is not exposed by
+the available run metadata.
+
 ### Verification receipts on the implementation code
 
 - `UV_OFFLINE=1 PYTHONPATH=src uv run --offline pytest -q -o addopts='' -m 'not native_r' -ra`
