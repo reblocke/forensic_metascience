@@ -63,7 +63,7 @@ revision with fresh pending responses; earlier assessments remain intact.
 
 `src/research_project/inspect_sr/adapters.py` routes validated method outputs to
 candidate evidence records. A candidate requires a completed or partial method
-receipt with complete `method_receipt_v3` provenance, positive evaluated
+receipt with complete `method_receipt_v4` provenance, positive evaluated
 coverage for the same run as the result, input evidence IDs drawn from that
 receipt, and known source versions. Numeric extraction emits
 `numeric_standardized_results_v2.csv`; run-scoped result IDs are separate from
@@ -115,15 +115,19 @@ reviewer identity keys in public source control.
 
 Independent submissions remain separate. The disagreement table is derived;
 adjudication is a new human record referencing both submissions; finalization is
-another record. Reviewer submissions and finalizations use version 2 contracts
-whose content identities are checked before comparison, resolution, finalization,
-reporting, or synthesis. Finalization preserves the resolved review, both
+another record. Reviewer submissions, adjudications, resolved reviews, and
+finalizations use version 3 contracts whose identities bind their complete
+serialized content. Earlier versions remain historical and are not silently
+upgraded. Finalization preserves the resolved review, both
 reviewer-submission IDs, and the adjudication ID. A changed guidance or source
 hash requires a fresh review revision. Early-stop reviews retain each unassessed check as
 `not_assessed_early_stop`.
 
 Use `scripts/inspect_sr.py` for the local offline workflow: prepare a pending
-review, create source-versioned or manual evidence, submit independent reviews,
+review, create source-versioned or manual evidence, then create a local
+`inspect_sr_source_snapshot_v1` with `snapshot --assessment ...
+--source-versions ... --evidence ...`. The snapshot stores the full versioned
+records and checks current source bytes before each reviewed operation. Submit independent reviews,
 compare, adjudicate, finalize, map native candidates, validate records, render
 private HTML/PDF, and export synthesis. Human records are write-once under
 `data/private/inspect_sr/`; public export is explicitly allowlisted, and its
@@ -131,11 +135,12 @@ approver identity is stored only in a separate private receipt. Start with
 `uv run python scripts/inspect_sr.py --help`.
 
 The report model in `src/research_project/inspect_sr/reporting.py` displays
-human judgments only when current source hashes and finalized adjudication
-match. Render it from an explicit JSON model with
-`INSPECT_SR_REPORT_JSON=/path/to/review-model.json`; keep both the model and
-HTML/PDF under `data/private/inspect_sr/`. For example, after a model has been
-created with `build_report_model` and written via `write_json_exclusive`:
+human judgments only when the local snapshot, all referenced evidence, both
+stored reviewer submissions, adjudication, and finalization validate together.
+The `render` CLI command creates the private model and HTML/PDF under
+`data/private/inspect_sr/reports/<assessment-id>/<revision>/`. The QMD reads
+only that explicit model through `INSPECT_SR_REPORT_JSON`; a direct Quarto
+render is suitable only for inspecting an already validated private model:
 
 ```bash
 mkdir -p data/private/inspect_sr/reports

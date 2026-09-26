@@ -11,7 +11,7 @@ are leads for human appraisal, not proof of study validity or misconduct.
 This repo is designed for two related use cases:
 
 1. **Public/example pipeline runs**
-   - use the built-in example study and shared category pipeline
+   - use the configured example study and run-scoped category pipeline
    - exercise the full `extract -> build -> run -> report` workflow
    - validate that the environment and package interfaces work on your machine
 2. **Local/private manuscript review**
@@ -67,7 +67,7 @@ If you are using this repository for the first time, the recommended order is:
 ## Prerequisites
 
 - Python `>= 3.11` and [`uv`](https://github.com/astral-sh/uv) (Python environment + tooling)
-- R (locally available R `4.6.0`)
+- R (local acceptance used 4.6.1; hosted CI pins 4.6.0)
 - Quarto CLI (for rendering `.qmd` reports)
 - A LaTeX engine for PDF output (e.g., TinyTeX or TeX Live)
 - `bash`
@@ -96,34 +96,12 @@ cd forensic_metascience
 uv sync --locked
 ```
 
-This prepares Python tools; it does not install R, Quarto, a PDF engine, or
-optional forensic packages. Install those for a paper run in an appropriate
-project environment. The repository's existing R setup command is:
-
-```bash
-Rscript -e "install.packages(c('readr','dplyr','tidyr','tibble','simdistr'), repos='https://cloud.r-project.org')"
-```
-
-This installs the declared PDF extraction dependencies used by the public pipeline, including `pypdf` and `pdfplumber`.
-
-### 3) Install R packages
-
-Required for this pipeline's R scripts:
-
-```bash
-Rscript -e "install.packages(c('readr','dplyr','tidyr','tibble'), repos='https://cloud.r-project.org')"
-```
-
-Packages that enable the implemented forensic methods (recommended):
-
-```bash
-Rscript -e "install.packages(c('simdistr','scrutiny','statcheck','metaDigitise'), repos='https://cloud.r-project.org')"
-```
-
-Notes:
-- `simdistr` is used only for the explicitly selected, design-gated inferential diagnostic; missing package execution remains a dependency-missing receipt.
-- Package-dependent methods must report unavailable or incomplete execution truthfully. A skipped native method is not a passing method or release gate.
-- The native integration lane uses hash-pinned `scrutiny` 0.6.2, `statcheck` 1.5.0, and `simdistr` 1.0.1 from `config/inspect_sr/r_method_packages.lock.json`. To prepare that isolated test library, set `R_LIBS_USER` and run `bash scripts/install_inspect_sr_r_methods.sh`; this is test-environment setup only and is not called by the production pipeline.
+This prepares the locked Python tools, including the public pipeline's PDF
+libraries. It does not install R, Quarto, or a PDF engine. The native acceptance
+lane uses the approved, hash-verified package versions in
+`config/inspect_sr/r_method_packages.lock.json`; prepare an isolated R library
+with `R_LIBS_USER` set and `bash scripts/install_inspect_sr_r_methods.sh` when
+running that lane. Package setup is separate from production execution.
 
 ## First-Time Walkthrough
 
@@ -152,36 +130,23 @@ randomization before numeric:
 bash scripts/run_pipeline.sh --study-id lungtime --forensics numeric
 ```
 
-### 2) Verify the repo before running analyses
+### Verify the implementation without study sources
 
 ```bash
-uv run pytest -q
+uv run pytest -q -m 'not native_r'
 uv run ruff check .
 uv run ruff format . --check
 ```
 
-### 3) Run the built-in public example once
+A configured public run requires authorized source files and the runtime
+prerequisites above. It creates a new run directory containing
+`run_manifest.json`, `processed/<category>/`, and `reports/<category>/` beneath
+`data/processed/forensics_runs/<study>/<run-id>/`. Rendering requires
+`--render-reports`; registry network access requires `--allow-network`.
 
-This is the fastest way to confirm that the pipeline, R packages, and Quarto rendering all work on your machine.
+### Private manuscript review
 
-```bash
-bash scripts/run_pipeline.sh --forensics all
-```
-
-The default public study is `lungtime`. To run a different configured study, pass `--study-id <study_id>`.
-
-Expected outputs for a run include:
-
-- `data/processed/forensics_runs/lungtime/<run-id>/run_manifest.json`
-- `data/processed/forensics_runs/lungtime/<run-id>/processed/<category>/`
-- `data/processed/forensics_runs/lungtime/<run-id>/reports/<category>/`
-
-The run manifest records source/config hashes, effective settings, stage receipts,
-and output hashes. Existing shared-layout reports are not overwritten or reused.
-
-### 4) Run a private manuscript review
-
-Use this path for a local manuscript PDF that should not be committed.
+Use this path only with an authorized local manuscript PDF:
 
 ```bash
 bash scripts/run_manuscript_review.sh \
@@ -190,17 +155,10 @@ bash scripts/run_manuscript_review.sh \
   --review-type prediction_validation
 ```
 
-Expected outputs include:
-
-- `data/processed/reviews/<study_id>/`
-- `reports/reviews/<study_id>/`
-- `reports/reviews/<study_id>/<study_id>_prediction_validation_review.pdf`
-
-Important:
-
-- local review outputs under `data/processed/reviews/`, `reports/reviews/`, and `notebooks/reports/` are gitignored
-- the manuscript-review path currently assumes manual or semi-manual transcription of the key tables
-- the separate manuscript-review script still uses system `python3`; the public `scripts/run_pipeline.sh` path uses the uv-managed Python environment
+The private route writes into a fresh run beneath
+`data/processed/reviews/<study>/<run-id>/`. It uses system `python3`, so its PDF
+libraries must be available in that interpreter. Source PDFs, transcriptions,
+and review outputs belong in ignored local paths.
 
 ## Quickstart Reference
 
@@ -210,52 +168,38 @@ bash scripts/run_pipeline.sh --forensics all --dry-run
 ```
 Add `--forensics ...` without `--dry-run` to run the selected categories. Report rendering is a separate opt-in with `--render-reports`.
 
-The script has no `--help`, `--offline`, or output-directory flag. Passing
-an unsupported argument exits with an error. The base `bash scripts/run_pipeline.sh`
-command only runs preprocessing and diagnostics, not category reports.
+The pipeline supports `--help`, `--dry-run`, `--offline`, `--output-root`,
+`--allow-network`, and `--render-reports`. Help and dry-run do not write outputs.
 
 ## How to interpret completion
 
-For numeric methods, use `reports/numeric/<study>/numeric_package_status.csv`
-(`installed`, `executed`, `execution_note`) together with
-`numeric_summary.csv`, `numeric_standardized_results.csv`, and method-native
-tables. The [shared extraction manifest](src/research_project/forensics_manifest.py)
-records source, confidence, and category-level `analysis_ready`; that flag
-does not certify every method or the science.
-
-| Conceptual outcome | Existing evidence to inspect |
-| --- | --- |
-| Method ran and flagged a finding | Relevant package/method is installed and the `execution_note` reports `ok`; eligible/evaluated cases exist in `numeric_summary.csv` or method-native tables; inspect `anomaly_flag` or method-specific flags in standardized/native rows and the source record. |
-| Method ran with no finding in evaluated rows | The same successful method note and nonzero eligible/evaluated coverage, with no flagged rows for that method. A zero-row file alone cannot establish this. |
-| Package unavailable | `installed=false` and a package-not-installed `execution_note`; schema-valid empty method files may still be written. The `rsprite2` row is stub-only even when `installed=true`. |
-| Inputs insufficient or ineligible | `execution_note` says no eligible rows, no rows after filtering, or no report text; use extraction inputs, case counts, and the manifest to see what was available. This is not a negative result. |
-| Method failed | A nonzero command exit or an `execution_note` containing a method execution error; files may be absent, old, or schema-valid but empty. Resolve the error before interpreting findings. |
-
-There is no single per-method success enum. The package-level `executed`
-field is not decisive: for `rsprite2` it reflects package presence although
-execution is not implemented, and some error or ineligibility paths retain
-`executed=true`. Read `execution_note`, case counts, and the native rows.
+Inspect the current run's `run_manifest.json` and
+`reports/numeric/numeric_method_receipts.csv`. The v4 receipt records method
+eligibility, execution state, evaluated and failed units, and finding status.
+`completed/no_finding` requires positive, complete evaluation coverage;
+`partial`, `failed`, `blocked`, `dependency_missing`, `not_requested`, and
+`not_implemented` are not negative results. Confirm the method-native and
+standardized rows against their source evidence IDs and locators. The
+`numeric_package_status.csv` compatibility table alone cannot establish
+execution or scientific validity. Older shared-layout files remain historical.
 
 ## Network and manual work
 
-`run_pipeline.sh` sources `config/studies/<study-id>.sh` before applying
-fallbacks. Both tracked study configs set `REGISTRY_ALLOW_NETWORK=true`, so
-an exported shell value does **not** override them. Registration can retrieve
-a current ClinicalTrials.gov API v2 record when it resolves a unique NCT ID.
-An existing `REGISTRY_CURRENT_REL_PATH` is used before any network fetch;
-a missing configured local JSON reports `missing_local_json` rather than
-silently falling back. For an intentionally offline registration run, set
-`REGISTRY_ALLOW_NETWORK=false` in a local working copy of the selected study
-config and supply a pinned current-record JSON if required; do not commit
-private records or an incidental configuration edit.
+Registry network access is disabled unless `--allow-network` is explicit;
+`--offline` overrides it. A pinned local registry record may be supplied through
+the study configuration. Current registry state is not a historical snapshot.
+Plot digitization is separately opt-in and interactive. Private manuscript
+reviews require manual or semi-manual table transcription.
 
-### 8) Render current-run category reports
+To render current-run category reports after the relevant methods:
+
 ```bash
 bash scripts/run_pipeline.sh --forensics numeric --render-reports
 ```
-The INSPECT-SR report is rendered separately from an explicit review-model JSON;
-it must be stored in a private location and rendered to a private output path.
-The QMD refuses to render without that explicit input. See `docs/INSPECT_SR.md`.
+
+INSPECT-SR reports use a separate, private review model and require the local
+source snapshot, two reviewer submissions, adjudication, and finalization chain
+before displaying judgments. See [the INSPECT-SR workflow](docs/INSPECT_SR.md).
 
 ## Example Use Cases
 
@@ -293,7 +237,7 @@ method contracts and limitations, continue below and consult the
   - `prediction_validation review` (manuscript-review path for nonrandomized prediction-model papers)
 
 INSPECT-SR record support is separate from these category workflows. Candidate
-routes currently require a valid same-run `method_receipt_v2`; only the
+routes currently require a valid same-run `method_receipt_v4`; only the
 registered numeric-method IDs are machine-routable at this revision. Other
 checks have explicit manual evidence routes until their producers supply a
 validated receipt contract.
@@ -326,10 +270,10 @@ Key limitation:
 - Local source-derived review outputs under `data/processed/reviews/`, `reports/reviews/`, and `notebooks/reports/` are gitignored and must not be copied into public handoffs.
 
 ## Numeric scrutiny contract
-- Canonical cases: `data/processed/numeric/<study>/inputs/scrutiny_cases.csv`.
-- Mean/SD extraction candidates: `data/processed/numeric/<study>/inputs/numeric_summary_long.csv`.
+- Canonical cases: the current run's `processed/numeric/inputs/scrutiny_cases.csv`.
+- Mean/SD extraction candidates: the current run's `processed/numeric/inputs/numeric_summary_long.csv`.
 - Package-specific inputs: `scrutiny_grim_input.csv`, `scrutiny_grimmer_input.csv`, `scrutiny_debit_input.csv`, `scrutiny_duplicates_input.csv`, `scrutiny_rounding_bias_input.csv`.
-- Report outputs: `reports/numeric/<study>/numeric_scrutiny_*`, `numeric_statcheck_raw.csv`, and `numeric_standardized_results.csv`.
+- Report outputs: the current run's `reports/numeric/numeric_scrutiny_*`, `numeric_statcheck_raw.csv`, `numeric_standardized_results_v2.csv`, and `numeric_method_receipts.csv`.
 
 ## Plot digitization pilot contract
 - Target manifest: `data/raw/figures/<study>/plot_digitization_targets.csv`.

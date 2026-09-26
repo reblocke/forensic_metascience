@@ -1,5 +1,24 @@
 # Handoff (for multi-session work)
 
+## Latest repair continuation — 2026-09-25
+
+The prior "FM-01–FM-12 implemented and locally verified" sentence below was
+premature. The review of `09a77dc` found invalid hosted CI expressions and
+unbound review/source identities. Current branch work merges `main` with its
+data-free onboarding and privacy guidance, retains the original untracked
+`run-b2.html`, and repairs the reviewed defects. No source-paper analysis,
+historical output rewrite, merge to `main`, or deployment has occurred.
+
+FM-03, FM-05, and FM-08–FM-11 are reopened for v4 receipts, source mapping,
+private snapshots, v3 human identities, and complete report/export validation.
+FM-12 is open. FM-13 remains deferred. The rounding-bias method has a newly
+identified input-contract problem requiring a scientific decision: printed
+values rerounded at their printed precision produce zero bias by construction.
+It is not independently qualified by an execution-only integration test.
+Exact final lane commands, counts, artifacts, versions, hashes, and CI links
+will be added after the final branch commit and hosted run.
+
+
 ## Latest status — 2026-09-25
 
 Implementation is on branch `codex/inspect-sr-resumption`, based on current
@@ -9,8 +28,9 @@ checkpoint commits are `d8b21a5` (source-linked native outputs), `e9a21ae`
 untracked `run-b2.html` artifact is preserved and excluded from commits. No
 source-paper analysis or historical output regeneration was run.
 
-- **FM-01–FM-12:** Implemented and locally verified, pending hosted CI on the
-  final review commit. FM-03–FM-07 corrections have regression-first coverage.
+- **FM-01–FM-12 at this earlier checkpoint:** Claimed implemented and locally
+  verified, pending hosted CI. Later review reopened the tickets noted above.
+  FM-03–FM-07 corrections had regression-first coverage at that checkpoint.
   FM-08 uses the 26-file official v1.1.2 source snapshot at
   `a349c4f1ddd9d232dfc2632938aad31382a9a770`, with the complete 21-check
   catalogue and per-file hashes. FM-09–FM-11 keep candidate evidence, manual
