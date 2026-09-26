@@ -15,8 +15,17 @@ FM-12 is open. FM-13 remains deferred. The rounding-bias method has a newly
 identified input-contract problem requiring a scientific decision: printed
 values rerounded at their printed precision produce zero bias by construction.
 It is not independently qualified by an execution-only integration test.
-Exact final lane commands, counts, artifacts, versions, hashes, and CI links
-will be added after the final branch commit and hosted run.
+### Local acceptance receipts on `a9d3ccb` (before the final handoff edit)
+
+- `UV_OFFLINE=1 PYTHONPATH=src uv run --offline pytest -q -o addopts='' -m 'not native_r' -ra`: **127 passed, 13 deselected**. The deselected tests are the separately required native lane.
+- `FORENSICS_REQUIRE_R_INTEGRATION=1 R_LIBS_USER=/tmp/fm-inspect-r.locked-library UV_OFFLINE=1 PYTHONPATH=src uv run --offline pytest -q -o addopts='' -m native_r -ra`: **13 passed, 127 deselected**. This includes synthetic expected true/false results for GRIM, GRIMMER, DEBIT, duplicates, and statcheck, plus the exact binary extremes for simdistr. Rounding-bias execution ran, but its scientific input contract remains unqualified as described above.
+- `FORENSICS_REQUIRE_REPORT_INTEGRATION=1 R_LIBS_USER=/tmp/fm-inspect-r.locked-library UV_OFFLINE=1 PYTHONPATH=src uv run --offline pytest -q -o addopts='' -ra tests/test_inspect_sr_reporting.py tests/test_inspect_sr_cli_workflow.py tests/test_pipeline.py::test_randomization_report_renders_only_current_run_inputs`: **10 passed**. This includes actual CLI finalization, HTML/PDF, allowlisted export, and private prediction-review HTML/PDF with current/stale sentinels.
+- `UV_OFFLINE=1 uv run --offline ruff check .`: passed. `UV_OFFLINE=1 uv run --offline ruff format . --check`: passed, 59 files already formatted. `bash -n scripts/run_pipeline.sh scripts/run_manuscript_review.sh scripts/install_inspect_sr_r_methods.sh`, `ruby -e 'require "yaml"; YAML.parse_file(".github/workflows/ci.yml"); puts "workflow YAML parses"'`, and `git diff --check`: passed.
+- Runtime: local R **4.6.1**, Quarto **1.10.18**, scrutiny **0.6.2**, statcheck **1.5.0**, simdistr **1.0.1**. Hosted pins remain R 4.6.0 and Quarto 1.9.37. The guidance `SHA256SUMS` hash is `76de5b5be8938b2329439f78c86ac4debe32f0fc7e42f843a8ead8ea9aae9c56`; catalogue hash is `313869d190ff35dfa0137559da440a5cc62cfce1d61d8aef23784ce79a2e1395`; R package-lock hash is `dea25709a20bbf923fd7b8e06b8a34a4f980de52ce95c15f72005db941a3af4d`.
+- The connected synthetic source at snapshot creation had SHA-256 `1c86db65f48be61e87eeda4680a562a12b527cb2edff35a88f88bea584bd144a`; local snapshot identity was `687915e2475c3dd8e965722b6b798148d26cd35ca2ae637b06a1074c73ca92c8`. The test changed the source afterward and verified that validation failed until source bytes were restored.
+- Five synthetic report/model files and `receipt.json` were copied without overwriting existing files to ignored `data/private/inspect_sr/verification/a9d3ccb/`. Their SHA-256 values are `638dc1402a75c244f98702bd95b9080716eefc6408dd2c0e3ee9a5388b9c4239` (INSPECT-SR HTML), `8a1be2a9e12b1a600f97a434c22a3fc22fbdca57f916c54b92081199f4a6ba7b` (PDF), `8844d1036a2ffc1f5db0d3ed7bbc7a88207d45799c7a1c8222b29a14c1037b24` (model JSON), `4f5a3408b202724879ecc7ef9485b4ed8e664a8bebbcbf3a096b4b6b9bcbb3e6` (private prediction HTML), and `4fdceb9b4e1845befe3e8ef9fa9e05ff4419558b12f7ec170ede055bd0111785` (PDF).
+
+Hosted Actions and the scientific rounding-bias decision remain open. No source-paper analysis, production deployment, merge, automatic adjudication, or historical-results rewrite was run.
 
 
 ## Latest status — 2026-09-25

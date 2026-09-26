@@ -32,11 +32,11 @@ jobs:
       FORENSICS_REQUIRE_R_INTEGRATION: "1"
     steps:
       - uses: actions/checkout@v4
-      - name: Set isolated R library path
-        run: echo "R_LIBS_USER=$RUNNER_TEMP/inspect-sr-r-library" >> "$GITHUB_ENV"
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: "4.6.0"
+      - name: Set isolated R library path
+        run: echo "R_LIBS_USER=$RUNNER_TEMP/inspect-sr-r-library" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -57,11 +57,11 @@ jobs:
       FORENSICS_REQUIRE_REPORT_INTEGRATION: "1"
     steps:
       - uses: actions/checkout@v4
-      - name: Set isolated R library path
-        run: echo "R_LIBS_USER=$RUNNER_TEMP/inspect-sr-report-r-library" >> "$GITHUB_ENV"
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: "4.6.0"
+      - name: Set isolated R library path
+        run: echo "R_LIBS_USER=$RUNNER_TEMP/inspect-sr-report-r-library" >> "$GITHUB_ENV"
       - uses: quarto-dev/quarto-actions/setup@v2
         with:
           version: "1.9.37"

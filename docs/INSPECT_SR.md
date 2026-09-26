@@ -77,6 +77,10 @@ to the numeric methods that actually emit those receipts: GRIM/GRIMMER/DEBIT,
 statcheck, duplicates, and rounding-bias. The other checks are manual-only until
 their producers have a validated receipt contract; similarly named Python
 outputs or synthetic receipts do not activate a route.
+Rounding-bias currently has an unresolved input-contract issue: its wrapper
+rerounds already printed values at the same precision, which can generate a
+zero difference by construction. Its candidate route is therefore not
+scientifically qualified for release, even when a native receipt says completed.
 
 The dossier reports method coverage as `available`, `missing`, `ineligible`,
 `failed`, or `manual_only`. These are workflow/evidence states. Candidate records

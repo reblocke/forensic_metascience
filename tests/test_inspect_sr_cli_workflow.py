@@ -164,7 +164,7 @@ def test_cli_complete_review_and_private_report(monkeypatch, tmp_path: Path) -> 
         "--catalogue",
         str(CATALOGUE),
     )
-    run(
+    render_args = (
         "render",
         "--assessment",
         str(assessment_path),
@@ -193,6 +193,14 @@ def test_cli_complete_review_and_private_report(monkeypatch, tmp_path: Path) -> 
         "--format",
         "both",
     )
+    revision_index = render_args.index("--revision") + 1
+    for invalid in (str(tmp_path / "escaped-report"), "../escaped-report"):
+        invalid_args = list(render_args)
+        invalid_args[revision_index] = invalid
+        with pytest.raises(ValueError, match="simple identifiers"):
+            run(*invalid_args)
+    assert not (tmp_path / "escaped-report").exists()
+    run(*render_args)
     report_dir = store / "reports" / assessment["assessment_id"] / "review-1"
     assert (report_dir / "assessment.html").is_file()
     assert (report_dir / "assessment.pdf").is_file()
@@ -284,3 +292,4 @@ def test_cli_complete_review_and_private_report(monkeypatch, tmp_path: Path) -> 
             "--catalogue",
             str(CATALOGUE),
         )
+    source.write_text("Synthetic source value 0.50", encoding="utf-8")
