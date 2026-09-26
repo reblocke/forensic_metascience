@@ -603,7 +603,7 @@ def _claim_row(
         else:
             assessment_status = "indeterminate"
     return {
-        "schema_version": "registration_claims_v3",
+        "schema_version": "registration_claims_v4",
         "trial_id": trial_id,
         "claim_id": claim_id,
         "claim_category": claim_category,
@@ -679,7 +679,11 @@ def _contains_exact_or_token_overlap(text: str, target: str, *, min_overlap: flo
     if normalized_target in normalized_text:
         for match in re.finditer(re.escape(normalized_target), normalized_text):
             prefix = normalized_text[max(0, match.start() - 55) : match.start()]
-            if re.search(r"\b(?:not|no|never|without|neither)\b(?:\W+\w+){0,4}\W*$", prefix):
+            if re.search(
+                r"(?:\bnon|\bun|\bnot|\bno|\bnever|\bwithout|\bneither)"
+                r"(?:\W+\w+){0,4}\W*$",
+                prefix,
+            ):
                 return False
         return True
     target_tokens = {

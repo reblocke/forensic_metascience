@@ -95,7 +95,7 @@ def test_expanded_claim_conversion_preserves_structured_evidence() -> None:
         (expanded["claim_id"] == "blinding_role") & (expanded["role"] == "treatment")
     ].iloc[0]
 
-    assert treatment["schema_version"] == "registration_claims_v3"
+    assert treatment["schema_version"] == "registration_claims_v4"
     assert treatment["report_evidence"] == "Treatment was open-label."
     assert treatment["protocol_evidence"] == "Treatment was not blinded."
     assert treatment["report_negated"] is False

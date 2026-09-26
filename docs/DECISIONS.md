@@ -1,5 +1,12 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-09-25: Version negation-aware registry claim matching (FM-07 repair)
+- **Decision:** Registry claim matching treats `non-`, `non`, `un`, and explicit negation before a matched term as indeterminate agreement. The expanded registry-claim schema advances to `registration_claims_v4`.
+- **Context:** Substring matching incorrectly treated “non-randomized” and “nonrandomized” as a match to a registry value of `RANDOMIZED`.
+- **Rationale:** Presence of a shared substring does not establish agreement when the source claim is negated. Source statements remain available for human interpretation.
+- **Output impact:** New outputs from `legacy_claims_to_expanded` carry schema v4. Historical v3 files are unchanged and remain readable as historical records.
+- **Verification:** New synthetic regressions for hyphenated, closed-form, and explicit negation failed before the fix and pass after it. No network retrieval or trial-paper analysis was used.
+
 ## 2026-09-25: Replace corrected meta composite with explicit evidence coverage
 - **Date:** 2026-09-25
 - **Decision:** The default meta workflow emits category coverage and source-linked screening-signal records. It does not normalize category metrics, impute missing values, combine them into a study score, assign a risk tier, or generate a judgment. The retired formula is available only with `--legacy-reproduction` and writes beneath isolated `legacy/` directories with schema `legacy_composite_v1` and label `NOT_INSPECT`.

@@ -6,6 +6,7 @@ import urllib.error
 from datetime import date
 
 import pandas as pd
+import pytest
 
 from research_project.clinicaltrials_registry import (
     build_history_events,
@@ -511,6 +512,34 @@ def test_overdue_and_publication_linkage_are_metadata_screens() -> None:
     assert "potentially_overdue" in overdue["screen_status"]
     assert publication["assessment_status"] == "not_assessed"
     assert publication["screen_status"] == "not_assessed"
+
+
+@pytest.mark.parametrize(
+    "report_text",
+    [
+        "This was a non-randomized study.",
+        "This was a nonrandomized study.",
+        "This study did not use randomized allocation.",
+    ],
+)
+def test_negated_randomization_does_not_match_registry_claim(report_text: str) -> None:
+    current_record = normalize_current_record(
+        study_id="trial_x", record=_registry_record(), registry_source="fixture"
+    )
+    claims = derive_clinicaltrials_claims(
+        trial_id="trial_x",
+        report_text=report_text,
+        protocol_text="",
+        current_record=current_record,
+        fetch_metadata=pd.DataFrame(),
+        registry_resolution={"registry_id": "NCT12345678"},
+    )
+    allocation = claims.loc[
+        claims["claim_id"] == "clinicaltrials_allocation_congruence"
+    ].iloc[0]
+
+    assert allocation["match_status"] is not True
+    assert allocation["assessment_status"] == "indeterminate"
 
 
 def test_history_status_distinguishes_absent_undated_and_unchanged(tmp_path) -> None:
