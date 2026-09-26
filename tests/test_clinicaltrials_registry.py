@@ -534,9 +534,7 @@ def test_negated_randomization_does_not_match_registry_claim(report_text: str) -
         fetch_metadata=pd.DataFrame(),
         registry_resolution={"registry_id": "NCT12345678"},
     )
-    allocation = claims.loc[
-        claims["claim_id"] == "clinicaltrials_allocation_congruence"
-    ].iloc[0]
+    allocation = claims.loc[claims["claim_id"] == "clinicaltrials_allocation_congruence"].iloc[0]
 
     assert allocation["match_status"] is not True
     assert allocation["assessment_status"] == "indeterminate"

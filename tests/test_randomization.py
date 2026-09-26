@@ -224,6 +224,7 @@ def test_csf_preserves_reported_percent_for_proportion_precision() -> None:
     assert response["reported_percent_decimals_arm1"] == 1
 
 
+@pytest.mark.native_r
 def test_simdistr_runtime_converts_reported_percent_to_proportion_precision() -> None:
     rscript = shutil.which("Rscript")
     if rscript is None:
@@ -280,7 +281,8 @@ def test_builder_writes_separate_reported_test_records(tmp_path: Path) -> None:
     assert len(pdl1) == 1
 
 
-def test_randomization_r_runner_gates_design_and_fixed_block_count_check(tmp_path: Path) -> None:
+@pytest.mark.native_r
+def test_randomization_r_runner_gates_design_and_executes_seeded_simdistr(tmp_path: Path) -> None:
     rscript = shutil.which("Rscript")
     if rscript is None:
         pytest.skip("Rscript is unavailable; production R integration is unverified.")
@@ -421,7 +423,7 @@ def test_randomization_r_runner_gates_design_and_fixed_block_count_check(tmp_pat
     assert multiple_strata.iloc[0]["status"] == "unsupported_structure"
 
     _, _, seeded_receipt = run(
-        "seeded_missing_dependency",
+        "seeded_simdistr",
         "--allocation-design",
         "unrestricted_individual_1to1",
         "--expert-opt-in",
@@ -432,14 +434,12 @@ def test_randomization_r_runner_gates_design_and_fixed_block_count_check(tmp_pat
         "25",
     )
     assert seeded_receipt["seed"] == 123
-    assert seeded_receipt["inferential_diagnostic_status"] == "dependency_missing"
+    assert seeded_receipt["inferential_diagnostic_status"] == "completed"
     assert seeded_receipt["rng_kind"]
-    seeded_rows = pd.read_csv(tmp_path / "seeded_missing_dependency/row_level_results_v2.csv")
+    seeded_rows = pd.read_csv(tmp_path / "seeded_simdistr/row_level_results_v2.csv")
     assert seeded_rows["recalculated_p_status"].eq("evaluated").all()
     assert seeded_rows["row_chisq_p"].notna().all()
-    runtime_input = pd.read_csv(
-        tmp_path / "seeded_missing_dependency/simdistr_runtime_input_v1.csv"
-    )
+    runtime_input = pd.read_csv(tmp_path / "seeded_simdistr/simdistr_runtime_input_v1.csv")
     assert set(runtime_input["decimals"]) == {2, 3, 4}
 
 

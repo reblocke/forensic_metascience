@@ -24,7 +24,7 @@ jobs:
       - name: Format check
         run: uv run ruff format . --check
       - name: Tests
-        run: uv run pytest -q
+        run: uv run pytest -q -m 'not native_r'
 
   native-r:
     runs-on: ubuntu-latest
@@ -48,12 +48,13 @@ jobs:
       - name: Install hash-verified method packages in isolated R library
         run: bash scripts/install_inspect_sr_r_methods.sh
       - name: Native Python to R method integration
-        run: uv run pytest -q tests/test_r_integration.py
+        run: uv run pytest -q -m native_r
 
   report-review:
     runs-on: ubuntu-latest
     env:
       R_LIBS_USER: ${{ runner.temp }}/inspect-sr-report-r-library
+      FORENSICS_REQUIRE_REPORT_INTEGRATION: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: r-lib/actions/setup-r@v2
