@@ -25,7 +25,7 @@ def _receipt(
     flagged: int | None,
 ) -> dict:
     return {
-        "schema_version": "method_receipt_v2",
+        "schema_version": "method_receipt_v3",
         "run_id": run_id,
         "method_id": method_id,
         "method_version": "1",
@@ -77,6 +77,8 @@ def test_candidate_mapping_requires_completed_or_partial_receipt_and_exact_evide
     assert candidates[0]["evidence_ids"] == ["evidence-1"]
     assert "response" not in candidates[0]
     assert not map_candidate_result(result, [{**receipt, "execution": "failed"}], evidence)
+    with pytest.raises(ValueError, match="method_receipt_v3"):
+        map_candidate_result(result, [{**receipt, "schema_version": "method_receipt_v2"}], evidence)
     with pytest.raises(ValueError, match="evidence"):
         map_candidate_result(result, [receipt], [])
 

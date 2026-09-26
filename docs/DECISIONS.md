@@ -1,5 +1,11 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-09-25: Require complete method receipt accounting (FM-03 repair)
+- **Decision:** Current native outputs use `method_receipt_v3`. A completed receipt requires every eligible evaluation unit to be evaluated with no failures; a partial receipt requires evaluated and failed counts to account for every eligible unit. Invalid or unknown statcheck result schemas fail, while a valid empty logical result schema means the report text was evaluated without a finding. Missing dependencies remain `dependency_missing`.
+- **Context:** Receipt validation previously treated short output tables as complete, accepted unknown statcheck results, and allowed zero-row valid output to be confused with a missing package.
+- **Output impact and migration:** Newly generated `numeric_method_receipts.csv` records use v3. Python candidate mapping and run manifests require v3; existing v2 files remain untouched and readable as historical data but are not implicitly promoted to current candidate evidence. Rounding-bias eligibility counts distinct eligible `(trial_id, digits_x)` groups; `n_input` continues to count input rows.
+- **Verification:** Added R regressions for partial outputs without a `consistency` column, malformed statcheck types, missing dependencies, and valid empty statcheck results. A producer-path duplicate-group fixture reproduced incorrect completed/partial accounting before the fix. Pinned-package native verification is recorded in the active handoff after execution.
+
 ## 2026-09-25: Version negation-aware registry claim matching (FM-07 repair)
 - **Decision:** Registry claim matching treats `non-`, `non`, `un`, and explicit negation before a matched term as indeterminate agreement. The expanded registry-claim schema advances to `registration_claims_v4`.
 - **Context:** Substring matching incorrectly treated “non-randomized” and “nonrandomized” as a match to a registry value of `RANDOMIZED`.

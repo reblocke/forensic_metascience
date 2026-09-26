@@ -106,7 +106,7 @@ def create_run(
         ).hexdigest(),
         "schema_versions": {
             "run_manifest": RUN_MANIFEST_SCHEMA,
-            "numeric_method_receipt": "method_receipt_v2",
+            "numeric_method_receipt": "method_receipt_v3",
             "meta_evidence_coverage": "evidence_coverage_v2",
         },
         "method_versions": {"numeric": "numeric_eligibility_precision_v3"},

@@ -485,6 +485,7 @@ def test_r_method_receipt_contract_has_truthful_outcomes() -> None:
         raise RuntimeError("Rscript is required for method receipt contract regressions.")
     expression = r"""
 source("R/method_receipts.R")
+stopifnot(METHOD_RECEIPT_SCHEMA_VERSION == "method_receipt_v3")
 base <- list(
   run_id = "synthetic-run", method_id = "grim", method_version = "test-v1",
   package_name = "scrutiny", package_version = "not-installed",
@@ -558,9 +559,50 @@ unknown_statcheck <- receipt_from_method_run(
   method_run = list(raw = data.frame(error = NA), message = "ok"),
   output_reference = "statcheck.csv", report_text_evaluated = TRUE
 )
+partial_without_consistency <- receipt_from_method_run(
+  run_id = "synthetic-run", method_id = "duplicates", method_version = "test-v1",
+  package_name = "scrutiny", package_version = NA_character_,
+  unit_of_evaluation = "summary_case", input_evidence_ids = "case-1;case-2",
+  parameters = "fixture", input_count = 2L, eligible_count = 2L,
+  method_run = list(raw = data.frame(anomaly_flag = FALSE), message = "ok"),
+  output_reference = "duplicates.csv"
+)
+unknown_type_statcheck <- receipt_from_method_run(
+  run_id = "synthetic-run", method_id = "statcheck", method_version = "test-v1",
+  package_name = "statcheck", package_version = NA_character_,
+  unit_of_evaluation = "report_text", input_evidence_ids = "", parameters = "fixture",
+  input_count = 1L, eligible_count = 1L,
+  method_run = list(raw = data.frame(error = "unknown"), message = "ok"),
+  output_reference = "statcheck.csv", report_text_evaluated = TRUE
+)
+missing_statcheck <- receipt_from_method_run(
+  run_id = "synthetic-run", method_id = "statcheck", method_version = "test-v1",
+  package_name = "statcheck", package_version = NA_character_,
+  unit_of_evaluation = "report_text", input_evidence_ids = "", parameters = "fixture",
+  input_count = 1L, eligible_count = 1L,
+  method_run = list(raw = data.frame(error = logical()), message = "Package `statcheck` not installed."),
+  output_reference = "statcheck.csv", report_text_evaluated = TRUE
+)
+empty_statcheck <- receipt_from_method_run(
+  run_id = "synthetic-run", method_id = "statcheck", method_version = "test-v1",
+  package_name = "statcheck", package_version = NA_character_,
+  unit_of_evaluation = "report_text", input_evidence_ids = "", parameters = "fixture",
+  input_count = 1L, eligible_count = 1L,
+  method_run = list(raw = data.frame(error = logical()), message = "ok"),
+  output_reference = "statcheck.csv", report_text_evaluated = TRUE
+)
 stopifnot(incomplete_run$execution == "partial", incomplete_run$n_evaluated == 1L,
           incomplete_run$n_failed == 1L,
-          unknown_statcheck$execution == "failed", is.na(unknown_statcheck$n_flagged))
+          unknown_statcheck$execution == "failed", is.na(unknown_statcheck$n_flagged),
+          partial_without_consistency$execution == "partial",
+          partial_without_consistency$n_evaluated == 1L,
+          partial_without_consistency$n_failed == 1L,
+          unknown_type_statcheck$execution == "failed",
+          is.na(unknown_type_statcheck$n_flagged),
+          missing_statcheck$execution == "dependency_missing",
+          empty_statcheck$execution == "completed",
+          empty_statcheck$n_evaluated == 1L,
+          empty_statcheck$n_flagged == 0L)
 source("scripts/run_numeric_forensics.R")
 standard <- standardize_scrutiny_map(
   data.frame(case_id = "case-1", source_unit = "Table 1", trial_id = "trial_x",

@@ -1208,7 +1208,11 @@ main <- function() {
         duplicates_run$raw$x_dup | duplicates_run$raw$sd_dup | duplicates_run$raw$n_dup
       ) else if (duplicates_run$executed) 0L else NULL),
     receipt("scrutiny_rounding_bias", "scrutiny", "trial_digits_group", scrutiny_rounding_bias_input,
-      nrow(scrutiny_rounding_bias_input), rounding_bias_run, basename(rounding_bias_path),
+      nrow(scrutiny_rounding_bias_input %>%
+        mutate(x = as.numeric(x), digits_x = as.integer(digits_x)) %>%
+        filter(!is.na(x), !is.na(digits_x), digits_x >= 0) %>%
+        distinct(trial_id, digits_x)), rounding_bias_run, basename(rounding_bias_path),
+      input_n = nrow(scrutiny_rounding_bias_input),
       flag_override = if (nrow(rounding_bias_run$raw) > 0L) as_logical_count(
         rounding_bias_run$raw$anomaly_flag
       ) else if (rounding_bias_run$executed) 0L else NULL),

@@ -65,7 +65,7 @@ This document defines minimum standards for analyses that evaluate research-clai
 ## 7) INSPECT-SR human review and synthesis
 - Use only the locally pinned v1.1.2 catalogue and its verified source hashes.
 - Catalogue checks, source versions, evidence, candidate method results, human responses, domain judgments, overall judgments, adjudication, and synthesis policy are separate records.
-- Candidate results require a complete `method_receipt_v2` for the same run and exact source evidence. A check without a validated receipt remains manual-only; a missing image is not a negative response.
+- Candidate results require a complete `method_receipt_v3` for the same run and exact source evidence. Version 3 requires full eligible-unit accounting; v2 artifacts remain readable as historical records and cannot be silently upgraded. A check without a validated receipt remains manual-only; a missing image is not a negative response.
 - Final synthesis requires an approved, versioned policy, current guidance and source snapshot hashes, and finalized human adjudication. Primary versus sensitivity policy must be selected explicitly.
 - Trial dispositions are one row per stable trial ID; report and comparison joins preserve row counts and existing RoB/effect fields. Unresolved trials block export unless the caller explicitly selects unresolved-list mode.
 - Public export requires explicit trial selection and review and contains only allowlisted identifiers/dispositions. It must not carry source excerpts, private notes, or reviewer identity fields.

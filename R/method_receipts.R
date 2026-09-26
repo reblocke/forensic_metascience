@@ -1,4 +1,4 @@
-METHOD_RECEIPT_SCHEMA_VERSION <- "method_receipt_v2"
+METHOD_RECEIPT_SCHEMA_VERSION <- "method_receipt_v3"
 METHOD_APPLICABILITY_STATES <- c("eligible", "ineligible", "unknown", "mixed")
 METHOD_EXECUTION_STATES <- c(
   "not_requested", "not_implemented", "dependency_missing", "blocked",
@@ -34,10 +34,12 @@ new_method_receipt <- function(
   if (!is.na(n_flagged) && (n_flagged < 0 || n_flagged > n_evaluated)) {
     stop("Method receipt flagged count must be bounded by evaluated units.")
   }
-  if (execution == "completed" && (n_evaluated < 1L || n_failed > 0L || is.na(n_flagged))) {
+  if (execution == "completed" &&
+      (n_evaluated < 1L || n_failed != 0L || n_evaluated != n_eligible || is.na(n_flagged))) {
     stop("A completed method requires positive evaluated coverage and no failed units.")
   }
-  if (execution == "partial" && (n_evaluated < 1L || n_failed < 1L)) {
+  if (execution == "partial" &&
+      (n_evaluated < 1L || n_failed < 1L || n_evaluated + n_failed != n_eligible)) {
     stop("A partial method requires both evaluated and failed units.")
   }
   if (execution %in% c("not_requested", "not_implemented", "dependency_missing", "blocked") &&
@@ -106,15 +108,18 @@ receipt_from_method_run <- function(
     logical()
   }
   statcheck_valid <- !report_text_evaluated || (
-    !is.null(raw) && is.data.frame(raw) && nrow(raw) > 0L &&
-      "error" %in% names(raw) && !anyNA(raw$error)
+    !is.null(raw) && is.data.frame(raw) && "error" %in% names(raw) &&
+      is.logical(raw$error) && !anyNA(raw$error)
   )
   failed_count <- if (!is.null(failed_count_override)) {
     as.integer(failed_count_override)
   } else if (length(consistency)) {
     max(sum(is.na(consistency)), eligible_count - sum(!is.na(consistency)))
-  } else {
+  } else if (report_text_evaluated && statcheck_valid &&
+             !grepl("not installed|dependency missing", message, ignore.case = TRUE)) {
     0L
+  } else {
+    max(eligible_count - min(raw_count, eligible_count), 0L)
   }
   evaluated_count <- if (!is.null(evaluated_count_override)) {
     as.integer(evaluated_count_override)
@@ -126,13 +131,13 @@ receipt_from_method_run <- function(
   } else if (report_text_evaluated) {
     0L
   } else {
-    raw_count
+    min(raw_count, eligible_count)
   }
   flagged_count <- if (!is.null(flagged_count_override)) {
     as.integer(flagged_count_override)
   } else if (length(consistency)) {
     sum(!consistency, na.rm = TRUE)
-  } else if (report_text_evaluated && statcheck_valid) {
+  } else if (report_text_evaluated && statcheck_valid && evaluated_count > 0L) {
     sum(as.logical(raw$error), na.rm = TRUE)
   } else if (evaluated_count > 0L) {
     0L
@@ -177,7 +182,8 @@ receipt_from_method_run <- function(
     execution <- "completed"
   }
 
-  if (requested && implemented && eligible_count > 0L && !statcheck_valid) {
+  if (requested && implemented && eligible_count > 0L && !statcheck_valid &&
+      !grepl("not installed|dependency missing", message, ignore.case = TRUE)) {
     execution <- "failed"
     evaluated_count <- 0L
     failed_count <- eligible_count

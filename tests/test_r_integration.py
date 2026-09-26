@@ -167,6 +167,11 @@ def test_numeric_production_runner_executes_pinned_method_packages(tmp_path: Pat
     input_dir = tmp_path / "inputs"
     output_dir = tmp_path / "numeric-output"
     _write_numeric_fixture(input_dir)
+    bias_input_path = input_dir / "scrutiny_rounding_bias_input.csv"
+    bias_input = pd.read_csv(bias_input_path)
+    pd.concat([bias_input, bias_input.iloc[[0]]], ignore_index=True).to_csv(
+        bias_input_path, index=False
+    )
     subprocess.run(
         [
             rscript,
@@ -192,6 +197,10 @@ def test_numeric_production_runner_executes_pinned_method_packages(tmp_path: Pat
         receipt = receipts.loc[method_id]
         assert receipt["execution"] == "completed", (method_id, receipt.to_dict())
         assert receipt["n_evaluated"] >= 1, (method_id, receipt.to_dict())
+    rounding_receipt = receipts.loc["scrutiny_rounding_bias"]
+    assert rounding_receipt["n_input"] == 3
+    assert rounding_receipt["n_eligible"] == 2
+    assert rounding_receipt["n_evaluated"] == 2
     assert set(pd.read_csv(output_dir / "numeric_package_status.csv")["version"].dropna()) >= {
         "0.6.2",
         "1.5.0",
