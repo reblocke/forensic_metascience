@@ -8,6 +8,8 @@ from decimal import ROUND_DOWN, ROUND_HALF_EVEN, ROUND_HALF_UP, Decimal, Invalid
 
 import pandas as pd
 
+from research_project.inspect_sr.records import evidence_id
+
 SCRUTINY_CASE_COLUMNS = [
     "case_id",
     "trial_id",
@@ -15,6 +17,8 @@ SCRUTINY_CASE_COLUMNS = [
     "source_table",
     "source_page",
     "source_locator",
+    "source_version_id",
+    "evidence_id",
     "raw_value",
     "reported_decimals",
     "reported_p_raw",
@@ -59,6 +63,62 @@ SUMMARY_METADATA_COLUMNS = (
     "eligibility_evidence",
 )
 NUMERIC_METHOD_REVISION = "numeric_eligibility_precision_v3"
+
+
+def _text_or_empty(value: object) -> str:
+    return "" if pd.isna(value) else str(value)
+
+
+def attach_source_evidence(
+    cases: pd.DataFrame, source_versions: list[dict[str, str]]
+) -> tuple[pd.DataFrame, list[dict[str, str]]]:
+    """Attach content-and-locator identities only when source provenance is complete."""
+    result = cases.copy()
+    versions_by_name = {row["source_name"]: row for row in source_versions}
+    evidence_records: list[dict[str, str]] = []
+    source_ids: list[str | None] = []
+    evidence_ids: list[str | None] = []
+    for _, row in result.iterrows():
+        version = versions_by_name.get(_text_or_empty(row.get("source_pdf", "")))
+        locator = _text_or_empty(row.get("source_locator", "")).strip()
+        raw_value = _text_or_empty(row.get("raw_value", "")).strip()
+        if not raw_value:
+            x_value = _text_or_empty(row.get("x_str", "")).strip()
+            sd_value = _text_or_empty(row.get("sd_str", "")).strip()
+            raw_value = f"{x_value} (SD {sd_value})" if x_value and sd_value else x_value
+        if version is None or not locator or not raw_value:
+            source_ids.append(None)
+            evidence_ids.append(None)
+            continue
+        parser_version = str(row.get("method_revision", NUMERIC_METHOD_REVISION))
+        selected_id = evidence_id(
+            version["source_version_id"],
+            locator,
+            raw_value,
+            "numeric_pdf_table_extraction",
+            parser_version,
+        )
+        source_ids.append(version["source_version_id"])
+        evidence_ids.append(selected_id)
+        evidence_records.append(
+            {
+                "schema_version": "inspect_sr_evidence_v2",
+                "record_type": "source_evidence",
+                "evidence_id": selected_id,
+                "source_id": version["source_id"],
+                "source_version_id": version["source_version_id"],
+                "content_sha256": version["content_sha256"],
+                "locator": locator,
+                "raw_value": raw_value,
+                "extraction_method": "numeric_pdf_table_extraction",
+                "extraction_version": parser_version,
+                "trial_id": str(row.get("trial_id", "")),
+            }
+        )
+    result["source_version_id"] = source_ids
+    result["evidence_id"] = evidence_ids
+    unique_records = {row["evidence_id"]: row for row in evidence_records}
+    return result, list(unique_records.values())
 
 
 def compute_percent_from_count(
@@ -616,6 +676,8 @@ def build_scrutiny_grim_input(scrutiny_cases: pd.DataFrame) -> pd.DataFrame:
         "source_table",
         "source_page",
         "source_locator",
+        "source_version_id",
+        "evidence_id",
         "raw_value",
         "reported_decimals",
         "reported_p_raw",
@@ -653,6 +715,8 @@ def build_scrutiny_grimmer_input(scrutiny_cases: pd.DataFrame) -> pd.DataFrame:
         "source_table",
         "source_page",
         "source_locator",
+        "source_version_id",
+        "evidence_id",
         "raw_value",
         "reported_decimals",
         "reported_p_raw",
@@ -692,6 +756,8 @@ def build_scrutiny_debit_input(scrutiny_cases: pd.DataFrame) -> pd.DataFrame:
         "source_table",
         "source_page",
         "source_locator",
+        "source_version_id",
+        "evidence_id",
         "raw_value",
         "reported_decimals",
         "reported_p_raw",
@@ -727,6 +793,9 @@ def build_scrutiny_duplicate_input(scrutiny_cases: pd.DataFrame) -> pd.DataFrame
         "case_id",
         "trial_id",
         "source_unit",
+        "source_locator",
+        "source_version_id",
+        "evidence_id",
         "variable",
         "level",
         "group",
@@ -755,6 +824,9 @@ def build_scrutiny_rounding_bias_input(scrutiny_cases: pd.DataFrame) -> pd.DataF
         "case_id",
         "trial_id",
         "source_unit",
+        "source_locator",
+        "source_version_id",
+        "evidence_id",
         "x",
         "digits_x",
     ]

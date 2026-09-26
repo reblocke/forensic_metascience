@@ -107,6 +107,7 @@ def create_run(
         "schema_versions": {
             "run_manifest": RUN_MANIFEST_SCHEMA,
             "numeric_method_receipt": "method_receipt_v3",
+            "numeric_method_result": "numeric_result_v2",
             "meta_evidence_coverage": "evidence_coverage_v2",
         },
         "method_versions": {"numeric": "numeric_eligibility_precision_v3"},

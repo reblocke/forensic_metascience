@@ -412,6 +412,7 @@ run_numeric_category() {
   PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_numeric.py \
     --table1 "$RANDOMIZATION_DATA_DIR/table1_long.csv" \
     --report-pdf "$REPORT_PDF" \
+    --source-pdf-path "$BASELINE_PDF" \
     --study-id "$STUDY_ID" \
     --source-pdf "$(basename "$BASELINE_PDF")" \
     --out "$NUMERIC_DATA_DIR"
@@ -429,10 +430,13 @@ run_numeric_category() {
   Rscript scripts/run_numeric_forensics.R \
     --in "$NUMERIC_DATA_DIR" \
     --out "$NUMERIC_REPORT_DIR" \
+    --run-id "$RUN_ID" \
     --scrutiny-seq false
 
   stage_complete numeric_methods "$NUMERIC_REPORT_DIR/numeric_method_receipts.csv" \
-    "$NUMERIC_REPORT_DIR/numeric_standardized_results.csv" "$NUMERIC_REPORT_DIR/numeric_summary.csv"
+    "$NUMERIC_REPORT_DIR/numeric_standardized_results.csv" \
+    "$NUMERIC_REPORT_DIR/numeric_standardized_results_v2.csv" \
+    "$NUMERIC_DATA_DIR/metadata/source_evidence.json" "$NUMERIC_REPORT_DIR/numeric_summary.csv"
   if [ "$RENDER_REPORTS" = true ]; then
     stage_begin numeric_report
     render_study_report "notebooks/lungtime_numeric_audit.qmd" "numeric" \

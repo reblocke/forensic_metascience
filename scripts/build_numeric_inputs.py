@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import pandas as pd
 
 from research_project.numeric_integrity import (
+    attach_source_evidence,
     build_rsprite2_stub,
     build_scrutiny_cases,
     build_scrutiny_debit_input,
@@ -36,6 +38,7 @@ def main() -> None:
     statcheck_text_path = in_dir / "inputs" / "statcheck_text.txt"
     summary_long_path = in_dir / "inputs" / "numeric_summary_long.csv"
     metadata_path = in_dir / "metadata" / "numeric_extract_metadata.csv"
+    source_versions_path = in_dir / "metadata" / "source_versions.json"
     if not numeric_path.exists():
         raise FileNotFoundError(f"Missing numeric table: {numeric_path}")
     if not scrutiny_path.exists():
@@ -92,6 +95,11 @@ def main() -> None:
         },
     )
     metadata = pd.read_csv(metadata_path)
+    source_versions = (
+        json.loads(source_versions_path.read_text(encoding="utf-8"))
+        if source_versions_path.is_file()
+        else []
+    )
 
     source_pdf = ""
     if not metadata.empty and "source_pdf" in metadata.columns:
@@ -102,6 +110,7 @@ def main() -> None:
         numeric_summary_long=summary_long,
         source_pdf=source_pdf,
     )
+    scrutiny_cases, source_evidence = attach_source_evidence(scrutiny_cases, source_versions)
     scrutiny_grim_input = build_scrutiny_grim_input(scrutiny_cases)
     scrutiny_grimmer_input = build_scrutiny_grimmer_input(scrutiny_cases)
     scrutiny_debit_input = build_scrutiny_debit_input(scrutiny_cases)
@@ -124,6 +133,7 @@ def main() -> None:
     scrutiny_debit_path = inputs_dir / "scrutiny_debit_input.csv"
     scrutiny_duplicates_path = inputs_dir / "scrutiny_duplicates_input.csv"
     scrutiny_rounding_bias_path = inputs_dir / "scrutiny_rounding_bias_input.csv"
+    source_evidence_path = in_dir / "metadata" / "source_evidence.json"
 
     numeric_table.to_csv(numeric_ready_path, index=False)
     scrutiny_input.to_csv(scrutiny_ready_path, index=False)
@@ -137,6 +147,9 @@ def main() -> None:
     scrutiny_debit_input.to_csv(scrutiny_debit_path, index=False)
     scrutiny_duplicate_input.to_csv(scrutiny_duplicates_path, index=False)
     scrutiny_rounding_bias_input.to_csv(scrutiny_rounding_bias_path, index=False)
+    source_evidence_path.write_text(
+        json.dumps(source_evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     print(f"Wrote {numeric_ready_path}")
     print(f"Wrote {scrutiny_ready_path}")
@@ -150,6 +163,7 @@ def main() -> None:
     print(f"Wrote {scrutiny_debit_path}")
     print(f"Wrote {scrutiny_duplicates_path}")
     print(f"Wrote {scrutiny_rounding_bias_path}")
+    print(f"Wrote {source_evidence_path}")
 
 
 if __name__ == "__main__":

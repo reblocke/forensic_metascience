@@ -267,6 +267,8 @@ def test_meta_aggregates_versioned_randomization_producer_outputs(tmp_path: Path
 def test_randomization_report_renders_only_current_run_inputs(tmp_path: Path) -> None:
     quarto = shutil.which("quarto")
     if quarto is None:
+        if os.environ.get("FORENSICS_REQUIRE_REPORT_INTEGRATION") == "1":
+            pytest.fail("Quarto is required by FORENSICS_REQUIRE_REPORT_INTEGRATION=1")
         pytest.skip("Quarto is unavailable; report integration remains unverified.")
     project_root = Path(__file__).resolve().parents[1]
     repo_root = tmp_path / "repo"

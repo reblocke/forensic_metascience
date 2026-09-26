@@ -20,6 +20,7 @@ from research_project.numeric_integrity import (
     _digits_from_str,
     _to_int,
     assess_percent_compatibility,
+    attach_source_evidence,
     build_numeric_table,
     build_rsprite2_stub,
     build_scrutiny_cases,
@@ -265,6 +266,7 @@ def test_p_value_inequality_and_out_of_range_value_are_preserved() -> None:
     assert statcheck["input_status"].tolist() == ["ok", "source_value_out_of_range"]
 
 
+@pytest.mark.native_r
 def test_printed_numeric_strings_survive_python_readr_python_roundtrip(tmp_path) -> None:
     rscript = shutil.which("Rscript")
     if rscript is None:
@@ -360,6 +362,42 @@ def test_scrutiny_case_eligibility_and_method_inputs() -> None:
     assert len(rounding_bias_input) == 3
 
 
+def test_numeric_evidence_identity_requires_source_hash_locator_and_raw_value() -> None:
+    cases = pd.DataFrame(
+        [
+            {
+                "trial_id": "trial_x",
+                "source_pdf": "report.pdf",
+                "source_locator": "page=2;table=1;row=4;column=2",
+                "raw_value": "12.30 (SD 2.10)",
+                "method_revision": "numeric_eligibility_precision_v3",
+            },
+            {
+                "trial_id": "trial_x",
+                "source_pdf": "report.pdf",
+                "source_locator": "",
+                "raw_value": "9.20 (SD 1.10)",
+                "method_revision": "numeric_eligibility_precision_v3",
+            },
+        ]
+    )
+    versions = [
+        {
+            "source_id": "report-local-id",
+            "source_version_id": "sourcever-local-id",
+            "source_name": "report.pdf",
+            "content_sha256": "a" * 64,
+        }
+    ]
+    with_ids, records = attach_source_evidence(cases, versions)
+    assert with_ids.loc[0, "evidence_id"].startswith("evidence_")
+    assert pd.isna(with_ids.loc[1, "evidence_id"])
+    assert len(records) == 1
+    unresolved, records_without_source = attach_source_evidence(cases, [])
+    assert unresolved["evidence_id"].isna().all()
+    assert records_without_source == []
+
+
 def test_scrutiny_eligibility_requires_documented_summary_semantics() -> None:
     common = {
         "trial_id": "trial_x",
@@ -442,6 +480,7 @@ def test_scrutiny_eligibility_requires_documented_summary_semantics() -> None:
     assert set(debit_input["measurement_scale"]) == {"bernoulli"}
 
 
+@pytest.mark.native_r
 def test_numeric_r_boundary_revalidates_method_eligibility() -> None:
     rscript = shutil.which("Rscript")
     if rscript is None:
@@ -479,6 +518,7 @@ stopifnot(nrow(validate_scrutiny_input(legacy, "grim")) == 0L)
     )
 
 
+@pytest.mark.native_r
 def test_r_method_receipt_contract_has_truthful_outcomes() -> None:
     rscript = shutil.which("Rscript")
     if rscript is None:
@@ -580,7 +620,9 @@ missing_statcheck <- receipt_from_method_run(
   package_name = "statcheck", package_version = NA_character_,
   unit_of_evaluation = "report_text", input_evidence_ids = "", parameters = "fixture",
   input_count = 1L, eligible_count = 1L,
-  method_run = list(raw = data.frame(error = logical()), message = "Package `statcheck` not installed."),
+  method_run = list(
+    raw = data.frame(error = logical()), message = "Package `statcheck` not installed."
+  ),
   output_reference = "statcheck.csv", report_text_evaluated = TRUE
 )
 empty_statcheck <- receipt_from_method_run(
@@ -621,6 +663,7 @@ stopifnot(is.na(standard$p_value), standard$case_id == "case-1",
     )
 
 
+@pytest.mark.native_r
 def test_numeric_runner_receipts_keep_means_only_trial_and_exclude_sprite_stub(
     tmp_path: Path,
 ) -> None:
@@ -1023,6 +1066,7 @@ def test_extract_meta_records_coverage_and_existing_candidate_flags(tmp_path: Pa
     assert not bool(randomization_coverage["unavailable"])
 
 
+@pytest.mark.native_r
 def test_meta_r_runner_emits_coverage_not_composite_score(tmp_path: Path) -> None:
     rscript = shutil.which("Rscript")
     if rscript is None:
@@ -1078,6 +1122,7 @@ def test_meta_r_runner_emits_coverage_not_composite_score(tmp_path: Path) -> Non
     assert concerns.loc[0, "source_unit"] == "Table 1 / age"
 
 
+@pytest.mark.native_r
 def test_legacy_composite_is_explicit_isolated_and_reproduces_fixture(tmp_path: Path) -> None:
     rscript = shutil.which("Rscript")
     if rscript is None:

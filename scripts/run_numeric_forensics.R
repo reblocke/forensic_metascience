@@ -14,11 +14,11 @@ parse_bool <- function(value) {
 
 parse_args <- function() {
   args <- commandArgs(trailingOnly = TRUE)
-  parsed <- list(in_dir = NULL, out_dir = NULL, scrutiny_seq = FALSE)
+  parsed <- list(in_dir = NULL, out_dir = NULL, run_id = NULL, scrutiny_seq = FALSE)
   i <- 1L
   while (i <= length(args)) {
     key <- args[[i]]
-    if (key %in% c("--in", "--out", "--scrutiny-seq")) {
+    if (key %in% c("--in", "--out", "--run-id", "--scrutiny-seq")) {
       if (i == length(args)) {
         stop("Missing value for ", key)
       }
@@ -27,6 +27,8 @@ parse_args <- function() {
         parsed$in_dir <- value
       } else if (key == "--out") {
         parsed$out_dir <- value
+      } else if (key == "--run-id") {
+        parsed$run_id <- value
       } else if (key == "--scrutiny-seq") {
         parsed$scrutiny_seq <- parse_bool(value)
       }
@@ -40,6 +42,10 @@ parse_args <- function() {
       "Usage: run_numeric_forensics.R --in <input_dir> --out <output_dir> ",
       "[--scrutiny-seq false|true]"
     )
+  }
+  if (!is.null(parsed$run_id) &&
+      !grepl("^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$", parsed$run_id)) {
+    stop("Invalid run ID: ", parsed$run_id)
   }
   parsed
 }
@@ -160,7 +166,9 @@ empty_scrutiny_grim_raw <- function() {
     consistency = logical(),
     probability = numeric(),
     case_id = character(),
-    source_unit = character()
+    source_unit = character(),
+    source_locator = character(),
+    evidence_id = character()
   )
 }
 
@@ -180,6 +188,8 @@ empty_scrutiny_grimmer_raw <- function() {
   tibble(
     case_id = character(),
     source_unit = character(),
+    source_locator = character(),
+    evidence_id = character(),
     trial_id = character(),
     variable = character(),
     level = character(),
@@ -218,7 +228,9 @@ empty_scrutiny_debit_raw <- function() {
     x_lower = numeric(),
     x_upper = numeric(),
     case_id = character(),
-    source_unit = character()
+    source_unit = character(),
+    source_locator = character(),
+    evidence_id = character()
   )
 }
 
@@ -257,6 +269,8 @@ empty_duplicates <- function() {
     case_id = character(),
     trial_id = character(),
     source_unit = character(),
+    source_locator = character(),
+    evidence_id = character(),
     variable = character(),
     level = character(),
     group = character(),
@@ -359,7 +373,10 @@ run_scrutiny_grim <- function(scrutiny_grim_input) {
           digits_x = group$digits_x[[1]],
           percent = FALSE
         )
-        bind_cols(group %>% select(case_id, source_unit), as_tibble(mapped))
+        bind_cols(
+          group %>% select(case_id, source_unit, any_of(c("source_locator", "evidence_id"))),
+          as_tibble(mapped)
+        )
       }))
       group_audits <- bind_rows(lapply(groups, function(group) {
         mapped <- scrutiny::grim_map(
@@ -447,7 +464,8 @@ run_scrutiny_grimmer <- function(scrutiny_grimmer_input) {
           digits_sd = group$digits_sd[[1]]
         ))
         bind_cols(
-          group %>% select(case_id, source_unit, trial_id, variable, level, group),
+          group %>% select(case_id, source_unit, any_of(c("source_locator", "evidence_id")),
+            trial_id, variable, level, group),
           as_tibble(grimmer_out)
         )
       }))
@@ -536,7 +554,10 @@ run_scrutiny_debit <- function(scrutiny_debit_input) {
           digits_x = group$digits_x[[1]],
           digits_sd = group$digits_sd[[1]]
         )
-        bind_cols(group %>% select(case_id, source_unit), as_tibble(mapped))
+        bind_cols(
+          group %>% select(case_id, source_unit, any_of(c("source_locator", "evidence_id"))),
+          as_tibble(mapped)
+        )
       }))
       group_audits <- bind_rows(lapply(groups, function(group) {
         mapped <- scrutiny::debit_map(
@@ -615,7 +636,8 @@ run_scrutiny_duplicates <- function(scrutiny_duplicates_input) {
         }
       }
       duplicate_out <- bind_cols(
-        prepared %>% select(case_id, trial_id, source_unit, variable, level, group, x, sd, n),
+        prepared %>% select(case_id, trial_id, source_unit,
+          any_of(c("source_locator", "evidence_id")), variable, level, group, x, sd, n),
         duplicate_detect %>% select(x_dup, sd_dup, n_dup),
         duplicate_tally %>% select(x_n, sd_n, n_n)
       )
@@ -869,6 +891,16 @@ standardize_scrutiny_map <- function(raw_df, trial_id, method_name, metric_name)
       },
       method = method_name,
       case_id = if ("case_id" %in% names(raw_df)) as.character(case_id) else NA_character_,
+      source_locator = if ("source_locator" %in% names(raw_df)) {
+        as.character(source_locator)
+      } else {
+        NA_character_
+      },
+      input_evidence_ids = if ("evidence_id" %in% names(raw_df)) {
+        as.character(evidence_id)
+      } else {
+        ""
+      },
       source_unit = if ("source_unit" %in% names(raw_df)) {
         as.character(source_unit)
       } else if ("case_id" %in% names(raw_df)) {
@@ -900,6 +932,16 @@ standardize_duplicates <- function(duplicates_df) {
       trial_id = as.character(trial_id),
       method = "scrutiny_duplicates",
       source_unit = as.character(source_unit),
+      source_locator = if ("source_locator" %in% names(duplicates_df)) {
+        as.character(source_locator)
+      } else {
+        NA_character_
+      },
+      input_evidence_ids = if ("evidence_id" %in% names(duplicates_df)) {
+        as.character(evidence_id)
+      } else {
+        ""
+      },
       metric = "duplicate_fields_count",
       value_numeric = as.numeric(dup_count),
       p_value = NA_real_,
@@ -909,7 +951,7 @@ standardize_duplicates <- function(duplicates_df) {
     )
 }
 
-standardize_rounding_bias <- function(rounding_bias_df) {
+standardize_rounding_bias <- function(rounding_bias_df, input_rows) {
   if (nrow(rounding_bias_df) == 0) {
     return(tibble())
   }
@@ -918,6 +960,21 @@ standardize_rounding_bias <- function(rounding_bias_df) {
       trial_id = as.character(trial_id),
       method = "scrutiny_rounding_bias",
       source_unit = paste0("digits_", as.integer(digits_x)),
+      source_locator = vapply(seq_len(n()), function(i) {
+        if (!"source_locator" %in% names(input_rows)) return(NA_character_)
+        rows <- input_rows[input_rows$trial_id == trial_id[[i]] &
+          as.integer(input_rows$digits_x) == as.integer(digits_x[[i]]), , drop = FALSE]
+        locators <- unique(as.character(rows$source_locator))
+        locators <- locators[!is.na(locators) & nzchar(locators)]
+        if (length(locators) == 1L) locators[[1]] else NA_character_
+      }, character(1)),
+      input_evidence_ids = vapply(seq_len(n()), function(i) {
+        if (!"evidence_id" %in% names(input_rows)) return("")
+        rows <- input_rows[input_rows$trial_id == trial_id[[i]] &
+          as.integer(input_rows$digits_x) == as.integer(digits_x[[i]]), , drop = FALSE]
+        ids <- unique(as.character(rows$evidence_id))
+        paste(ids[!is.na(ids) & nzchar(ids)], collapse = ";")
+      }, character(1)),
       metric = "abs_bias_gap",
       value_numeric = as.numeric(abs_bias_gap),
       p_value = NA_real_,
@@ -1126,6 +1183,7 @@ main <- function() {
   write_csv(debit_seq$raw, file.path(out_dir, "numeric_scrutiny_debit_seq_raw.csv"))
   write_csv(debit_seq$audit, file.path(out_dir, "numeric_scrutiny_debit_seq_audit.csv"))
 
+  run_id <- args$run_id %||% paste0("numeric-", format(Sys.time(), "%Y%m%dT%H%M%S%z"))
   standardized <- bind_rows(
     standardize_rounding(row_results),
     standardize_scrutiny_map(
@@ -1147,7 +1205,7 @@ main <- function() {
       metric_name = "debit_inconsistency_flag"
     ),
     standardize_duplicates(duplicates_run$raw),
-    standardize_rounding_bias(rounding_bias_run$raw),
+    standardize_rounding_bias(rounding_bias_run$raw, scrutiny_rounding_bias_input),
     standardize_statcheck(statcheck_run$raw, trial_id = trial_id),
     standardize_seq(
       grim_seq$audit,
@@ -1167,12 +1225,29 @@ main <- function() {
   )
   standardized_path <- file.path(out_dir, "numeric_standardized_results.csv")
   write_csv(standardized, standardized_path)
+  standardized_v2 <- standardized %>%
+    mutate(
+      schema_version = "numeric_result_v2",
+      run_id = run_id,
+      method_id = as.character(method),
+      result_id = paste0(run_id, "_", method_id, "_", row_number()),
+      source_locator = if ("source_locator" %in% names(standardized)) {
+        as.character(source_locator)
+      } else {
+        NA_character_
+      },
+      input_evidence_ids = if ("input_evidence_ids" %in% names(standardized)) {
+        ifelse(is.na(input_evidence_ids), "", as.character(input_evidence_ids))
+      } else {
+        ""
+      }
+    )
+  write_csv(standardized_v2, file.path(out_dir, "numeric_standardized_results_v2.csv"))
   write_csv(rsprite2_input, file.path(out_dir, "numeric_descriptive_arm_differences.csv"))
 
-  run_id <- paste0("numeric-", format(Sys.time(), "%Y%m%dT%H%M%S%z"))
   evidence_ids <- function(tbl) {
-    if (!"case_id" %in% names(tbl)) return("")
-    ids <- unique(as.character(tbl$case_id))
+    if (!"evidence_id" %in% names(tbl)) return("")
+    ids <- unique(as.character(tbl$evidence_id))
     paste(ids[!is.na(ids) & nzchar(ids)], collapse = ";")
   }
   receipt <- function(method_id, package_name, unit, tbl, eligible_n, method_run,

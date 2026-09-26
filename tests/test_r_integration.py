@@ -8,7 +8,10 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from research_project.inspect_sr.adapters import map_candidate_result
+from research_project.inspect_sr.records import source_version_id
 from research_project.numeric_integrity import (
+    attach_source_evidence,
     build_scrutiny_cases,
     build_scrutiny_debit_input,
     build_scrutiny_duplicate_input,
@@ -22,6 +25,8 @@ PINNED_R_PACKAGES = {
     "statcheck": "1.5.0",
     "simdistr": "1.0.1",
 }
+
+pytestmark = pytest.mark.native_r
 
 
 def _rscript() -> str:
@@ -48,7 +53,7 @@ def _require_pinned_r_packages(rscript: str) -> None:
         pytest.skip("Pinned native R packages are unavailable; package lane is not covered")
 
 
-def _write_numeric_fixture(input_dir: Path) -> None:
+def _write_numeric_fixture(input_dir: Path) -> list[dict[str, str]]:
     input_dir.mkdir(parents=True)
 
     def write_numeric_csv(frame: pd.DataFrame, name: str) -> None:
@@ -103,6 +108,18 @@ def _write_numeric_fixture(input_dir: Path) -> None:
         ]
     )
     cases = build_scrutiny_cases(pd.DataFrame(), summary, source_pdf="synthetic.pdf")
+    source_hash = "a" * 64
+    cases, evidence_records = attach_source_evidence(
+        cases,
+        [
+            {
+                "source_id": "synthetic-report",
+                "source_name": "synthetic.pdf",
+                "source_version_id": source_version_id("synthetic-report", source_hash),
+                "content_sha256": source_hash,
+            }
+        ],
+    )
     write_numeric_csv(cases, "scrutiny_cases.csv")
     write_numeric_csv(build_scrutiny_grim_input(cases), "scrutiny_grim_input.csv")
     write_numeric_csv(build_scrutiny_grimmer_input(cases), "scrutiny_grimmer_input.csv")
@@ -146,6 +163,7 @@ def _write_numeric_fixture(input_dir: Path) -> None:
     (input_dir / "statcheck_text.txt").write_text(
         "The synthetic test reported t(28) = 2.20, p = .036.", encoding="utf-8"
     )
+    return evidence_records
 
 
 def test_malformed_simdistr_output_raises_instead_of_becoming_no_finding() -> None:
@@ -166,7 +184,7 @@ def test_numeric_production_runner_executes_pinned_method_packages(tmp_path: Pat
     project_root = Path(__file__).resolve().parents[1]
     input_dir = tmp_path / "inputs"
     output_dir = tmp_path / "numeric-output"
-    _write_numeric_fixture(input_dir)
+    evidence_records = _write_numeric_fixture(input_dir)
     bias_input_path = input_dir / "scrutiny_rounding_bias_input.csv"
     bias_input = pd.read_csv(bias_input_path)
     pd.concat([bias_input, bias_input.iloc[[0]]], ignore_index=True).to_csv(
@@ -180,12 +198,15 @@ def test_numeric_production_runner_executes_pinned_method_packages(tmp_path: Pat
             str(tmp_path),
             "--out",
             str(output_dir),
+            "--run-id",
+            "native-run-fixture",
         ],
         check=True,
         capture_output=True,
         text=True,
     )
     receipts = pd.read_csv(output_dir / "numeric_method_receipts.csv").set_index("method_id")
+    assert set(receipts["run_id"]) == {"native-run-fixture"}
     for method_id in (
         "scrutiny_grim_map",
         "scrutiny_grimmer_map",
@@ -206,6 +227,26 @@ def test_numeric_production_runner_executes_pinned_method_packages(tmp_path: Pat
         "1.5.0",
     }
     assert pd.read_csv(output_dir / "numeric_standardized_results.csv").shape[0] > 0
+    results_v2 = pd.read_csv(output_dir / "numeric_standardized_results_v2.csv")
+    assert set(results_v2["schema_version"]) == {"numeric_result_v2"}
+    assert set(results_v2["run_id"]) == {"native-run-fixture"}
+    assert results_v2["result_id"].notna().all()
+    assert "source_locator" in results_v2.columns
+    assert "input_evidence_ids" in results_v2.columns
+    candidate_rows = []
+    result_records = results_v2.astype(object).where(pd.notna(results_v2), None).to_dict("records")
+    receipt_records = (
+        receipts.reset_index()
+        .astype(object)
+        .where(pd.notna(receipts.reset_index()), None)
+        .to_dict("records")
+    )
+    for result in result_records:
+        if not result.get("source_locator") or not result.get("input_evidence_ids"):
+            continue
+        candidate_rows.extend(map_candidate_result(result, receipt_records, evidence_records))
+    assert candidate_rows
+    assert all(candidate["candidate_status"] == "candidate_only" for candidate in candidate_rows)
 
 
 def test_randomization_production_runner_executes_seeded_pinned_simdistr(
