@@ -89,18 +89,28 @@ def _claim_evidence(
     *,
     patterns: Sequence[tuple[str, str]],
 ) -> tuple[str, int | None, str, bool | None]:
+    found: list[tuple[str, int, str, bool]] = []
     for page, text in enumerate(page_texts, start=1):
         for sentence in _sentences(text):
+            normalized_sentence = normalize_text(sentence)
             for pattern, value in patterns:
-                match = re.search(pattern, sentence, flags=re.IGNORECASE)
+                match = re.search(pattern, normalized_sentence, flags=re.IGNORECASE)
                 if match:
-                    prefix = sentence[max(0, match.start() - 35) : match.start()]
+                    prefix = normalized_sentence[max(0, match.start() - 35) : match.start()]
                     negated = value.startswith("not_") or bool(
                         re.search(
                             r"\b(?:not|no|never|without|neither)\b[^.!?;]{0,35}$", prefix, re.I
                         )
                     )
-                    return value, page, sentence, negated
+                    found.append((value, page, sentence, negated))
+                    break
+    distinct_values = {value for value, _, _, _ in found}
+    if len(distinct_values) > 1:
+        pages = sorted({page for _, page, _, _ in found})
+        evidence = "; ".join(dict.fromkeys(sentence for _, _, sentence, _ in found))
+        return "conflicting_claims", pages[0], evidence, None
+    if found:
+        return found[0]
     return "", None, "", None
 
 
@@ -135,10 +145,12 @@ def _row(
         if compared_protocol in {"open_label", "not_blinded"}:
             compared_protocol = "not_blinded"
     match_status, assessment_status = _comparison(compared_report, compared_protocol)
+    if report_value == "conflicting_claims" or protocol_value == "conflicting_claims":
+        match_status, assessment_status = None, "indeterminate"
     if report_negated is True or protocol_negated is True:
         match_status, assessment_status = None, "indeterminate"
     return {
-        "schema_version": "registration_source_claims_v3",
+        "schema_version": "registration_source_claims_v4",
         "trial_id": trial_id,
         "claim": claim,
         "report_value": report_value,
@@ -173,22 +185,26 @@ def derive_registration_claims(
     )
     report_ratio = _allocation_evidence(report_page_texts)
     protocol_ratio = _allocation_evidence(protocol_page_texts)
-    rows = [
-        _row(
-            trial_id=trial_id,
-            claim="registry_id_overlap",
-            report_value="|".join(report_ids),
-            protocol_value="|".join(protocol_ids),
-            report_page=next(
-                (i for i, t in enumerate(report_page_texts, 1) if extract_registry_ids(t)), None
-            ),
-            protocol_page=next(
-                (i for i, t in enumerate(protocol_page_texts, 1) if extract_registry_ids(t)), None
-            ),
-            report_evidence=next((t for t in report_page_texts if extract_registry_ids(t)), ""),
-            protocol_evidence=next((t for t in protocol_page_texts if extract_registry_ids(t)), ""),
-            extract_confidence="high",
+    registry_row = _row(
+        trial_id=trial_id,
+        claim="registry_id_overlap",
+        report_value="|".join(report_ids),
+        protocol_value="|".join(protocol_ids),
+        report_page=next(
+            (i for i, t in enumerate(report_page_texts, 1) if extract_registry_ids(t)), None
         ),
+        protocol_page=next(
+            (i for i, t in enumerate(protocol_page_texts, 1) if extract_registry_ids(t)), None
+        ),
+        report_evidence=next((t for t in report_page_texts if extract_registry_ids(t)), ""),
+        protocol_evidence=next((t for t in protocol_page_texts if extract_registry_ids(t)), ""),
+        extract_confidence="high",
+    )
+    if len(report_ids) > 1 or len(protocol_ids) > 1:
+        registry_row["match_status"] = pd.NA
+        registry_row["assessment_status"] = "indeterminate"
+    rows = [
+        registry_row,
         _row(
             trial_id=trial_id,
             claim="allocation_ratio",
@@ -206,7 +222,8 @@ def derive_registration_claims(
     ]
 
     negated_randomization = (
-        r"\b(?:no|without)\s+randomi[sz]ation\b"
+        r"\b(?:non|quasi)[ -]?randomi[sz](?:ed|ation)\b"
+        r"|\b(?:no|without)\s+randomi[sz]ation\b"
         r"|\brandomi[sz]ation\s+(?:was\s+)?not\b"
         r"|\b(?:not|never)\s+(?:randomi[sz]ed|randomly assigned)\b"
     )

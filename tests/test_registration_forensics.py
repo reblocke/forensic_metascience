@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from research_project.clinicaltrials_registry import legacy_claims_to_expanded
 from research_project.registration_forensics import derive_registration_claims
@@ -115,6 +116,50 @@ def test_negated_blinding_claim_does_not_match_positive_claim() -> None:
     assert treatment["report_value"] == "open_label"
     assert treatment["report_negated"] is True
     assert treatment["assessment_status"] == "indeterminate"
+
+
+@pytest.mark.parametrize(
+    "negative_claim",
+    [
+        "The study was non-randomized.",
+        "The study used quasi-randomised allocation.",
+        "The study was non–randomised.",
+    ],
+)
+def test_non_and_quasi_randomized_wording_does_not_match_randomized(
+    negative_claim: str,
+) -> None:
+    claims = derive_registration_claims(
+        trial_id="trial_x",
+        report_page_texts=[negative_claim],
+        protocol_page_texts=["Participants were randomized."],
+    )
+    row = claims.loc[claims["claim"] == "randomization_phrase"].iloc[0]
+    assert row["report_value"] == "not_randomized"
+    assert row["match_status"] is pd.NA or pd.isna(row["match_status"])
+    assert row["assessment_status"] == "indeterminate"
+
+
+def test_conflicting_randomization_context_remains_indeterminate() -> None:
+    claims = derive_registration_claims(
+        trial_id="trial_x",
+        report_page_texts=["Participants were randomized. Participants were not randomized."],
+        protocol_page_texts=["Participants were randomized."],
+    )
+    row = claims.loc[claims["claim"] == "randomization_phrase"].iloc[0]
+    assert row["assessment_status"] == "indeterminate"
+
+
+def test_multiple_registry_mentions_remain_indeterminate_without_index_mapping() -> None:
+    claims = derive_registration_claims(
+        trial_id="trial_x",
+        report_page_texts=["Registry IDs NCT12345678 and ISRCTN12345678."],
+        protocol_page_texts=["Registry NCT12345678."],
+    )
+    row = claims.loc[claims["claim"] == "registry_id_overlap"].iloc[0]
+    assert row["schema_version"] == "registration_source_claims_v4"
+    assert row["assessment_status"] == "indeterminate"
+    assert pd.isna(row["match_status"])
 
 
 def test_registration_input_builder_keeps_unassessed_mismatch_flag_missing(tmp_path) -> None:
