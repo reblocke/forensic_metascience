@@ -97,6 +97,7 @@ def test_cli_maps_csv_native_records_to_private_candidate_dossier(
                 "result_id": "run-fixture_statcheck_1",
                 "source_locator": locator,
                 "input_evidence_ids": selected_evidence_id,
+                "anomaly_flag": True,
             }
         ]
     )
@@ -125,7 +126,7 @@ def test_cli_maps_csv_native_records_to_private_candidate_dossier(
         )
     )
     dossier = json.loads(output_path.read_text(encoding="utf-8"))
-    assert dossier["schema_version"] == "inspect_sr_candidate_dossier_v2"
+    assert dossier["schema_version"] == "inspect_sr_candidate_dossier_v3"
     assert dossier["candidate_evidence"][0]["candidate_status"] == "candidate_only"
 
 
@@ -140,6 +141,34 @@ def test_csv_loader_preserves_identifiers_and_printed_precision(tmp_path: Path) 
     path.write_text("source_id,raw_value,printed_p\n00123,0.50,NA\n", encoding="utf-8")
     assert module.read_records(path) == [
         {"source_id": "00123", "raw_value": "0.50", "printed_p": "NA"}
+    ]
+
+
+def test_csv_loader_decodes_typed_numeric_results_without_coercing_source_text(
+    tmp_path: Path,
+) -> None:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("inspect_sr_cli_numeric_result_csv", SCRIPT)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    path = tmp_path / "numeric_results.csv"
+    path.write_text(
+        "schema_version,result_id,value_numeric,p_value,anomaly_flag,source_unit,details\n"
+        "numeric_result_v2,00123,0.50,NA,TRUE,source=NA,printed=0.50\n",
+        encoding="utf-8",
+    )
+    assert module.read_records(path) == [
+        {
+            "schema_version": "numeric_result_v2",
+            "result_id": "00123",
+            "value_numeric": 0.5,
+            "p_value": None,
+            "anomaly_flag": True,
+            "source_unit": "source=NA",
+            "details": "printed=0.50",
+        }
     ]
 
 

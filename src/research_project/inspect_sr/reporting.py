@@ -5,7 +5,12 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from research_project.inspect_sr.adapters import METHOD_TO_CHECKS, build_candidate_dossier
+from research_project.inspect_sr.adapters import (
+    METHOD_TO_CHECKS,
+    _candidate_identity_fields,
+    _stable_candidate_id,
+    build_candidate_dossier,
+)
 from research_project.inspect_sr.manual_evidence import validate_manual_evidence
 from research_project.inspect_sr.records import EXPECTED_CHECK_IDS, validate_assessment
 from research_project.inspect_sr.review import resolve_reviews
@@ -38,8 +43,13 @@ def build_report_model(
     ] != list(EXPECTED_CHECK_IDS):
         raise ValueError("Report catalogue must contain all 21 checks in canonical order.")
     candidate_evidence = candidate_dossier.get("candidate_evidence", [])
+    unresolved_results = candidate_dossier.get("unresolved_results", [])
     coverage = candidate_dossier.get("coverage", [])
-    if not isinstance(candidate_evidence, list) or not isinstance(coverage, list):
+    if (
+        not isinstance(candidate_evidence, list)
+        or not isinstance(coverage, list)
+        or not isinstance(unresolved_results, list)
+    ):
         raise ValueError("Candidate dossier must expose candidate evidence and coverage lists.")
     evidence_by_id = {str(item.get("evidence_id")): dict(item) for item in evidence_records}
     expected_coverage = build_candidate_dossier(method_receipts, candidate_evidence)["coverage"]
@@ -50,7 +60,8 @@ def build_report_model(
         check_id = str(item.get("check_id", ""))
         ids = item.get("evidence_ids")
         if (
-            item.get("candidate_status") != "candidate_only"
+            item.get("schema_version") != "inspect_sr_candidate_evidence_v2"
+            or item.get("candidate_status") != "candidate_only"
             or check_id not in METHOD_TO_CHECKS.get(method_id, ())
             or not isinstance(ids, list)
             or not ids
@@ -64,12 +75,20 @@ def build_report_model(
         ]
         if len(matching) != 1 or matching[0].get("execution") not in {"completed", "partial"}:
             raise ValueError("Candidate lacks one current evaluated method receipt.")
+        if item.get("native_output_reference") != matching[0].get("output_reference"):
+            raise ValueError("Candidate native output reference differs from its method receipt.")
         receipt_ids = set(str(matching[0].get("input_evidence_ids", "")).split(";"))
         if set(ids) - receipt_ids or any(
             evidence_by_id[evidence_id].get("locator") != item.get("source_locator")
             for evidence_id in ids
         ):
             raise ValueError("Candidate source evidence differs from receipt inputs or locator.")
+        try:
+            expected_candidate_id = _stable_candidate_id(_candidate_identity_fields(item))
+        except (KeyError, TypeError) as exc:
+            raise ValueError("Candidate result provenance is incomplete.") from exc
+        if item.get("candidate_id") != expected_candidate_id:
+            raise ValueError("Candidate result content does not match its immutable identity.")
     candidate_by_check: dict[str, list[dict[str, Any]]] = {
         check_id: [] for check_id in EXPECTED_CHECK_IDS
     }
@@ -80,7 +99,15 @@ def build_report_model(
         check_id = str(item.get("check_id", ""))
         if check_id not in candidate_by_check:
             raise ValueError("Candidate dossier references an unknown check.")
-        candidate_by_check[check_id].append(dict(item))
+        candidate_by_check[check_id].append(
+            {
+                **dict(item),
+                "source_raw_values": [
+                    evidence_by_id[evidence_id].get("raw_value")
+                    for evidence_id in item["evidence_ids"]
+                ],
+            }
+        )
     for item in evidence_records:
         check_id = str(item.get("check_id", ""))
         if check_id in manual_by_check and item.get("record_type") == "manual_observation":
@@ -201,7 +228,7 @@ def build_report_model(
     elif finalization_source_status == "adjudication_required":
         status = "DRAFT — ADJUDICATION REQUIRED"
     return {
-        "schema_version": "inspect_sr_report_model_v2",
+        "schema_version": "inspect_sr_report_model_v3",
         "record_type": "inspect_sr_review_report_model",
         "report_status": status,
         "trial_id": assessment_copy["trial_id"],
@@ -215,6 +242,8 @@ def build_report_model(
         "adjudication": dict(adjudication) if adjudication else None,
         "finalization_id": finalization.get("finalization_id") if final_is_current else None,
         "finalization_source_status": finalization_source_status,
+        "early_stop_reason": finalization.get("early_stop_reason") if final_is_current else None,
+        "unresolved_results": [dict(item) for item in unresolved_results],
         "judgments": judgments,
         "domain_judgments": judgments.get("domains") if judgments is not None else None,
         "unresolved_items": [

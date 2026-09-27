@@ -84,6 +84,11 @@ def test_candidate_mapping_requires_completed_or_partial_receipt_and_exact_evide
         "candidate_kind": "statistical_text_discrepancy",
         "source_locator": "page=4;paragraph=2",
         "details": "synthetic result",
+        "metric": "p_value_discrepancy",
+        "value_numeric": 0.04,
+        "p_value": 0.03,
+        "anomaly_flag": True,
+        "source_unit": "reported test; n=42",
     }
     evidence_record = _source_evidence()
     result["input_evidence_ids"] = [evidence_record["evidence_id"]]
@@ -96,8 +101,23 @@ def test_candidate_mapping_requires_completed_or_partial_receipt_and_exact_evide
     assert candidates[0]["check_id"] == "4.9"
     assert candidates[0]["candidate_status"] == "candidate_only"
     assert candidates[0]["evidence_ids"] == [evidence_record["evidence_id"]]
+    assert candidates[0]["result_id"] == "result-1"
+    assert candidates[0]["metric"] == "p_value_discrepancy"
+    assert candidates[0]["value_numeric"] == 0.04
+    assert candidates[0]["p_value"] == 0.03
+    assert candidates[0]["anomaly_flag"] is True
+    assert candidates[0]["source_scope"] == "reported test; n=42"
+    assert candidates[0]["native_output_reference"] == receipt["output_reference"]
+    assert (
+        candidates[0]["candidate_id"]
+        != map_candidate_result({**result, "value_numeric": 0.05}, [receipt], evidence)[0][
+            "candidate_id"
+        ]
+    )
     assert "response" not in candidates[0]
-    assert not map_candidate_result(result, [{**receipt, "execution": "failed"}], evidence)
+    assert not map_candidate_result(
+        result, [{**receipt, "execution": "failed", "result_status": "indeterminate"}], evidence
+    )
     with pytest.raises(ValueError, match="method_receipt_v4"):
         map_candidate_result(result, [{**receipt, "schema_version": "method_receipt_v2"}], evidence)
     with pytest.raises(ValueError, match="evidence"):
@@ -112,6 +132,22 @@ def test_candidate_receipt_counts_reject_fractional_values() -> None:
     receipt = _receipt("statcheck", "run-1", "completed", 1, 1, 0, 0)
     with pytest.raises(ValueError, match="integer"):
         build_candidate_dossier([{**receipt, "n_evaluated": 1.5}], [])
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"applicability": "maybe"},
+        {"applicability": "ineligible"},
+        {"result_status": "no_finding", "n_flagged": 1},
+        {"result_status": "findings_present", "n_flagged": 0},
+        {"result_status": "completed"},
+    ],
+)
+def test_candidate_receipts_reject_inconsistent_semantic_states(overrides: dict) -> None:
+    receipt = _receipt("statcheck", "run-1", "completed", 1, 1, 0, 0)
+    with pytest.raises(ValueError, match="receipt"):
+        build_candidate_dossier([{**receipt, **overrides}], [])
 
 
 def test_rounding_bias_receipt_cannot_emit_candidate_evidence() -> None:

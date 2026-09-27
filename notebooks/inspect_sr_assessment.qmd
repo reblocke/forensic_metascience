@@ -38,6 +38,7 @@ checks <- report$checks
 | Assessment | `r report$assessment_id` |
 | Guidance | `r report$guidance_version` (`r report$guidance_sha256`) |
 | Finalization | `r report$finalization_id %||% "None"` |
+| Early-stop rationale | `r report$early_stop_reason %||% "None"` |
 
 ```{r}
 if (is.null(report$judgments)) {
@@ -107,14 +108,37 @@ for (check in checks) {
   } else {
     cell_text <- function(...) {
       values <- list(...)
-      value <- values[[which(vapply(values, function(x) !is.null(x) && length(x), logical(1)))[1]]]
+      available <- which(vapply(values, function(x) !is.null(x) && length(x), logical(1)))
+      if (length(available) == 0) return("")
+      value <- values[[available[[1]]]]
       if (is.list(value)) value <- unlist(value, use.names = FALSE)
       paste(as.character(value), collapse = "; ")
     }
     rows <- do.call(rbind, lapply(records, function(item) {
+      null_text <- function(value) {
+        if (is.null(value) || length(value) == 0) "null" else cell_text(value)
+      }
+      method_result_fields <- c(
+        run_id = cell_text(item$run_id),
+        result_id = cell_text(item$result_id),
+        method_version = cell_text(item$method_version),
+        metric = cell_text(item$metric),
+        value_numeric = null_text(item$value_numeric),
+        p_value = null_text(item$p_value),
+        anomaly_flag = null_text(item$anomaly_flag),
+        source_scope = cell_text(item$source_scope),
+        native_output_reference = cell_text(item$native_output_reference)
+      )
+      method_result <- paste(
+        paste0(names(method_result_fields)[nzchar(method_result_fields)], "=",
+               method_result_fields[nzchar(method_result_fields)]),
+        collapse = "; "
+      )
       data.frame(kind = cell_text(item$record_type, item$candidate_kind, "candidate"),
                  evidence_or_candidate_id = cell_text(item$evidence_id, item$candidate_id, ""),
+                 method_result = method_result,
                  locator = cell_text(item$locator, item$source_locator, ""),
+                 source_values = cell_text(item$raw_value, item$source_raw_values, ""),
                  observation_or_details = cell_text(item$observation, item$details, ""),
                  explanation_or_limitations = cell_text(item$explanation, item$limitations, ""),
                  alternate_explanations = cell_text(item$alternate_explanations, ""),
@@ -162,6 +186,21 @@ if (!is.null(report$adjudication)) {
 ```
 
 ## Unresolved items
+
+```{r}
+if (length(report$unresolved_results) == 0) {
+  cat("No unresolved numeric result mappings were recorded.")
+} else {
+  unresolved_results <- do.call(rbind, lapply(report$unresolved_results, function(x) {
+    data.frame(result_id = x$result_id %||% NA_character_,
+               method_id = x$method_id %||% NA_character_,
+               status = x$status %||% NA_character_,
+               reason = x$reason %||% NA_character_,
+               stringsAsFactors = FALSE)
+  }))
+  knitr::kable(unresolved_results)
+}
+```
 
 ```{r}
 if (length(report$unresolved_items) == 0) {

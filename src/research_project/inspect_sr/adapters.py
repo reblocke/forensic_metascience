@@ -192,6 +192,8 @@ def _validate_method_receipt(receipt: Mapping[str, Any]) -> None:
         for field in ("run_id", "method_id", "method_version", "package_name", "unit_of_evaluation")
     ):
         raise ValueError("Method receipt is missing required v4 provenance fields.")
+    if receipt.get("applicability") not in {"eligible", "ineligible", "unknown", "mixed"}:
+        raise ValueError("Method receipt has an unknown applicability state.")
     if receipt.get("execution") not in {
         "not_requested",
         "not_implemented",
@@ -218,18 +220,31 @@ def _validate_method_receipt(receipt: Mapping[str, Any]) -> None:
         if flagged < 0 or flagged > n_evaluated:
             raise ValueError("Method receipt flagged count exceeds evaluated units.")
     execution = receipt["execution"]
+    status = receipt.get("result_status")
+    if status not in {"findings_present", "no_finding", "not_evaluated", "indeterminate"}:
+        raise ValueError("Method receipt has an unknown result status.")
     if execution == "completed" and (
         n_evaluated < 1 or n_failed != 0 or n_evaluated != n_eligible or flagged is None
     ):
         raise ValueError("Completed receipts require full evaluated coverage and a flag count.")
+    if execution == "completed" and receipt["applicability"] not in {"eligible", "mixed"}:
+        raise ValueError("Completed receipt applicability conflicts with evaluated units.")
+    if execution == "completed" and status != ("findings_present" if flagged > 0 else "no_finding"):
+        raise ValueError("Completed receipt result status conflicts with its flag count.")
     if execution == "partial" and (
         n_evaluated < 1 or n_failed < 1 or n_evaluated + n_failed != n_eligible
     ):
         raise ValueError("Partial receipts must account for every eligible unit.")
+    if execution == "partial" and status != "indeterminate":
+        raise ValueError("Partial receipt result status must remain indeterminate.")
     if execution in {"not_requested", "not_implemented", "dependency_missing", "blocked"} and (
         n_evaluated != 0 or flagged is not None
     ):
         raise ValueError("An unexecuted receipt cannot claim evaluated results or flags.")
+    if execution == "not_requested" and status != "not_evaluated":
+        raise ValueError("Not-requested receipt result status must remain not_evaluated.")
+    if execution not in {"completed", "partial", "not_requested"} and status != "indeterminate":
+        raise ValueError("Unsuccessful receipt result status must remain indeterminate.")
 
 
 def _receipt_count(value: Any, field: str) -> int:
@@ -248,14 +263,36 @@ def _receipt_count(value: Any, field: str) -> int:
     return result
 
 
-def _stable_candidate_id(result: Mapping[str, Any], evidence_ids: list[str]) -> str:
-    identity = {
-        "method_id": result["method_id"],
-        "result_id": result["result_id"],
-        "evidence_ids": sorted(evidence_ids),
-    }
+def _stable_candidate_id(identity: Mapping[str, Any]) -> str:
     encoded = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
     return "candidate_" + hashlib.sha256(encoded).hexdigest()
+
+
+def _optional_numeric_result(value: Any, field: str) -> float | int | None:
+    if value is None or (isinstance(value, float) and math.isnan(value)):
+        return None
+    if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(float(value)):
+        raise ValueError(f"Numeric result {field} must be a finite number or null.")
+    return int(value) if isinstance(value, Integral) else float(value)
+
+
+def _candidate_identity_fields(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "run_id": candidate["run_id"],
+        "method_id": candidate["method_id"],
+        "method_version": candidate["method_version"],
+        "result_id": candidate["result_id"],
+        "candidate_kind": candidate["candidate_kind"],
+        "details": candidate["details"],
+        "evidence_ids": sorted(candidate["evidence_ids"]),
+        "metric": candidate["metric"],
+        "value_numeric": candidate["value_numeric"],
+        "p_value": candidate["p_value"],
+        "anomaly_flag": candidate["anomaly_flag"],
+        "source_scope": candidate["source_scope"],
+        "source_locator": candidate["source_locator"],
+        "native_output_reference": candidate["native_output_reference"],
+    }
 
 
 def _evidence_id_list(value: Any) -> list[str]:
@@ -344,20 +381,48 @@ def map_candidate_result(
             )
         if str(record["locator"]).strip() != source_locator:
             return []
-    candidate_id = _stable_candidate_id({**result, "result_id": result_id}, evidence_ids)
+    result_fields = {
+        "run_id": str(receipt["run_id"]),
+        "result_id": result_id,
+        "method_version": str(receipt["method_version"]),
+        "candidate_kind": _clean_text(result.get("candidate_kind", "method_result")),
+        "details": _clean_text(result.get("details")),
+        "metric": _clean_text(result.get("metric")) or None,
+        "value_numeric": _optional_numeric_result(result.get("value_numeric"), "value_numeric"),
+        "p_value": _optional_numeric_result(result.get("p_value"), "p_value"),
+        "anomaly_flag": result.get("anomaly_flag"),
+        "source_scope": _clean_text(result.get("source_unit")) or None,
+        "source_locator": source_locator,
+        "native_output_reference": str(receipt["output_reference"]),
+    }
+    if (
+        result_fields["anomaly_flag"] is not None
+        and not isinstance(result_fields["anomaly_flag"], bool)
+        and type(result_fields["anomaly_flag"]).__name__ != "bool_"
+    ):
+        raise ValueError("Numeric result anomaly_flag must be boolean or null.")
+    if result_fields["anomaly_flag"] is not None:
+        result_fields["anomaly_flag"] = bool(result_fields["anomaly_flag"])
+    identity_fields = {
+        **result_fields,
+        "method_id": method_id,
+        "evidence_ids": evidence_ids,
+    }
+    candidate_id = _stable_candidate_id(_candidate_identity_fields(identity_fields))
     candidates = []
     for check_id in checks:
         route = CHECK_ROUTES[check_id]
         candidate = {
-            "schema_version": "inspect_sr_candidate_evidence_v1",
+            "schema_version": "inspect_sr_candidate_evidence_v2",
             "candidate_id": candidate_id,
             "check_id": check_id,
             "run_id": str(receipt.get("run_id", "")),
             "method_id": method_id,
-            "candidate_kind": str(result.get("candidate_kind", "method_result")),
+            "candidate_kind": result_fields["candidate_kind"],
             "evidence_ids": evidence_ids,
             "source_locator": source_locator,
-            "details": result.get("details", ""),
+            **result_fields,
+            "details": result_fields["details"],
             "candidate_status": "candidate_only",
             "method_execution": receipt["execution"],
             "limitations": route["limitations"],

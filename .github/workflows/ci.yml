@@ -162,6 +162,8 @@ jobs:
           "$FM_TEST_ARTIFACT_DIR/source-hashes.sha256" \
           "$FM_TEST_ARTIFACT_DIR/inspect-sr-review.html" \
           "$FM_TEST_ARTIFACT_DIR/inspect-sr-review.pdf" \
+          "$FM_TEST_ARTIFACT_DIR/inspect-sr-early-stop.html" \
+          "$FM_TEST_ARTIFACT_DIR/inspect-sr-early-stop.pdf" \
           "$FM_TEST_ARTIFACT_DIR/private-prediction-review.html" \
           "$FM_TEST_ARTIFACT_DIR/private-prediction-review.pdf"
       - uses: actions/upload-artifact@v4

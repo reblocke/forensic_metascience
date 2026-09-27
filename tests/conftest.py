@@ -22,6 +22,8 @@ def preserve_synthetic_artifact():
         "native-standardized-results.csv",
         "inspect-sr-review.html",
         "inspect-sr-review.pdf",
+        "inspect-sr-early-stop.html",
+        "inspect-sr-early-stop.pdf",
         "private-prediction-review.html",
         "private-prediction-review.pdf",
     }

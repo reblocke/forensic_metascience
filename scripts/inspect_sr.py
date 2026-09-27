@@ -68,6 +68,10 @@ def read_records(path: Path) -> list[dict[str, Any]]:
                 record["n_flagged"] = _parse_receipt_count(
                     record.get("n_flagged"), "n_flagged", nullable=True
                 )
+            elif record.get("schema_version") == "numeric_result_v2":
+                for field in ("value_numeric", "p_value"):
+                    record[field] = _parse_optional_result_number(record.get(field), field)
+                record["anomaly_flag"] = _parse_optional_result_flag(record.get("anomaly_flag"))
         return records
     value = read_json(path)
     if not isinstance(value, list) or any(not isinstance(row, dict) for row in value):
@@ -89,6 +93,29 @@ def _parse_receipt_count(value: Any, field: str, *, nullable: bool = False) -> i
     if number < 0:
         raise ValueError(f"Method receipt {field} count must be a nonnegative integer.")
     return number
+
+
+def _parse_optional_result_number(value: Any, field: str) -> float | None:
+    if value in {"", "NA", None}:
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Numeric result {field} must be numeric or null.") from exc
+    if not pd.notna(number):
+        raise ValueError(f"Numeric result {field} must be finite or null.")
+    return number
+
+
+def _parse_optional_result_flag(value: Any) -> bool | None:
+    normalized = str(value).strip().lower()
+    if normalized in {"", "na"}:
+        return None
+    if normalized in {"true", "t"}:
+        return True
+    if normalized in {"false", "f"}:
+        return False
+    raise ValueError("Numeric result anomaly_flag must be true, false, or null.")
 
 
 def write_exclusive(path: Path, value: Any) -> None:
@@ -403,7 +430,7 @@ def command_candidate_map(args: argparse.Namespace) -> None:
     dossier = build_candidate_dossier(receipts, candidates)
     dossier.update(
         {
-            "schema_version": "inspect_sr_candidate_dossier_v2",
+            "schema_version": "inspect_sr_candidate_dossier_v3",
             "unresolved_results": unresolved,
         }
     )

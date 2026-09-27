@@ -190,6 +190,14 @@ def test_cli_complete_review_and_private_report(
     )
     candidates = read_json(candidate_path)
     assert candidates["candidate_evidence"]
+    assert candidates["schema_version"] == "inspect_sr_candidate_dossier_v3"
+    assert candidates["unresolved_results"]
+    assert all(
+        row["schema_version"] == "inspect_sr_candidate_evidence_v2"
+        and row["result_id"]
+        and row["native_output_reference"]
+        for row in candidates["candidate_evidence"]
+    )
     assert any(
         row["check_id"] == "4.8" and row["candidate_status"] == "candidate_only"
         for row in candidates["candidate_evidence"]
@@ -351,9 +359,29 @@ def test_cli_complete_review_and_private_report(
     assert not list(report_dir.glob(".render-*"))
     html = (report_dir / "assessment.html").read_text(encoding="utf-8")
     assert "FINALIZED" in html and "Disagreement adjudicated" in html
+    assert all(
+        label in html
+        for label in (
+            "result_id=",
+            "run_id=",
+            "method_version=",
+            "value_numeric=",
+            "p_value=null",
+            "anomaly_flag=",
+            "source_scope=",
+            "native_output_reference=",
+        )
+    )
     assert "reviewer-a" in html and "reviewer-b" in html
     assert "method_result" in html
     assert numeric_evidence["evidence_id"] in html
+    assert numeric_evidence["raw_value"] in html
+    unresolved = candidates["unresolved_results"][0]
+    assert unresolved["result_id"] in html
+    assert unresolved["reason"] in html
+    report_model = read_json(report_dir / "report-model.json")
+    assert report_model["schema_version"] == "inspect_sr_report_model_v3"
+    assert report_model["unresolved_results"] == candidates["unresolved_results"]
     assert "table1:row1" in html
     assert "scrutiny_rounding_bias" in html and "blocked" in html
     preserve_synthetic_artifact("inspect-sr-review.html", report_dir / "assessment.html")

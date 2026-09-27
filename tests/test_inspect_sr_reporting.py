@@ -378,7 +378,7 @@ def test_report_draft_has_no_computed_judgment_or_legacy_category() -> None:
         adjudication=None,
         finalization=None,
     )
-    assert model["schema_version"] == "inspect_sr_report_model_v2"
+    assert model["schema_version"] == "inspect_sr_report_model_v3"
     assert model["report_status"] == "DRAFT — PENDING"
     assert model["judgments"] is None
     assert all(check["workflow_status"] == "pending" for check in model["checks"])
@@ -401,6 +401,84 @@ def test_report_draft_has_no_computed_judgment_or_legacy_category() -> None:
             finalization=finalized,
             current_source_snapshot_sha256="c" * 64,
         )
+
+
+@pytest.mark.report_integration
+def test_justified_early_stop_rationale_renders_in_html_and_pdf(
+    tmp_path: Path, preserve_synthetic_artifact
+) -> None:
+    if not shutil.which("quarto"):
+        if os.environ.get("FORENSICS_REQUIRE_REPORT_INTEGRATION") == "1":
+            pytest.fail("Quarto is required by FORENSICS_REQUIRE_REPORT_INTEGRATION=1")
+        pytest.skip("Quarto is unavailable; report integration remains open.")
+    _, context = _complete_review(tmp_path, "trial-early-stop")
+    first, second = context["reviewer_submissions"]
+    resolved = resolve_reviews(first, second, context["adjudication"])
+    judgments = {
+        "domains": [
+            {
+                "domain_id": str(i),
+                "judgment": "serious concerns",
+                "rationale": "Synthetic serious concern supports early stopping.",
+            }
+            for i in range(1, 5)
+        ],
+        "overall": {
+            "judgment": "serious concerns",
+            "rationale": "Synthetic serious concern supports early stopping.",
+        },
+    }
+    reason = "The synthetic source confirms a prespecified serious concern."
+    finalization = finalize_review(resolved, judgments, early_stop=True, early_stop_reason=reason)
+    model = build_report_model(
+        assessment=context["assessment"],
+        catalogue=context["catalogue"],
+        source_versions=context["source_versions"],
+        evidence_records=context["evidence_records"],
+        candidate_dossier={"coverage": [], "candidate_evidence": []},
+        reviewer_submissions=[first, second],
+        adjudication=context["adjudication"],
+        finalization=finalization,
+        current_source_snapshot_sha256=context["source_snapshot"]["source_snapshot_sha256"],
+        source_snapshot=context["source_snapshot"],
+    )
+    assert model["early_stop_reason"] == reason
+    report_path = tmp_path / "early-stop-report.json"
+    report_path.write_text(json.dumps(model), encoding="utf-8")
+    report_dir = tmp_path / "early-stop-report"
+    report_dir.mkdir()
+    qmd = Path(__file__).parents[1] / "notebooks" / "inspect_sr_assessment.qmd"
+    render_template = report_dir / qmd.name
+    shutil.copy2(qmd, render_template)
+    for output in ("html", "pdf"):
+        env = {**os.environ, "INSPECT_SR_REPORT_JSON": str(report_path)}
+        subprocess.run(
+            [
+                "quarto",
+                "render",
+                str(render_template),
+                "--to",
+                output,
+                "--output",
+                f"early-stop.{output}",
+            ],
+            cwd=report_dir,
+            env=env,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    html = (report_dir / "early-stop.html").read_text(encoding="utf-8")
+    assert "FINALIZED — EARLY STOP" in html
+    assert reason in html
+    preserve_synthetic_artifact("inspect-sr-early-stop.html", report_dir / "early-stop.html")
+    from pypdf import PdfReader
+
+    pdf_text = "\n".join(
+        page.extract_text() or "" for page in PdfReader(report_dir / "early-stop.pdf").pages
+    )
+    assert reason in " ".join(pdf_text.split())
+    preserve_synthetic_artifact("inspect-sr-early-stop.pdf", report_dir / "early-stop.pdf")
 
 
 def test_report_rejects_candidate_without_current_receipt_and_evidence() -> None:
@@ -442,7 +520,7 @@ def test_inspect_sr_report_qmd_renders_html_and_pdf_in_requested_directory(tmp_p
             pytest.fail("Quarto is required by FORENSICS_REQUIRE_REPORT_INTEGRATION=1")
         pytest.skip("Quarto is unavailable; native report integration remains open.")
     model = {
-        "schema_version": "inspect_sr_report_model_v2",
+        "schema_version": "inspect_sr_report_model_v3",
         "report_status": "DRAFT — PENDING",
         "trial_id": "trial-fixture",
         "guidance_version": "1.1.2",
