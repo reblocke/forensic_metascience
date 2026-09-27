@@ -12,15 +12,16 @@ execute:
 
 ## Scope
 
-This report compares manuscript, protocol, and ClinicalTrials.gov registration signals when a ClinicalTrials.gov NCT identifier is available. Registry-derived findings are screening signals: they identify discrepancies or missingness that require source-document review, not adjudicated protocol violations.
+This report compares source-linked manuscript and protocol claims with ClinicalTrials.gov metadata when an NCT identifier is available. Automated matches and mismatches are evidence comparisons, not INSPECT judgments. Registration timing, results-posting, and publication-linkage fields are qualified metadata screens; none establishes a concern or protocol violation.
 
 ## Load Outputs
 
 ```{r}
-repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
-study_id <- Sys.getenv("FORENSICS_STUDY_ID", "lungtime")
-report_dir <- file.path(repo_root, "reports", "registration", study_id)
-data_dir <- file.path(repo_root, "data", "processed", "registration", study_id)
+reports_root <- Sys.getenv("FORENSICS_REPORTS_ROOT", unset = "")
+processed_root <- Sys.getenv("FORENSICS_PROCESSED_ROOT", unset = "")
+if (!nzchar(reports_root) || !nzchar(processed_root)) stop("Current-run report and processed roots are required.")
+report_dir <- file.path(reports_root, "registration")
+data_dir <- file.path(processed_root, "registration")
 
 required <- c("registration_row_results.csv", "registration_summary.csv")
 missing <- required[!file.exists(file.path(report_dir, required))]
@@ -35,6 +36,12 @@ history_events <- if (file.exists(history_path)) {
   read.csv(history_path, check.names = FALSE)
 } else {
   data.frame()
+}
+history_status_path <- file.path(report_dir, "registration_history_status_v1.csv")
+history_status <- if (file.exists(history_status_path)) {
+  read.csv(history_status_path, check.names = FALSE)
+} else {
+  data.frame(history_status = "not_provided", history_completeness = "unknown")
 }
 fetch_metadata_path <- file.path(data_dir, "metadata", "registration_registry_fetch_metadata.csv")
 fetch_metadata <- if (file.exists(fetch_metadata_path)) {
@@ -80,20 +87,29 @@ compact_df <- function(df, cols = NULL, n = 20, char_width = 44) {
 - `mismatch_rate`: `n_mismatch / n_claims_assessed`; indeterminate and not-assessed rows are excluded.
 - `n_missing`: rows with missing report or protocol values.
 - `missing_rate`: missing report/protocol burden across all claim rows.
-- `prospective_registration_status`: whether the registry first-posted date appears on or before the registered study start date.
+- `prospective_registration_status`: a metadata screen comparing first submission with registered start. First-posted and actual recruitment-start dates are retained separately.
 - `n_major_registry_history_changes`: local history-event rows marked medium/high severity.
-- `results_overdue_flag`: registry results appear absent more than 365 days after primary completion in this screen.
-- `publication_link_missing_flag`: a supplied DOI/PMID/URL was not found in registry references.
+- `results_overdue_screen_status`: a 365-day metadata screen after primary completion; not an assessment result.
+- `publication_linkage_screen_status`: whether supplied publication identifiers were detected in registry references; non-detection is not evidence that no linked publication exists.
+- `registry_history_status`, `registry_history_completeness`, and `registry_history_chronology_status`: describe usable supplied history, with completeness left unknown unless established by its source.
 
 Classification labels:
 
 - `match`: available extracted values agree under the implemented screen.
-- `mismatch`: available extracted values conflict or a prespecified registry screen fails.
+- `mismatch`: available extracted source claims conflict under the implemented comparison.
 - `indeterminate`: the source contains insufficient or ambiguous information for automated classification.
 - `not_assessed`: the screen is not applicable or no eligible registry/source data were available.
 
 ```{r}
 knitr::kable(summary_tbl, digits = 4)
+```
+
+## Registry History Availability
+
+History availability and chronology are separate from detected change events. No detected changes do not establish that the supplied history is complete.
+
+```{r}
+knitr::kable(history_status)
 ```
 
 ## Registry Source
@@ -112,7 +128,9 @@ if (nrow(fetch_metadata) == 0) {
         "allow_network",
         "fetch_status",
         "fetch_message",
-        "api_url"
+        "api_url",
+        "source_version",
+        "source_sha256"
       ),
       n = 5,
       char_width = 42
@@ -131,6 +149,10 @@ if (nrow(current_registry) > 0) {
         "study_type",
         "overall_status",
         "start_date",
+        "registered_start_date",
+        "start_date_type",
+        "actual_recruitment_start_date",
+        "first_submitted_date",
         "study_first_posted_date",
         "primary_completion_date",
         "has_results",
@@ -160,6 +182,12 @@ knitr::kable(
       "protocol_value",
       "assessment_status",
       "page_ref",
+      "report_evidence",
+      "protocol_evidence",
+      "report_negated",
+      "protocol_negated",
+      "population",
+      "role",
       "severity"
     ),
     n = 25,
@@ -181,6 +209,7 @@ if (nrow(registry_claims) == 0) {
       cols = c(
         "claim_id",
         "assessment_status",
+        "screen_status",
         "severity",
         "report_value",
         "registry_value",
@@ -195,7 +224,7 @@ if (nrow(registry_claims) == 0) {
 
 ## Registry History Events
 
-Registry history is optional in this version. If no local history file is supplied, this table is expected to be empty.
+This table contains only dated changes detected in supplied local history. Its absence or emptiness does not establish that history was absent or complete; see the availability and chronology record above.
 
 ```{r}
 if (nrow(history_events) == 0) {

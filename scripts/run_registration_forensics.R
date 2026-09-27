@@ -41,12 +41,13 @@ logical_or_na <- function(x) {
   )
 }
 
-first_claim_status <- function(checks, target_claim_id) {
+first_claim_status <- function(checks, target_claim_id, field = "assessment_status") {
   rows <- checks %>% filter(.data$claim_id == .env$target_claim_id)
-  if (nrow(rows) == 0) {
+  if (nrow(rows) == 0 || !(field %in% names(rows))) {
     return(NA_character_)
   }
-  rows$assessment_status[[1]]
+  value <- rows[[field]][[1]]
+  if (is.na(value)) NA_character_ else as.character(value)
 }
 
 main <- function() {
@@ -72,7 +73,11 @@ main <- function() {
   checks <- checks %>%
     mutate(
       match_status = logical_or_na(.data$match_status),
-      mismatch_flag = .data$assessment_status == "mismatch",
+      mismatch_flag = case_when(
+        .data$assessment_status == "mismatch" ~ TRUE,
+        .data$assessment_status == "match" ~ FALSE,
+        TRUE ~ NA
+      ),
       assessed_flag = .data$assessment_status %in% c("match", "mismatch"),
       is_missing_report = as.logical(.data$is_missing_report),
       is_missing_protocol = as.logical(.data$is_missing_protocol)
@@ -100,6 +105,24 @@ main <- function() {
   }
   write_csv(history_events, file.path(out_dir, "registration_history_events.csv"))
 
+  history_status_path <- file.path(in_dir, "inputs", "registration_history_status_v1.csv")
+  if (file.exists(history_status_path)) {
+    history_status <- read_csv(history_status_path, show_col_types = FALSE)
+  } else {
+    history_status <- tibble::tibble(
+      history_status = "not_provided_to_runner",
+      history_completeness = "unknown",
+      chronology_status = "not_assessed",
+      history_path_supplied = NA,
+      history_sha256 = "",
+      snapshots_supplied = NA_integer_,
+      dated_snapshots = NA_integer_,
+      undated_snapshots = NA_integer_,
+      change_events_detected = nrow(history_events)
+    )
+  }
+  write_csv(history_status, file.path(out_dir, "registration_history_status_v1.csv"))
+
   n_claims <- nrow(checks)
   n_assessed <- sum(checks$assessed_flag, na.rm = TRUE)
   n_mismatch <- sum(checks$mismatch_flag, na.rm = TRUE)
@@ -107,16 +130,9 @@ main <- function() {
   n_indeterminate <- sum(checks$assessment_status == "indeterminate", na.rm = TRUE)
   n_not_assessed <- sum(checks$assessment_status == "not_assessed", na.rm = TRUE)
 
-  prospective_rows <- checks %>% filter(.data$claim_id == "clinicaltrials_prospective_registration")
-  prospective_status <- if (nrow(prospective_rows) == 0) {
-    NA_character_
-  } else if (isTRUE(prospective_rows$match_status[[1]])) {
-    "prospective"
-  } else if (identical(prospective_rows$match_status[[1]], FALSE)) {
-    "retrospective"
-  } else {
-    prospective_rows$assessment_status[[1]]
-  }
+  prospective_status <- first_claim_status(
+    checks, "clinicaltrials_prospective_registration", "screen_status"
+  )
 
   summary_tbl <- tibble::tibble(
     trial_id = if (n_claims > 0) checks$trial_id[[1]] else NA_character_,
@@ -135,20 +151,24 @@ main <- function() {
         history_events$severity %in% c("medium", "high"),
       na.rm = TRUE
     ),
-    results_overdue_flag = identical(
-      first_claim_status(checks, "clinicaltrials_results_overdue"),
-      "mismatch"
+    results_overdue_screen_status = first_claim_status(
+      checks, "clinicaltrials_results_overdue", "screen_status"
     ),
-    publication_link_missing_flag = identical(
-      first_claim_status(checks, "clinicaltrials_publication_linkage"),
-      "mismatch"
-    )
+    publication_linkage_screen_status = first_claim_status(
+      checks, "clinicaltrials_publication_linkage", "screen_status"
+    ),
+    registry_history_status = history_status$history_status[[1]],
+    registry_history_completeness = history_status$history_completeness[[1]],
+    registry_history_chronology_status = history_status$chronology_status[[1]],
+    registry_history_snapshots_supplied = history_status$snapshots_supplied[[1]],
+    registry_history_events_detected = history_status$change_events_detected[[1]]
   )
   write_csv(summary_tbl, file.path(out_dir, "registration_summary.csv"))
 
   cat("Wrote ", file.path(out_dir, "registration_row_results.csv"), "\n", sep = "")
   cat("Wrote ", file.path(out_dir, "registration_summary.csv"), "\n", sep = "")
   cat("Wrote ", file.path(out_dir, "registration_history_events.csv"), "\n", sep = "")
+  cat("Wrote ", file.path(out_dir, "registration_history_status_v1.csv"), "\n", sep = "")
 }
 
 main()

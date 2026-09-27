@@ -19,6 +19,10 @@ dev = [
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
+markers = [
+  "native_r: requires Rscript and the pinned native method packages",
+  "report_integration: requires Quarto, R, and synthetic report preparation",
+]
 
 [tool.ruff]
 line-length = 100

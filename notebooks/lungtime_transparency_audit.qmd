@@ -17,9 +17,9 @@ This report summarizes offline transparency evidence extracted from source docum
 ## Load Outputs
 
 ```{r}
-repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
-study_id <- Sys.getenv("FORENSICS_STUDY_ID", "lungtime")
-report_dir <- file.path(repo_root, "reports", "transparency", study_id)
+reports_root <- Sys.getenv("FORENSICS_REPORTS_ROOT", unset = "")
+if (!nzchar(reports_root)) stop("FORENSICS_REPORTS_ROOT must point to this run's reports directory.")
+report_dir <- file.path(reports_root, "transparency")
 
 required <- c(
   "transparency_summary.csv",

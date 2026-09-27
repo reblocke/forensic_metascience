@@ -12,53 +12,50 @@ execute:
 
 ## Scope
 
-This report aggregates category-level forensic summaries into an evidence-burden triage aid for human review. It is not an automated assessment of study quality, validity, or misconduct.
+This report summarizes category coverage and source-linked screening signals. It does not calculate a study-level score, assign a risk tier, or produce an INSPECT judgment. Screening signals remain candidates for independent human review.
 
 ## Load Outputs
 
 ```{r}
-repo_root <- normalizePath("..", winslash = "/", mustWork = TRUE)
-study_id <- Sys.getenv("FORENSICS_STUDY_ID", "lungtime")
-report_dir <- file.path(repo_root, "reports", "meta", study_id)
+reports_root <- Sys.getenv("FORENSICS_REPORTS_ROOT", unset = "")
+if (!nzchar(reports_root)) stop("FORENSICS_REPORTS_ROOT must point to this run's reports directory.")
+report_dir <- file.path(reports_root, "meta")
 
-required <- c("meta_category_scores_out.csv", "meta_overall_summary.csv")
+required <- c(
+  "meta_evidence_coverage_v2_out.csv",
+  "meta_candidate_concerns_v1_out.csv",
+  "meta_coverage_summary_v1.csv"
+)
 missing <- required[!file.exists(file.path(report_dir, required))]
 if (length(missing) > 0) {
   stop("Missing files: ", paste(missing, collapse = ", "))
 }
 
-scores <- read.csv(file.path(report_dir, "meta_category_scores_out.csv"), check.names = FALSE)
-overall <- read.csv(file.path(report_dir, "meta_overall_summary.csv"), check.names = FALSE)
+coverage <- read.csv(file.path(report_dir, "meta_evidence_coverage_v2_out.csv"), check.names = FALSE)
+candidate_concerns <- read.csv(file.path(report_dir, "meta_candidate_concerns_v1_out.csv"), check.names = FALSE)
+coverage_summary <- read.csv(file.path(report_dir, "meta_coverage_summary_v1.csv"), check.names = FALSE)
 ```
 
-## Interpretation Key
+## Coverage
 
-- `anomaly_score` (category): legacy column name for normalized evidence-burden contribution.
-- `evidence_burden_score`: weighted combination of category evidence-burden indicators.
-- `review_priority`: coarse triage label (`low`, `moderate`, `high`, `insufficient_data`) for human review priority.
-- `overall_score` and `risk_tier`: backward-compatible aliases preserved for older consumers.
+Coverage counts are not additive judgments. `failed` and `unsupported` remain missing when category sources do not distinguish those states. A category with only missing metrics is unavailable for assessment; it is not evidence of a reassuring result.
 
 ```{r}
-knitr::kable(overall, digits = 4)
+knitr::kable(coverage_summary, digits = 4)
 ```
 
-## Category Contribution Table
+## Category Evidence and Coverage
 
 ```{r}
-knitr::kable(scores, digits = 4)
+knitr::kable(coverage, digits = 4)
 ```
 
-## Category Score Plot
+## Source-Linked Candidate Concerns
 
 ```{r}
-barplot(
-  height = scores$anomaly_score,
-  names.arg = scores$category,
-  col = "gray75",
-  border = NA,
-  ylim = c(0, 1),
-  main = "Category Evidence-Burden Contributions",
-  ylab = "evidence burden"
-)
-abline(h = c(0.2, 0.45), col = "red", lty = 2)
+if (nrow(candidate_concerns) > 0) {
+  knitr::kable(candidate_concerns, digits = 4)
+} else {
+  cat("No source-linked screening signals were supplied to this summary.")
+}
 ```

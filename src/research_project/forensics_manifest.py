@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -49,6 +50,8 @@ def upsert_manifest_row(
     """Insert or update one category row in the study manifest."""
 
     manifest = load_manifest(path)
+    if os.environ.get("FORENSICS_DISABLE_SHARED_MANIFEST", "").lower() in {"1", "true", "yes"}:
+        return manifest
     row = pd.DataFrame(
         [
             {

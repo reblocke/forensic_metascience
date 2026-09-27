@@ -1,0 +1,52 @@
+{
+  "schema_version": "inspect_sr_r_method_packages_v1",
+  "source_date": "2026-09-25",
+  "packages": [
+    {
+      "name": "scrutiny",
+      "version": "0.6.2",
+      "revision": "2a8eeac3ca9f893b946e45409317afaf42a805e3",
+      "source_url": "https://codeload.github.com/lhdjung/scrutiny/tar.gz/2a8eeac3ca9f893b946e45409317afaf42a805e3",
+      "sha256": "50dec5a8edf73244450a7229dab1b148f8934dc3b8c6f9d07956246ad073ffae"
+    },
+    {
+      "name": "statcheck",
+      "version": "1.5.0",
+      "revision": "CRAN source archive",
+      "source_url": "https://cran.rstudio.com/src/contrib/statcheck_1.5.0.tar.gz",
+      "sha256": "a7d9f97adfd2409e0facd9bc569ddd3851200e2275b1d089086816179101593f"
+    },
+    {
+      "name": "simdistr",
+      "version": "1.0.1",
+      "revision": "CRAN source archive",
+      "source_url": "https://cran.rstudio.com/src/contrib/simdistr_1.0.1.tar.gz",
+      "sha256": "2868bbb369dc07070f22dec1847b36efd8086da0e2e0804f894798fc0591da99"
+    }
+  ],
+  "runtime_imports_preparation_only": [
+    "cli",
+    "cpp11",
+    "corrr",
+    "dplyr",
+    "ggplot2",
+    "ggrepel",
+    "glue",
+    "jsonlite",
+    "knitr",
+    "lifecycle",
+    "magrittr",
+    "plyr",
+    "progress",
+    "purrr",
+    "readr",
+    "rlang",
+    "rmarkdown",
+    "stringi",
+    "stringr",
+    "tibble",
+    "tidyr",
+    "tidyselect"
+  ],
+  "transitive_dependency_policy": "Install dependencies from CRAN only while preparing an isolated test environment. Do not install packages in the production pipeline. Record sessionInfo in integration evidence."
+}

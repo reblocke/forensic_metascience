@@ -7,7 +7,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from research_project.randomization import build_csf_input, build_simdistr_input
+from research_project.randomization import (
+    build_csf_input,
+    build_reported_tests,
+    build_simdistr_input,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -28,15 +32,19 @@ def main() -> None:
     table1_long = pd.read_csv(table1_long_path)
     simdistr_df = build_simdistr_input(table1_long)
     csf_df = build_csf_input(table1_long)
+    reported_tests_df = build_reported_tests(table1_long)
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    simdistr_path = out_dir / "simdistr_input.csv"
-    csf_path = out_dir / "csf_input.csv"
+    simdistr_path = out_dir / "simdistr_input_v2.csv"
+    csf_path = out_dir / "csf_input_v3.csv"
+    reported_tests_path = out_dir / "reported_tests_v1.csv"
     simdistr_df.to_csv(simdistr_path, index=False)
     csf_df.to_csv(csf_path, index=False)
+    reported_tests_df.to_csv(reported_tests_path, index=False)
 
     print(f"Wrote {simdistr_path}")
     print(f"Wrote {csf_path}")
+    print(f"Wrote {reported_tests_path}")
 
 
 if __name__ == "__main__":

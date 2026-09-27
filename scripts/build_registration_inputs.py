@@ -64,9 +64,13 @@ def main() -> None:
     claims["is_missing_protocol"] = report_protocol_claim & (claims["protocol_norm"] == "")
     claims["is_missing_registry"] = claims["registry_norm"] == ""
     claims["match_status"] = claims["match_status"].map(_logical_or_na)
-    claims["assessment_status"] = claims["assessment_status"].fillna("indeterminate")
+    claims["assessment_status"] = (
+        claims["assessment_status"].fillna("").replace("", "indeterminate")
+    )
     claims["assessed_flag"] = claims["assessment_status"].isin(["match", "mismatch"])
-    claims["mismatch_flag"] = claims["assessment_status"] == "mismatch"
+    claims["mismatch_flag"] = (
+        claims["assessment_status"].map({"match": False, "mismatch": True}).astype("boolean")
+    )
 
     inputs_dir = args.out_dir / "inputs"
     inputs_dir.mkdir(parents=True, exist_ok=True)

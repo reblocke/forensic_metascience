@@ -1,0 +1,222 @@
+project:
+  type: book
+  resources:
+    - "!slides/"
+    - "files/Editable template for INSPECT-SR.docx"
+    - "static/favicon.ico"
+    - "CNAME"
+
+book:
+  site-url: "https://inspect.sr/"
+  title: "INSPECT-SR Guidance"
+  subtitle: "INveStigating ProblEmatic Clinical Trials in Systematic Reviews"
+  author:
+    # tier 1 - first authors
+    - name: Jack Wilkinson
+      orcid: 0000-0003-3513-4677
+      email: jack.wilkinson@manchester.ac.uk
+    - name: Calvin Heal
+      orcid: 0000-0002-6445-1551
+    - name: Ella Flemyng
+      orcid: 0000-0002-9845-9076
+    # tier 3 - alphabetical - new contributors to guidance to be added here
+    - name: Georgios A. Antoniou
+    - name: Tony Aburrow
+    - name: Zarko Alfirevic
+      orcid: 0000-0001-9276-518X
+    - name: Alison Avenell
+      orcid: 0000-0003-4813-5628
+    - name: Virginia Barbour
+      orcid: 0000-0002-2358-2440
+    - name: Vincenzo Berghella
+      orcid: 0000-0003-2854-0239
+    - name: Dorothy V. M. Bishop
+      orcid: 0000-0002-2448-4033
+    - name: Esmée M Bordewijk
+      orcid: 0000-0001-7983-1613
+    - name: Nicholas J. L. Brown
+      orcid: 0000-0003-1579-0730
+    - name: Jana Christopher
+      orcid: 0000-0002-2699-3368
+    - name: Mike Clarke
+      orcid: 0000-0002-2926-7257
+    # - name: Jamie Cummins
+    #   orcid: 0000-0002-9729-4900
+    - name: Darren Dahly
+      orcid: 0000-0003-0110-324X
+    - name: Jane Dennis
+      orcid: 0000-0001-9718-2653
+    - name: Patrick Dicker
+      orcid: 0000-0002-7942-9314
+    - name: Jo Dumville
+      orcid: 0000-0002-6546-3685
+    - name: Helen Frankish
+    - name: Andrew Grey
+      orcid: 0000-0002-7803-0096
+    - name: Steph Grohmann
+      orcid: 0000-0001-5640-1688
+    - name: Lyle C. Gurrin
+    - name: Jill A. Hayden
+      orcid: 0000-0001-7026-144X
+    - name: James Heathers
+      orcid: 0000-0002-0936-026X
+    - name: Kylie E Hunter
+      orcid: 0000-0002-2796-9220
+    - name: Ian Hussey
+      orcid: 0000-0001-8906-7559
+      email: ian.hussey@unibe.ch
+    - name: Lukas Jung
+      orcid: 0009-0007-9174-1494
+      email: lukas.jung@unibe.ch
+    - name: Emily Lam
+    - name: Toby J. Lasserson
+      orcid: 0000-0001-9638-2856
+    - name: Sarah Lensen
+      orcid: 0000-0002-1694-1142
+    - name: Tianjing Li
+      orcid: 0000-0001-5371-4558
+    - name: Wentao Li
+      orcid: 0000-0001-8980-0909
+    - name: Jianping Liu
+      orcid: 0000-0002-0320-061X
+    - name: Elizabeth Loder
+    - name: Andreas Lundh
+      orcid: 0000-0002-4982-8680
+    - name: Gideon Meyerowitz-Katz
+      orcid: 0000-0002-1156-9345
+    - name: Ben W. Mol
+      orcid: 0000-0001-8337-550X
+    - name: Florian Naudet
+      orcid: 0000-0003-3760-3801
+    - name: Anna Noel-Storr
+      orcid: 0000-0003-3476-8432
+    - name: Neil E. O’Connell
+      orcid: 0000-0003-1989-4537
+    - name: Lisa Parker
+    - name: Rita F. Redberg
+    - name: Barbara K. Redman
+      orcid: 0000-0001-5119-9898
+    - name: Rachel Richardson
+      orcid: 0000-0003-2848-6260
+    - name: Anna Lene Seidler
+      orcid: 0000-0002-0027-1623
+    - name: Kyle Sheldrick
+      orcid: 0000-0002-2198-8025
+    - name: Emma Sydenham
+      orcid: 0000-0002-1471-4237
+    - name: Madelon van Wely
+      orcid: 0000-0001-8263-213X
+    - name: Colby J. Vorland
+      orcid: 0000-0003-4225-372X
+    - name: Rui Wang
+      orcid: 0009-0005-1237-6376
+    - name: Stephanie Weibel
+      orcid: 0000-0003-1900-2535
+    - name: Matthias Wjst
+      orcid: 0000-0002-4974-5631
+    # tier 2 - senior authors
+    - name: Lisa Bero
+      orcid: 0000-0003-1893-6651
+    - name: Jamie J. Kirkham
+      orcid: 0000-0003-2579-9325
+  date: "2026-01-01" # ignored, date format below rendered instead
+  date-format: "[1.1.2]"
+  favicon: static/favicon.ico
+  downloads: [pdf]
+  chapters:
+    - index.qmd
+        
+    - part: "Domain 1: Inspecting post-publication notices"
+      chapters:
+        - chapters/check_1_1.qmd
+        - chapters/check_1_2.qmd
+        - chapters/check_1_3.qmd
+
+    - part: "Domain 2: Inspecting conduct, governance and transparency"
+      chapters:
+        - chapters/check_2_1.qmd
+        - chapters/check_2_2.qmd
+        - chapters/check_2_3.qmd
+        - chapters/check_2_4.qmd
+        - chapters/check_2_5.qmd
+
+    - part: "Domain 3: Inspecting text and figures"
+      chapters:
+        - chapters/check_3_1.qmd
+        - chapters/check_3_2.qmd
+
+    - part: "Domain 4: Inspecting results in the study"
+      chapters:
+        - chapters/check_4_1.qmd
+        - chapters/check_4_2.qmd
+        - chapters/check_4_3.qmd
+        - chapters/check_4_4.qmd
+        - chapters/check_4_5.qmd
+        - chapters/check_4_6.qmd
+        - chapters/check_4_7.qmd
+        - chapters/check_4_8.qmd
+        - chapters/check_4_9.qmd
+        - chapters/check_4_10.qmd
+        - chapters/check_4_11.qmd
+        
+    - part: "Appendices"
+      chapters:
+        - appendices/changelog.qmd
+        - appendices/template.qmd
+        - license.qmd
+
+#bibliography: references.bib
+
+format:
+  html:
+    number-sections: false
+    css: styles.css
+    toc: true
+    toc_float: true
+    code-fold: false
+    code-overflow: wrap
+    #code-tools: true
+    warning: false
+    df-print: kable
+    theme:
+      light: cosmo
+      dark: darkly
+    highlight-style:
+      light: breeze
+      dark: dracula
+    include-in-header:
+      text: |
+        <style>
+          .kable-table table { width: 70%; margin: 0 auto; }
+          .bi-file-pdf::after { content: " PDF"; font-family: sans-serif; font-size: 0.85em; }
+          .quarto-color-scheme-toggle::after { content: " Dark mode"; font-family: sans-serif; font-size: 0.85em; }
+        </style>
+  pdf:
+    number-sections: false
+    documentclass: report
+    classoption: oneside
+    geometry:
+      - top=25mm
+      - bottom=25mm
+      - left=25mm
+      - right=25mm
+    filters:
+      - static/print-tweaks.lua
+  docx:
+    number-sections: false
+    toc: true
+    toc-depth: 3
+    reference-doc: static/reference.docx
+    filters:
+      - static/print-tweaks.lua
+    df-print: kable
+    highlight-style: breeze
+
+language:
+  title-block-author-plural: "Contributors"
+  title-block-author-single: "Contributor"
+  title-block-published: "Version"
+
+editor: visual
+
+cover-image: cover.png

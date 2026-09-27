@@ -16,6 +16,8 @@ SUMMARY_COLUMNS = [
     "source_pdf",
     "source_table",
     "source_page",
+    "source_locator",
+    "raw_value",
     "variable",
     "level",
     "group",
@@ -136,7 +138,7 @@ def main() -> None:
                 current_variable: str | None = None
                 current_level = "all"
 
-                for raw_row in table[1:]:
+                for row_index, raw_row in enumerate(table[1:], start=2):
                     row = [clean_cell(value) for value in raw_row]
                     if not row:
                         continue
@@ -194,6 +196,11 @@ def main() -> None:
                                 "source_pdf": args.source_pdf,
                                 "source_table": source_table,
                                 "source_page": page_index,
+                                "source_locator": (
+                                    f"page={page_index};table={table_index};"
+                                    f"row={row_index + 1};column={column_index + 1}"
+                                ),
+                                "raw_value": clean_cell(row[column_index]),
                                 "variable": variable_name,
                                 "level": level_name,
                                 "group": group_key,

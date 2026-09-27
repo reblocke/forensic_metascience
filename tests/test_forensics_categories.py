@@ -1,12 +1,26 @@
 from __future__ import annotations
 
+import csv
+import os
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from research_project.forensics_manifest import load_manifest, upsert_manifest_row
-from research_project.meta_forensics import build_category_scores, compute_overall_meta_score
+from research_project.meta_forensics import (
+    build_evidence_coverage,
+    build_legacy_category_scores,
+    compute_legacy_overall_meta_score,
+)
 from research_project.numeric_integrity import (
+    _digits_from_str,
+    _to_int,
+    assess_percent_compatibility,
+    attach_source_evidence,
     build_numeric_table,
     build_rsprite2_stub,
     build_scrutiny_cases,
@@ -16,6 +30,7 @@ from research_project.numeric_integrity import (
     build_scrutiny_grimmer_input,
     build_scrutiny_input,
     build_scrutiny_rounding_bias_input,
+    build_statcheck_stub,
     summarize_numeric_flags,
 )
 from research_project.registration_forensics import derive_registration_claims, extract_registry_ids
@@ -29,6 +44,12 @@ from research_project.visual_forensics import (
 def _table1_long_fixture() -> pd.DataFrame:
     return pd.DataFrame(
         [
+            {
+                "category": "numeric",
+                "metric": "trial_id",
+                "value": "trial_x",
+                "source_file": "reports/numeric/trial/numeric_summary.csv",
+            },
             {
                 "trial_id": "trial_x",
                 "variable": "Age",
@@ -105,6 +126,172 @@ def test_numeric_rsprite2_stub_builder() -> None:
     assert rsprite2_stub.iloc[0]["abs_percent_between_arms"] == 1.0
 
 
+def test_numeric_precision_denominator_and_percentage_contract() -> None:
+    assert _digits_from_str("1.20") == 2
+    assert _digits_from_str("1.2") == 1
+    assert _digits_from_str("1.2e-3") is None
+    assert _to_int(10.5) is None
+    assert _to_int(-2) == -2
+    assert _to_int(float("nan")) is None
+    assert _to_int(float("inf")) is None
+
+    common = {
+        "denominator_role": "analyzed",
+        "weighting": "unweighted",
+        "rounding_convention": "nearest_half_up",
+    }
+    assert (
+        assess_percent_compatibility(
+            count=1, denominator=3, reported_percent="33", reported_decimals=0, **common
+        )
+        == "compatible"
+    )
+    assert (
+        assess_percent_compatibility(
+            count=1, denominator=3, reported_percent="33.3", reported_decimals=1, **common
+        )
+        == "compatible"
+    )
+    assert (
+        assess_percent_compatibility(
+            count=1, denominator=3, reported_percent="34.0", reported_decimals=1, **common
+        )
+        == "incompatible"
+    )
+    assert (
+        assess_percent_compatibility(
+            count=1,
+            denominator=3,
+            reported_percent="33.3",
+            reported_decimals=1,
+            denominator_role="unknown",
+            weighting="unweighted",
+            rounding_convention="unknown",
+        )
+        == "indeterminate"
+    )
+    assert (
+        assess_percent_compatibility(
+            count=4, denominator=3, reported_percent="133.3", reported_decimals=1, **common
+        )
+        == "source_data_contradiction"
+    )
+    assert (
+        assess_percent_compatibility(
+            count=1,
+            denominator=8,
+            reported_percent="12",
+            reported_decimals=0,
+            denominator_role="analyzed",
+            weighting="unweighted",
+            rounding_convention="nearest_half_even",
+        )
+        == "compatible"
+    )
+    assert (
+        assess_percent_compatibility(
+            count=1,
+            denominator=8,
+            reported_percent="13",
+            reported_decimals=0,
+            denominator_role="analyzed",
+            weighting="unweighted",
+            rounding_convention="nearest_half_up",
+        )
+        == "compatible"
+    )
+    assert (
+        assess_percent_compatibility(
+            count=1,
+            denominator=3,
+            reported_percent="33.3",
+            reported_decimals=1,
+            denominator_role="analyzed",
+            weighting="weighted",
+            rounding_convention="nearest_half_up",
+        )
+        == "indeterminate"
+    )
+
+    invalid_counts = pd.DataFrame([1, -1, 4, float("nan"), 1], columns=["count"])
+    invalid_counts["n_group"] = [3, 3, 3, 3, float("inf")]
+    numeric_rows = pd.DataFrame(
+        {
+            "trial_id": "trial_x",
+            "variable": "Event",
+            "level": "yes",
+            "group": "arm_a",
+            "value": invalid_counts["count"],
+            "n_group": invalid_counts["n_group"],
+            "percent": 33.0,
+            "reported_percent_raw": "33",
+            "reported_percent_decimals": 0,
+            "decimals": 0,
+            "reported_p": None,
+            "var_type": "categorical_count_percent",
+        }
+    )
+    assert build_numeric_table(numeric_rows)["input_status"].tolist() == [
+        "ok",
+        "source_data_contradiction",
+        "source_data_contradiction",
+        "input_error",
+        "input_error",
+    ]
+
+
+def test_p_value_inequality_and_out_of_range_value_are_preserved() -> None:
+    rows = pd.DataFrame(
+        [
+            {
+                "trial_id": "trial_x",
+                "variable": "A",
+                "reported_p": 0.001,
+                "reported_p_raw": "P<0.001",
+                "reported_p_comparator": "<",
+            },
+            {
+                "trial_id": "trial_x",
+                "variable": "B",
+                "reported_p": 1.2,
+                "reported_p_raw": "P=1.2",
+                "reported_p_comparator": "=",
+            },
+        ]
+    )
+    statcheck = build_statcheck_stub(rows)
+    assert statcheck["reported_p"].tolist() == [0.001, 1.2]
+    assert statcheck["reported_p_raw"].tolist() == ["P<0.001", "P=1.2"]
+    assert statcheck["reported_p_comparator"].tolist() == ["<", "="]
+    assert statcheck["input_status"].tolist() == ["ok", "source_value_out_of_range"]
+
+
+@pytest.mark.native_r
+def test_printed_numeric_strings_survive_python_readr_python_roundtrip(tmp_path) -> None:
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        raise RuntimeError("Rscript is required for the numeric precision roundtrip regression.")
+    source = tmp_path / "numeric.csv"
+    destination = tmp_path / "roundtrip.csv"
+    pd.DataFrame({"x": ["1.20", "1.2"], "sd": ["0.40", "0.4"]}).to_csv(source, index=False)
+    expression = (
+        'source("scripts/run_numeric_forensics.R"); '
+        f'd <- read_numeric_csv("{source}"); '
+        'stopifnot(identical(d$x, c("1.20", "1.2"))); '
+        f'readr::write_csv(d, "{destination}")'
+    )
+    subprocess.run(
+        [rscript, "-e", expression],
+        cwd=Path(__file__).resolve().parents[1],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    roundtrip = pd.read_csv(destination, dtype={"x": "string", "sd": "string"})
+    assert roundtrip["x"].tolist() == ["1.20", "1.2"]
+    assert roundtrip["sd"].tolist() == ["0.40", "0.4"]
+
+
 def test_scrutiny_case_eligibility_and_method_inputs() -> None:
     scrutiny_input = pd.DataFrame(
         [
@@ -162,14 +349,466 @@ def test_scrutiny_case_eligibility_and_method_inputs() -> None:
     rounding_bias_input = build_scrutiny_rounding_bias_input(cases)
 
     assert len(cases) == 3
-    assert cases["eligible_grim"].sum() == 3
-    assert cases["eligible_grimmer"].sum() == 2
-    assert cases["eligible_debit"].sum() == 1
-    assert len(grim_input) == 3
-    assert len(grimmer_input) == 2
-    assert len(debit_input) == 1
+    assert cases["eligible_grim"].sum() == 0
+    assert cases["eligible_grimmer"].sum() == 0
+    assert cases["eligible_debit"].sum() == 0
+    assert len(grim_input) == 0
+    assert len(grimmer_input) == 0
+    assert len(debit_input) == 0
+    assert cases.loc[0, "statistic_kind"] == "median"
+    assert cases.loc[0, "exclude_reason_grim"] == "statistic_not_arithmetic_mean"
+    assert cases.loc[2, "exclude_reason_debit"] == "measurement_scale_not_bernoulli"
     assert len(duplicate_input) == 3
     assert len(rounding_bias_input) == 3
+
+
+def test_numeric_evidence_identity_requires_source_hash_locator_and_raw_value() -> None:
+    cases = pd.DataFrame(
+        [
+            {
+                "trial_id": "trial_x",
+                "source_pdf": "report.pdf",
+                "source_locator": "page=2;table=1;row=4;column=2",
+                "raw_value": "12.30 (SD 2.10)",
+                "method_revision": "numeric_eligibility_precision_v3",
+            },
+            {
+                "trial_id": "trial_x",
+                "source_pdf": "report.pdf",
+                "source_locator": "",
+                "raw_value": "9.20 (SD 1.10)",
+                "method_revision": "numeric_eligibility_precision_v3",
+            },
+        ]
+    )
+    versions = [
+        {
+            "source_id": "report-local-id",
+            "source_version_id": "sourcever-local-id",
+            "source_name": "report.pdf",
+            "content_sha256": "a" * 64,
+        }
+    ]
+    with_ids, records = attach_source_evidence(cases, versions)
+    assert with_ids.loc[0, "evidence_id"].startswith("evidence_")
+    assert pd.isna(with_ids.loc[1, "evidence_id"])
+    assert len(records) == 1
+    unresolved, records_without_source = attach_source_evidence(cases, [])
+    assert unresolved["evidence_id"].isna().all()
+    assert records_without_source == []
+
+
+def test_source_evidence_does_not_choose_last_duplicate_filename() -> None:
+    cases = pd.DataFrame(
+        [{"source_pdf": "table.pdf", "source_locator": "page=1", "raw_value": "0.50"}]
+    )
+    versions = [
+        {
+            "source_id": key,
+            "source_version_id": key,
+            "source_name": "table.pdf",
+            "content_sha256": "a" * 64,
+        }
+        for key in ("source-a", "source-b")
+    ]
+    unresolved, evidence = attach_source_evidence(cases, versions)
+    assert pd.isna(unresolved.loc[0, "source_version_id"])
+    assert evidence == []
+    cases["source_id"] = "source-a"
+    matched, evidence = attach_source_evidence(cases, versions)
+    assert matched.loc[0, "source_version_id"] == "source-a"
+    assert len(evidence) == 1
+    cases["source_pdf"] = "different.pdf"
+    mismatched, evidence = attach_source_evidence(cases, versions)
+    assert pd.isna(mismatched.loc[0, "source_version_id"])
+    assert evidence == []
+
+
+def test_scrutiny_eligibility_requires_documented_summary_semantics() -> None:
+    common = {
+        "trial_id": "trial_x",
+        "source_pdf": "report.pdf",
+        "source_table": "table2",
+        "source_page": 4,
+        "variable": "Outcome",
+        "level": "all",
+        "group": "arm_a",
+        "n": 100,
+        "x_str": "0.60",
+        "sd_str": "0.20",
+        "digits_x": 2,
+        "digits_sd": 2,
+        "statistic_kind": "arithmetic_mean",
+        "measurement_scale": "integer_valued",
+        "raw_or_adjusted": "raw",
+        "weighting": "unweighted",
+        "analysis_n": 100,
+        "imputation_status": "not_imputed",
+        "transformation_status": "none",
+        "granularity_transformation": "",
+        "eligibility_evidence": "Table 2 footnote: unadjusted arithmetic mean; integer score.",
+    }
+    rows = [
+        common,
+        {
+            **common,
+            "variable": "Bounded continuous outcome",
+            "measurement_scale": "continuous_bounded",
+            "eligibility_evidence": "Table 2 reports a bounded continuous score.",
+        },
+        {
+            **common,
+            "variable": "Binary outcome",
+            "measurement_scale": "bernoulli",
+            "eligibility_evidence": "Methods: coded 0/1; unadjusted arm mean and SD.",
+        },
+        {
+            **common,
+            "variable": "Adjusted score",
+            "raw_or_adjusted": "adjusted",
+            "eligibility_evidence": "Adjusted model estimate.",
+        },
+        {
+            **common,
+            "variable": "Unknown scale",
+            "measurement_scale": "unknown",
+            "eligibility_evidence": "No measurement-scale description found.",
+        },
+        {**common, "variable": "Weighted summary", "weighting": "weighted"},
+        {**common, "variable": "Imputed summary", "imputation_status": "imputed"},
+        {
+            **common,
+            "variable": "Unsupported transformation",
+            "transformation_status": "transformed",
+        },
+        {**common, "variable": "Mismatched n", "analysis_n": 90},
+        {**common, "variable": "Noninteger n", "n": 10.5, "analysis_n": 10.5},
+        {**common, "variable": "Negative n", "n": -1, "analysis_n": -1},
+        {**common, "variable": "NaN n", "n": float("nan"), "analysis_n": float("nan")},
+        {**common, "variable": "Infinite n", "n": float("inf"), "analysis_n": float("inf")},
+        {**common, "variable": "Precision mismatch", "x_str": "1.20", "digits_x": 1},
+    ]
+    cases = build_scrutiny_cases(
+        scrutiny_input=pd.DataFrame(),
+        numeric_summary_long=pd.DataFrame(rows),
+    )
+    grim_input = build_scrutiny_grim_input(cases)
+    grimmer_input = build_scrutiny_grimmer_input(cases)
+    debit_input = build_scrutiny_debit_input(cases)
+
+    assert cases["eligible_grim"].tolist() == [True, False, True] + [False] * 11
+    assert cases["eligible_grimmer"].tolist() == cases["eligible_grim"].tolist()
+    assert cases["eligible_debit"].tolist() == [False, False, True] + [False] * 11
+    assert cases.loc[1, "exclude_reason_debit"] == "measurement_scale_not_bernoulli"
+    assert len(grim_input) == len(grimmer_input) == 2
+    assert len(debit_input) == 1
+    assert set(grim_input["method_revision"]) == {"numeric_eligibility_precision_v3"}
+    assert set(debit_input["measurement_scale"]) == {"bernoulli"}
+
+
+@pytest.mark.native_r
+def test_numeric_r_boundary_revalidates_method_eligibility() -> None:
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        raise RuntimeError("Rscript is required for the numeric eligibility boundary regression.")
+    expression = r"""
+source("scripts/run_numeric_forensics.R")
+valid <- tibble::tibble(
+  n = c(100, 100, 100, 100, 10.5, 100),
+  analysis_n = c(100, 100, 100, 100, 10.5, 100),
+  digits_x = c(2, 2, 2, 2, 2, 2), digits_sd = c(2, 2, 2, 2, 2, 2),
+  x = c("0.60", "0.60", "0.60", "0.60", "0.60", "0.6"),
+  sd = c("0.20", "0.20", "0.20", "0.20", "0.20", "0.20"),
+  statistic_kind = c("arithmetic_mean", "median", rep("arithmetic_mean", 4)),
+  measurement_scale = c(
+    "integer_valued", "integer_valued", "continuous_bounded", "bernoulli",
+    "integer_valued", "integer_valued"
+  ),
+  raw_or_adjusted = "raw", weighting = "unweighted",
+  imputation_status = "not_imputed", transformation_status = "none",
+  granularity_transformation = "",
+  eligibility_evidence = "Methods describe the summary and scale.",
+  method_revision = "numeric_eligibility_precision_v3"
+)
+stopifnot(nrow(validate_scrutiny_input(valid, "grim")) == 2L)
+stopifnot(nrow(validate_scrutiny_input(valid, "debit")) == 1L)
+legacy <- valid[, setdiff(names(valid), c("measurement_scale", "method_revision"))]
+stopifnot(nrow(validate_scrutiny_input(legacy, "grim")) == 0L)
+"""
+    subprocess.run(
+        [rscript, "-e", expression],
+        cwd=Path(__file__).resolve().parents[1],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+@pytest.mark.native_r
+def test_r_method_receipt_contract_has_truthful_outcomes() -> None:
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        raise RuntimeError("Rscript is required for method receipt contract regressions.")
+    expression = r"""
+source("R/method_receipts.R")
+stopifnot(METHOD_RECEIPT_SCHEMA_VERSION == "method_receipt_v4")
+base <- list(
+  run_id = "synthetic-run", method_id = "grim", method_version = "test-v1",
+  package_name = "scrutiny", package_version = "not-installed",
+  unit_of_evaluation = "summary_case", input_evidence_ids = "case-1",
+  parameters = "fixture", output_reference = "raw.csv", diagnostic = ""
+)
+completed <- do.call(new_method_receipt, c(base, list(
+  applicability = "eligible", execution = "completed", n_input = 1L,
+  n_eligible = 1L, n_evaluated = 1L, n_failed = 0L, n_flagged = 0L
+)))
+partial <- do.call(new_method_receipt, c(base, list(
+  applicability = "mixed", execution = "partial", n_input = 2L,
+  n_eligible = 2L, n_evaluated = 1L, n_failed = 1L, n_flagged = 0L
+)))
+unimplemented_args <- utils::modifyList(base, list(method_id = "rsprite2"))
+unimplemented <- do.call(new_method_receipt, c(unimplemented_args, list(
+  applicability = "unknown", execution = "not_implemented",
+  n_input = 3L, n_eligible = 0L, n_evaluated = 0L, n_failed = 0L,
+  n_flagged = NA_integer_
+)))
+stopifnot(completed$result_status == "no_finding", completed$n_evaluated == 1L)
+stopifnot(partial$result_status == "indeterminate", partial$n_failed == 1L)
+stopifnot(unimplemented$execution == "not_implemented", is.na(unimplemented$n_flagged))
+invalid <- tryCatch({
+  do.call(new_method_receipt, c(base, list(
+    applicability = "eligible", execution = "completed", n_input = 1L,
+    n_eligible = 1L, n_evaluated = 0L, n_failed = 0L, n_flagged = 0L
+  )))
+  FALSE
+}, error = function(e) TRUE)
+stopifnot(invalid)
+run_receipt <- function(method_run, eligible_count = 1L) {
+  receipt_from_method_run(
+    run_id = "synthetic-run", method_id = "grim", method_version = "test-v1",
+    package_name = "scrutiny", package_version = NA_character_,
+    unit_of_evaluation = "summary_case", input_evidence_ids = "case-1",
+    parameters = "fixture", input_count = eligible_count, eligible_count = eligible_count,
+    method_run = method_run, output_reference = "raw.csv",
+    eligible_unit_ids = paste0("case-", seq_len(eligible_count))
+  )
+}
+failed_run <- run_receipt(list(
+  raw = data.frame(), message = "GRIM execution error: fixture failure"
+))
+stopifnot(failed_run$execution == "failed", is.na(failed_run$n_flagged))
+partial_run <- run_receipt(list(
+  raw = data.frame(case_id = c("case-1", "case-2"), consistency = c(TRUE, NA)), message = "ok"
+), eligible_count = 2L)
+stopifnot(partial_run$execution == "partial", partial_run$n_evaluated == 1L)
+empty_run <- run_receipt(
+  list(raw = data.frame(case_id = character(), consistency = logical()),
+       message = "No eligible rows."), 0L
+)
+stopifnot(empty_run$execution == "blocked", is.na(empty_run$n_flagged))
+statcheck_run <- receipt_from_method_run(
+  run_id = "synthetic-run", method_id = "statcheck", method_version = "test-v1",
+  package_name = "statcheck", package_version = NA_character_,
+  unit_of_evaluation = "report_text", input_evidence_ids = "", parameters = "fixture",
+  input_count = 1L, eligible_count = 1L,
+  method_run = list(raw = data.frame(error = TRUE), message = "ok"),
+  output_reference = "statcheck.csv", report_text_evaluated = TRUE
+)
+stopifnot(statcheck_run$execution == "completed", statcheck_run$n_evaluated == 1L,
+          statcheck_run$n_flagged == 1L)
+incomplete_run <- run_receipt(
+  list(raw = data.frame(case_id = "case-1", consistency = TRUE), message = "ok"),
+  eligible_count = 2L
+)
+malformed_run <- run_receipt(list(raw = data.frame(unrelated = 1), message = "ok"))
+duplicate_units <- run_receipt(list(raw = data.frame(
+  case_id = c("case-1", "case-1"), consistency = c(TRUE, TRUE)
+), message = "ok"), eligible_count = 2L)
+unknown_statcheck <- receipt_from_method_run(
+  run_id = "synthetic-run", method_id = "statcheck", method_version = "test-v1",
+  package_name = "statcheck", package_version = NA_character_,
+  unit_of_evaluation = "report_text", input_evidence_ids = "", parameters = "fixture",
+  input_count = 1L, eligible_count = 1L,
+  method_run = list(raw = data.frame(error = NA), message = "ok"),
+  output_reference = "statcheck.csv", report_text_evaluated = TRUE
+)
+partial_without_consistency <- receipt_from_method_run(
+  run_id = "synthetic-run", method_id = "duplicates", method_version = "test-v1",
+  package_name = "scrutiny", package_version = NA_character_,
+  unit_of_evaluation = "summary_case", input_evidence_ids = "case-1;case-2",
+  parameters = "fixture", input_count = 2L, eligible_count = 2L,
+  method_run = list(raw = data.frame(anomaly_flag = FALSE), message = "ok"),
+  output_reference = "duplicates.csv", eligible_unit_ids = c("case-1", "case-2")
+)
+unknown_type_statcheck <- receipt_from_method_run(
+  run_id = "synthetic-run", method_id = "statcheck", method_version = "test-v1",
+  package_name = "statcheck", package_version = NA_character_,
+  unit_of_evaluation = "report_text", input_evidence_ids = "", parameters = "fixture",
+  input_count = 1L, eligible_count = 1L,
+  method_run = list(raw = data.frame(error = "unknown"), message = "ok"),
+  output_reference = "statcheck.csv", report_text_evaluated = TRUE
+)
+missing_statcheck <- receipt_from_method_run(
+  run_id = "synthetic-run", method_id = "statcheck", method_version = "test-v1",
+  package_name = "statcheck", package_version = NA_character_,
+  unit_of_evaluation = "report_text", input_evidence_ids = "", parameters = "fixture",
+  input_count = 1L, eligible_count = 1L,
+  method_run = list(
+    raw = data.frame(error = logical()), message = "Package `statcheck` not installed."
+  ),
+  output_reference = "statcheck.csv", report_text_evaluated = TRUE
+)
+empty_statcheck <- receipt_from_method_run(
+  run_id = "synthetic-run", method_id = "statcheck", method_version = "test-v1",
+  package_name = "statcheck", package_version = NA_character_,
+  unit_of_evaluation = "report_text", input_evidence_ids = "", parameters = "fixture",
+  input_count = 1L, eligible_count = 1L,
+  method_run = list(raw = data.frame(error = logical()), message = "ok"),
+  output_reference = "statcheck.csv", report_text_evaluated = TRUE
+)
+stopifnot(incomplete_run$execution == "partial", incomplete_run$n_evaluated == 1L,
+          incomplete_run$n_failed == 1L,
+          malformed_run$execution == "failed", is.na(malformed_run$n_flagged),
+          duplicate_units$execution == "failed", is.na(duplicate_units$n_flagged),
+          unknown_statcheck$execution == "failed", is.na(unknown_statcheck$n_flagged),
+          partial_without_consistency$execution == "failed",
+          is.na(partial_without_consistency$n_flagged),
+          unknown_type_statcheck$execution == "failed",
+          is.na(unknown_type_statcheck$n_flagged),
+          missing_statcheck$execution == "dependency_missing",
+          empty_statcheck$execution == "completed",
+          empty_statcheck$n_evaluated == 1L,
+          empty_statcheck$n_flagged == 0L)
+source("scripts/run_numeric_forensics.R")
+standard <- standardize_scrutiny_map(
+  data.frame(case_id = "case-1", source_unit = "Table 1", trial_id = "trial_x",
+             consistency = FALSE, probability = 0.25),
+  trial_id = "trial_x", method_name = "scrutiny_grim_map", metric_name = "grim_flag"
+)
+stopifnot(is.na(standard$p_value), standard$case_id == "case-1",
+          grepl("package_probability=0.25", standard$details))
+"""
+    subprocess.run(
+        [rscript, "-e", expression],
+        cwd=Path(__file__).resolve().parents[1],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+@pytest.mark.native_r
+def test_numeric_runner_receipts_keep_means_only_trial_and_exclude_sprite_stub(
+    tmp_path: Path,
+) -> None:
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        raise RuntimeError("Rscript is required for numeric runner receipt regressions.")
+    input_dir = tmp_path / "study"
+    inputs = input_dir / "inputs"
+    inputs.mkdir(parents=True)
+
+    def write_csv(name: str, columns: list[str], rows: list[dict[str, object]]) -> None:
+        with (inputs / name).open("w", newline="", encoding="utf-8") as stream:
+            writer = csv.DictWriter(stream, fieldnames=columns)
+            writer.writeheader()
+            writer.writerows(rows)
+
+    write_csv(
+        "numeric_checks_input.csv",
+        [
+            "trial_id",
+            "variable",
+            "level",
+            "group",
+            "source_unit",
+            "abs_percent_delta",
+            "legacy_abs_percent_delta",
+            "compatibility_status",
+            "reported_percent",
+            "computed_percent",
+            "reported_p",
+        ],
+        [
+            {
+                "trial_id": "means_only_trial",
+                "variable": "mean",
+                "level": "all",
+                "group": "arm_a",
+                "source_unit": "Table 1",
+                "abs_percent_delta": "",
+                "legacy_abs_percent_delta": "",
+                "compatibility_status": "indeterminate",
+                "reported_percent": "",
+                "computed_percent": "",
+                "reported_p": "",
+            }
+        ],
+    )
+    write_csv("statcheck_input.csv", ["trial_id", "source_unit"], [])
+    (inputs / "statcheck_text.txt").write_text("", encoding="utf-8")
+    write_csv(
+        "rsprite2_input.csv",
+        [
+            "trial_id",
+            "variable",
+            "level",
+            "group_a",
+            "group_b",
+            "percent_a",
+            "percent_b",
+            "abs_percent_between_arms",
+        ],
+        [
+            {
+                "trial_id": "means_only_trial",
+                "variable": "sex",
+                "level": "female",
+                "group_a": "A",
+                "group_b": "B",
+                "percent_a": "51",
+                "percent_b": "56",
+                "abs_percent_between_arms": "5",
+            }
+        ],
+    )
+    write_csv("scrutiny_cases.csv", ["trial_id", "case_id"], [])
+    for name in (
+        "scrutiny_grim_input.csv",
+        "scrutiny_grimmer_input.csv",
+        "scrutiny_debit_input.csv",
+    ):
+        write_csv(name, ["trial_id", "case_id"], [])
+    write_csv(
+        "scrutiny_duplicates_input.csv",
+        ["trial_id", "case_id", "source_unit", "variable", "level", "group", "x", "sd", "n"],
+        [],
+    )
+    write_csv("scrutiny_rounding_bias_input.csv", ["trial_id", "x", "digits_x"], [])
+
+    output_dir = tmp_path / "outputs"
+    script = Path(__file__).resolve().parents[1] / "scripts" / "run_numeric_forensics.R"
+    subprocess.run(
+        [rscript, str(script), "--in", str(input_dir), "--out", str(output_dir)],
+        cwd=Path(__file__).resolve().parents[1],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    standardized = pd.read_csv(output_dir / "numeric_standardized_results.csv")
+    receipts = pd.read_csv(output_dir / "numeric_method_receipts.csv")
+    summary = pd.read_csv(output_dir / "numeric_summary.csv")
+    descriptive = pd.read_csv(output_dir / "numeric_descriptive_arm_differences.csv")
+
+    assert "rsprite2_stub" not in set(standardized["method"])
+    sprite_receipt = receipts[receipts["method_id"] == "rsprite2"].iloc[0]
+    assert sprite_receipt["execution"] == "not_implemented"
+    assert pd.isna(sprite_receipt["n_flagged"])
+    grim_receipt = receipts[receipts["method_id"] == "scrutiny_grim_map"].iloc[0]
+    assert grim_receipt["execution"] in {"dependency_missing", "blocked"}
+    assert pd.isna(grim_receipt["n_flagged"])
+    assert summary.loc[0, "trial_id"] == "means_only_trial"
+    assert len(descriptive) == 1
 
 
 def test_scrutiny_builders_return_header_only_when_empty() -> None:
@@ -222,7 +861,7 @@ def test_registration_claims_and_registry_id_extraction() -> None:
     ]
     protocol_pages = [
         "Section 3.2 randomization in 1:1 ratio. Registration ISRCTN12345678.",
-        "Open-\u00adlabel trial with blinded endpoint review.",
+        "Open-\u00adlabel trial with blinded endpoint review. Outcome assessors were blinded.",
     ]
     ids = extract_registry_ids(report_pages[0])
     claims = derive_registration_claims(
@@ -240,8 +879,16 @@ def test_registration_claims_and_registry_id_extraction() -> None:
     assert registry_row["match_status"]
     randomization_row = claims[claims["claim"] == "randomization_phrase"].iloc[0]
     assert randomization_row["match_status"]
-    blinding_row = claims[claims["claim"] == "blinding_phrase"].iloc[0]
-    assert blinding_row["match_status"]
+    participant_masking = claims[
+        (claims["claim"] == "blinding_role") & (claims["role"] == "participants")
+    ].iloc[0]
+    assessor_masking = claims[
+        (claims["claim"] == "blinding_role") & (claims["role"] == "outcome_assessors")
+    ].iloc[0]
+    assert participant_masking["report_value"] == "not_blinded"
+    assert participant_masking["assessment_status"] == "indeterminate"
+    assert assessor_masking["protocol_value"] == "blinded"
+    assert assessor_masking["assessment_status"] == "indeterminate"
 
 
 def test_visual_forensics_caption_checks() -> None:
@@ -258,7 +905,262 @@ def test_visual_forensics_caption_checks() -> None:
     assert gaps == []
 
 
-def test_meta_forensics_score_aggregation() -> None:
+def test_meta_coverage_keeps_missing_metrics_unavailable_and_unscored() -> None:
+    raw = pd.DataFrame(
+        [
+            {
+                "category": "numeric",
+                "metric": "grim_incons_cases",
+                "value": None,
+                "source_file": "reports/numeric/trial/numeric_summary.csv",
+            }
+        ]
+    )
+    coverage = build_evidence_coverage(raw)
+    numeric = coverage.set_index("category").loc["numeric"]
+
+    assert bool(numeric["requested"])
+    assert not bool(numeric["assessed"])
+    assert bool(numeric["unavailable"])
+    assert pd.isna(numeric["failed"])
+    assert pd.isna(numeric["unsupported"])
+    assert not {"anomaly_score", "overall_score", "risk_tier"} & set(coverage.columns)
+
+
+def test_meta_coverage_requires_evaluation_receipt_not_populated_summary_cells() -> None:
+    raw = pd.DataFrame(
+        [
+            {
+                "category": "numeric",
+                "metric": "grim_cases",
+                "value": 0,
+                "source_file": "numeric_summary.csv",
+            },
+            {
+                "category": "numeric",
+                "metric": "grim_incons_cases",
+                "value": 0,
+                "source_file": "numeric_summary.csv",
+            },
+        ]
+    )
+    status = pd.DataFrame(
+        [
+            {
+                "category": "numeric",
+                "requested": True,
+                "report_available": True,
+                "n_evaluation_units": 0,
+            }
+        ]
+    )
+    numeric = (
+        build_evidence_coverage(raw, category_status=status).set_index("category").loc["numeric"]
+    )
+    assert bool(numeric["report_available"])
+    assert not bool(numeric["assessed"])
+    assert bool(numeric["unavailable"])
+    assert numeric["n_evaluation_units"] == 0
+
+
+def test_build_meta_inputs_keeps_source_linked_candidate_concerns(tmp_path: Path) -> None:
+    input_dir = tmp_path / "processed" / "inputs"
+    input_dir.mkdir(parents=True)
+    pd.DataFrame(
+        [
+            {
+                "category": "numeric",
+                "metric": "grim_incons_cases",
+                "value": None,
+                "source_file": "reports/numeric/trial/numeric_summary.csv",
+            }
+        ]
+    ).to_csv(input_dir / "category_summaries_v2_raw.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "category": "numeric",
+                "source_file": "reports/numeric/trial/numeric_standardized_results.csv",
+                "source_unit": "Table 1 / age / arm A",
+                "method": "scrutiny_grim_map",
+                "metric": "grim_inconsistency_flag",
+                "value_numeric": 1,
+                "details": "case-1",
+                "candidate_status": "screening_signal",
+            }
+        ]
+    ).to_csv(input_dir / "candidate_concerns_v1_raw.csv", index=False)
+
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/build_meta_inputs.py",
+            "--in",
+            str(tmp_path / "processed"),
+            "--out",
+            str(tmp_path / "built"),
+        ],
+        cwd=Path(__file__).resolve().parents[1],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    coverage = pd.read_csv(tmp_path / "built/inputs/meta_evidence_coverage_v2.csv")
+    concerns = pd.read_csv(tmp_path / "built/inputs/meta_candidate_concerns_v1.csv")
+
+    assert coverage.loc[coverage["category"] == "numeric", "unavailable"].item()
+    assert concerns.loc[0, "source_unit"] == "Table 1 / age / arm A"
+    assert (
+        "anomaly_score"
+        not in pd.read_csv(tmp_path / "built/inputs/meta_evidence_coverage_v2.csv").columns
+    )
+
+
+def test_extract_meta_records_coverage_and_existing_candidate_flags(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    numeric_report = tmp_path / "repo/reports/numeric/trial_x"
+    numeric_report.mkdir(parents=True)
+    pd.DataFrame([{"trial_id": "trial_x", "grim_cases": None, "grim_incons_cases": None}]).to_csv(
+        numeric_report / "numeric_summary.csv", index=False
+    )
+    pd.DataFrame(
+        [
+            {
+                "method": "scrutiny_grim_map",
+                "source_unit": "Table 1 / age / arm A",
+                "metric": "grim_inconsistency_flag",
+                "value_numeric": 1,
+                "anomaly_flag": True,
+                "details": "case-1",
+            }
+        ]
+    ).to_csv(numeric_report / "numeric_standardized_results.csv", index=False)
+    randomization_report = tmp_path / "repo/reports/randomization/trial_x"
+    randomization_report.mkdir(parents=True)
+    pd.DataFrame([{"trial_id": "trial_x", "fisher_recalc": 0.2}]).to_csv(
+        randomization_report / "pooled_pvalues.csv", index=False
+    )
+    pd.DataFrame(
+        [{"flagged_p_delta_0_05": True, "source_table": "Table 2", "reported_p": 0.01}]
+    ).to_csv(randomization_report / "row_level_results.csv", index=False)
+    output = tmp_path / "processed"
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/extract_meta.py",
+            "--study-id",
+            "trial_x",
+            "--repo-root",
+            str(tmp_path / "repo"),
+            "--requested-categories",
+            "numeric",
+            "--legacy-layout",
+            "--out",
+            str(output),
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "PYTHONPATH": str(root / "src")},
+    )
+    coverage = pd.read_csv(output / "inputs/category_coverage_v2_raw.csv")
+    concerns = pd.read_csv(output / "inputs/candidate_concerns_v1_raw.csv")
+
+    assert len(coverage) == 5
+    assert coverage.loc[coverage["category"] == "numeric", "requested"].item()
+    randomization = coverage.loc[coverage["category"] == "randomization"].iloc[0]
+    assert not randomization["requested"]
+    assert pd.isna(randomization["report_available"])
+    assert pd.isna(coverage.loc[coverage["category"] == "numeric", "failed"].item())
+    assert concerns.loc[0, "source_unit"] == "Table 1 / age / arm A"
+    assert concerns.loc[0, "candidate_status"] == "screening_signal"
+    assert "randomization" not in set(concerns["category"])
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/build_meta_inputs.py",
+            "--in",
+            str(output),
+            "--out",
+            str(output),
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "PYTHONPATH": str(root / "src")},
+    )
+    built_coverage = pd.read_csv(output / "inputs/meta_evidence_coverage_v2.csv")
+    numeric_coverage = built_coverage.set_index("category").loc["numeric"]
+    randomization_coverage = built_coverage.set_index("category").loc["randomization"]
+    assert bool(numeric_coverage["unavailable"])
+    assert not bool(randomization_coverage["requested"])
+    assert not bool(randomization_coverage["assessed"])
+    assert not bool(randomization_coverage["unavailable"])
+
+
+@pytest.mark.native_r
+def test_meta_r_runner_emits_coverage_not_composite_score(tmp_path: Path) -> None:
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        raise RuntimeError("Rscript is required for meta-runner contract regressions.")
+    inputs = tmp_path / "inputs"
+    inputs.mkdir()
+    pd.DataFrame(
+        [
+            {
+                "category": "numeric",
+                "requested": True,
+                "assessed": False,
+                "unavailable": True,
+                "failed": None,
+                "unsupported": None,
+                "n_metrics_assessed": 0,
+                "n_metrics_missing": 2,
+                "source_file": "numeric_summary.csv",
+            }
+        ]
+    ).to_csv(inputs / "meta_evidence_coverage_v2.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "category": "numeric",
+                "source_file": "numeric_standardized_results.csv",
+                "source_unit": "Table 1 / age",
+                "method": "grim",
+                "metric": "inconsistency",
+                "value_numeric": 1,
+                "details": "case-1",
+                "candidate_status": "screening_signal",
+            }
+        ]
+    ).to_csv(inputs / "meta_candidate_concerns_v1.csv", index=False)
+
+    script = Path(__file__).resolve().parents[1] / "scripts" / "run_meta_forensics.R"
+    output = tmp_path / "reports"
+    subprocess.run(
+        [rscript, str(script), "--in", str(tmp_path), "--out", str(output)],
+        cwd=Path(__file__).resolve().parents[1],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    summary = pd.read_csv(output / "meta_coverage_summary_v1.csv")
+    concerns = pd.read_csv(output / "meta_candidate_concerns_v1_out.csv")
+
+    assert summary.loc[0, "n_unavailable"] == 1
+    assert pd.isna(summary.loc[0, "n_failed"])
+    assert pd.isna(summary.loc[0, "n_unsupported"])
+    assert "overall_score" not in summary.columns
+    assert concerns.loc[0, "source_unit"] == "Table 1 / age"
+
+
+@pytest.mark.native_r
+def test_legacy_composite_is_explicit_isolated_and_reproduces_fixture(tmp_path: Path) -> None:
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        raise RuntimeError("Rscript is required for legacy reproduction regressions.")
     summary_tables = {
         "randomization": pd.DataFrame([{"fisher_recalc": 0.20}]),
         "numeric": pd.DataFrame([{"median_abs_percent_delta": 0.4}]),
@@ -266,20 +1168,70 @@ def test_meta_forensics_score_aggregation() -> None:
         "visual": pd.DataFrame([{"near_duplicate_rate": 0.10}]),
         "transparency": pd.DataFrame([{"transparency_evidence_burden": 0.25}]),
     }
-    scores = build_category_scores(summary_tables)
-    overall = compute_overall_meta_score(scores)
+    legacy_scores = build_legacy_category_scores(summary_tables)
+    legacy_summary = compute_legacy_overall_meta_score(legacy_scores)
+    assert legacy_scores["anomaly_score"].tolist() == [0.8, 0.2, 0.25, 0.1, 0.25]
+    assert legacy_summary["overall_score"] == pytest.approx(0.3404761904761905)
+    assert legacy_summary["risk_tier"] == "moderate"
 
-    assert set(scores["category"]) == {
-        "randomization",
-        "numeric",
-        "registration",
-        "visual",
-        "transparency",
-    }
-    assert 0.0 <= overall["overall_score"] <= 1.0
-    assert overall["evidence_burden_score"] == overall["overall_score"]
-    assert overall["risk_tier"] in {"low", "moderate", "high"}
-    assert overall["review_priority"] == overall["risk_tier"]
+    processed = tmp_path / "processed"
+    (processed / "inputs").mkdir(parents=True)
+    raw_rows = [
+        {
+            "category": category,
+            "metric": metric,
+            "value": value,
+            "source_file": f"reports/{category}/fixture/summary.csv",
+        }
+        for category, metric, value in (
+            ("randomization", "fisher_recalc", 0.20),
+            ("numeric", "median_abs_percent_delta", 0.4),
+            ("registration", "mismatch_rate", 0.25),
+            ("visual", "near_duplicate_rate", 0.10),
+            ("transparency", "transparency_evidence_burden", 0.25),
+        )
+    ]
+    pd.DataFrame(raw_rows).to_csv(processed / "inputs/category_summaries_raw.csv", index=False)
+    root = Path(__file__).resolve().parents[1]
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/build_meta_inputs.py",
+            "--in",
+            str(processed),
+            "--out",
+            str(processed),
+            "--legacy-reproduction",
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    output = tmp_path / "reports"
+    script = root / "scripts" / "run_meta_forensics.R"
+    subprocess.run(
+        [
+            rscript,
+            str(script),
+            "--in",
+            str(processed),
+            "--out",
+            str(output),
+            "--legacy-reproduction",
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    r_summary = pd.read_csv(output / "legacy/meta_overall_summary.csv")
+    provenance = pd.read_csv(output / "legacy/meta_legacy_provenance.csv")
+    assert r_summary.loc[0, "overall_score"] == pytest.approx(legacy_summary["overall_score"])
+    assert r_summary.loc[0, "risk_tier"] == "moderate"
+    assert provenance.loc[0, "schema_version"] == "legacy_composite_v1"
+    assert provenance.loc[0, "label"] == "NOT_INSPECT"
+    assert not (processed / "inputs/meta_evidence_coverage_v2.csv").exists()
 
 
 def test_manifest_upsert_replaces_existing_category(tmp_path: Path) -> None:
@@ -308,3 +1260,39 @@ def test_manifest_upsert_replaces_existing_category(tmp_path: Path) -> None:
     manifest = load_manifest(manifest_path)
     assert len(manifest) == 1
     assert bool(manifest.iloc[0]["analysis_ready"]) is True
+
+
+def test_run_scoped_extraction_can_preserve_shared_human_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest_path = tmp_path / "forensics_manifest.csv"
+    original = pd.DataFrame(
+        [
+            {
+                "study_id": "trial_x",
+                "source_pdf": "reviewed.pdf",
+                "category": "numeric",
+                "extract_confidence": "human",
+                "page_ref": "Table 1",
+                "table_ref": "reviewed",
+                "analysis_ready": True,
+            }
+        ]
+    )
+    original.to_csv(manifest_path, index=False)
+    monkeypatch.setenv("FORENSICS_DISABLE_SHARED_MANIFEST", "true")
+
+    result = upsert_manifest_row(
+        manifest_path,
+        study_id="trial_x",
+        source_pdf="new-run.pdf",
+        category="numeric",
+        extract_confidence="low",
+        page_ref="new extraction",
+        table_ref="new extraction",
+        analysis_ready=False,
+    )
+
+    pd.testing.assert_frame_equal(pd.read_csv(manifest_path), original)
+    assert result.loc[0, "source_pdf"] == "reviewed.pdf"
+    assert bool(result.loc[0, "analysis_ready"])

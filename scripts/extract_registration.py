@@ -11,6 +11,7 @@ import pandas as pd
 
 from research_project.clinicaltrials_registry import (
     build_history_events,
+    build_history_status,
     derive_clinicaltrials_claims,
     fetch_current_record,
     legacy_claims_to_expanded,
@@ -62,7 +63,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--publication-url", type=str, default="")
     parser.add_argument("--publication-doi", type=str, default="")
     parser.add_argument("--publication-pmid", type=str, default="")
-    parser.add_argument("--allow-network", type=_parse_bool, default=True)
+    parser.add_argument("--allow-network", type=_parse_bool, default=False)
     parser.add_argument("--as-of-date", type=str, default="")
     return parser.parse_args()
 
@@ -128,6 +129,10 @@ def main() -> None:
         registry_id=registry_resolution["registry_id"],
         history_path=args.registry_history,
     )
+    history_status = build_history_status(
+        history_path=args.registry_history,
+        events=history_events,
+    )
 
     inputs_dir = args.out / "inputs"
     metadata_dir = args.out / "metadata"
@@ -138,7 +143,9 @@ def main() -> None:
     expanded_claims_path = inputs_dir / "registration_claims_expanded.csv"
     current_csv_path = inputs_dir / "registration_registry_current.csv"
     current_json_path = inputs_dir / "registration_registry_current.json"
+    current_raw_json_path = inputs_dir / "registration_registry_current_raw.json"
     history_events_path = inputs_dir / "registration_history_events.csv"
+    history_status_path = inputs_dir / "registration_history_status_v1.csv"
     metadata_path = metadata_dir / "registration_extract_metadata.csv"
     fetch_metadata_path = metadata_dir / "registration_registry_fetch_metadata.csv"
 
@@ -148,9 +155,17 @@ def main() -> None:
     if fetch_result.record is not None:
         with current_json_path.open("w", encoding="utf-8") as handle:
             json.dump(fetch_result.record, handle, indent=2, sort_keys=True)
-    elif current_json_path.exists():
-        current_json_path.unlink()
+        if fetch_result.raw_json is not None:
+            current_raw_json_path.write_bytes(fetch_result.raw_json)
+        elif current_raw_json_path.exists():
+            current_raw_json_path.unlink()
+    else:
+        if current_json_path.exists():
+            current_json_path.unlink()
+        if current_raw_json_path.exists():
+            current_raw_json_path.unlink()
     history_events.to_csv(history_events_path, index=False)
+    history_status.to_csv(history_status_path, index=False)
     fetch_result.metadata.to_csv(fetch_metadata_path, index=False)
     pd.DataFrame(
         [

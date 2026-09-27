@@ -153,7 +153,12 @@ def _derive_metadata(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--report", type=Path, required=True)
-    parser.add_argument("--protocol", type=Path, required=True)
+    parser.add_argument("--protocol", type=Path, required=False)
+    parser.add_argument(
+        "--baseline-only",
+        action="store_true",
+        help="Extract Table 1 rows only; skip protocol-dependent randomization metadata.",
+    )
     parser.add_argument("--baseline-pdf", type=Path, required=False)
     parser.add_argument("--baseline-table-label", type=str, required=False, default="")
     parser.add_argument("--out", type=Path, required=True)
@@ -171,7 +176,7 @@ def main() -> None:
 
     if not report_pdf.exists():
         raise FileNotFoundError(f"Missing report PDF: {report_pdf}")
-    if not protocol_pdf.exists():
+    if not args.baseline_only and (protocol_pdf is None or not protocol_pdf.exists()):
         raise FileNotFoundError(f"Missing protocol PDF: {protocol_pdf}")
     if not baseline_pdf.exists():
         raise FileNotFoundError(f"Missing baseline PDF: {baseline_pdf}")
@@ -184,14 +189,33 @@ def main() -> None:
     )
     table1_long = parse_table1_long(table=table1, trial_id=trial_id, source_page=source_page)
 
-    report_page_texts = _extract_page_texts(pdf_reader_cls, report_pdf)
-    protocol_page_texts = _extract_page_texts(pdf_reader_cls, protocol_pdf)
-    metadata = _derive_metadata(
-        trial_id=trial_id,
-        table1_long=table1_long,
-        report_page_texts=report_page_texts,
-        protocol_page_texts=protocol_page_texts,
-    )
+    if args.baseline_only:
+        metadata = pd.DataFrame(
+            columns=[
+                "trial_id",
+                "arm_a_label",
+                "arm_b_label",
+                "n_a",
+                "n_b",
+                "allocation_ratio",
+                "randomization_method",
+                "allocation_concealment",
+                "stratification",
+                "blinding",
+                "source_page_report",
+                "source_page_protocol",
+                "source_page_concealment",
+            ]
+        )
+    else:
+        report_page_texts = _extract_page_texts(pdf_reader_cls, report_pdf)
+        protocol_page_texts = _extract_page_texts(pdf_reader_cls, protocol_pdf)
+        metadata = _derive_metadata(
+            trial_id=trial_id,
+            table1_long=table1_long,
+            report_page_texts=report_page_texts,
+            protocol_page_texts=protocol_page_texts,
+        )
 
     out_dir.mkdir(parents=True, exist_ok=True)
     table1_path = out_dir / "table1_long.csv"

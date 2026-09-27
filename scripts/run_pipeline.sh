@@ -5,9 +5,63 @@ RUN_RANDOMIZATION_AUDIT=false
 FORENSICS_RAW=""
 DIGITIZE_PLOTS=false
 STUDY_ID="lungtime"
+DRY_RUN=false
+OFFLINE_REQUESTED=false
+ALLOW_NETWORK=false
+RENDER_REPORTS=false
+OUTPUT_ROOT=""
+RUN_ID=""
+
+usage() {
+  cat <<'USAGE'
+Usage: bash scripts/run_pipeline.sh --forensics <categories> [options]
+
+Options:
+  --study-id ID             Configured study ID.
+  --output-root PATH        Repository-contained parent for a fresh run directory.
+  --run-id ID               Explicit run ID; an existing destination is refused.
+  --dry-run                 Print selected stages and required sources without writing.
+  --offline                 Disable network regardless of study config or other flags.
+  --allow-network           Explicitly allow configured registry fetches.
+  --render-reports          Render reports after calculation stages complete.
+  --digitize-plots true|false  Run the explicitly requested interactive digitizer.
+  --randomization-audit     Alias for --forensics randomization.
+  --help                    Show this help without loading study inputs.
+USAGE
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    --dry-run)
+      DRY_RUN=true
+      shift
+      ;;
+    --offline)
+      OFFLINE_REQUESTED=true
+      shift
+      ;;
+    --allow-network)
+      ALLOW_NETWORK=true
+      shift
+      ;;
+    --render-reports)
+      RENDER_REPORTS=true
+      shift
+      ;;
+    --output-root)
+      if [[ $# -lt 2 ]]; then echo "Missing value for --output-root"; exit 1; fi
+      OUTPUT_ROOT="$2"
+      shift 2
+      ;;
+    --run-id)
+      if [[ $# -lt 2 ]]; then echo "Missing value for --run-id"; exit 1; fi
+      RUN_ID="$2"
+      shift 2
+      ;;
     --randomization-audit)
       RUN_RANDOMIZATION_AUDIT=true
       shift
@@ -46,7 +100,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "Unknown argument: $1"
-      echo "Usage: bash scripts/run_pipeline.sh [--study-id <study_id>] [--randomization-audit] [--forensics randomization,numeric,registration,visual,transparency,meta] [--digitize-plots true|false]"
+      usage
       exit 1
       ;;
   esac
@@ -106,20 +160,25 @@ render_study_report() {
   local report_dir="$3"
   local output_name="$4"
 
-  FORENSICS_STUDY_ID="$STUDY_ID" FORENSICS_STUDY_TITLE="$STUDY_TITLE" quarto render "$notebook_path" \
-    --to pdf \
-    --output "$output_name" \
-    --output-dir "$report_dir"
-
-  local fallback_path="$REPO_ROOT/reports/$category/$output_name"
-  local target_path="$report_dir/$output_name"
-  if [[ -f "$fallback_path" && "$fallback_path" != "$target_path" ]]; then
-    mv -f "$fallback_path" "$target_path"
+  (
+    cd "$report_dir"
+    FORENSICS_STUDY_ID="$STUDY_ID" FORENSICS_STUDY_TITLE="$STUDY_TITLE" \
+      FORENSICS_REPORTS_ROOT="$REPORTS_ROOT" FORENSICS_PROCESSED_ROOT="$PROCESSED_ROOT" \
+      quarto render "$REPO_ROOT/$notebook_path" --to pdf --output "$output_name"
+  )
+  if [[ ! -f "$report_dir/$output_name" ]]; then
+    echo "Expected rendered report was not created under the run directory: $report_dir/$output_name" >&2
+    return 1
   fi
 }
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
+
+if [[ ! "$STUDY_ID" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$ ]]; then
+  echo "Invalid study ID: $STUDY_ID" >&2
+  exit 1
+fi
 
 CONFIG_PATH="$REPO_ROOT/config/studies/${STUDY_ID}.sh"
 if [[ ! -f "$CONFIG_PATH" ]]; then
@@ -133,7 +192,7 @@ REGISTRY_ID="${REGISTRY_ID:-}"
 REGISTRY_URL="${REGISTRY_URL:-}"
 REGISTRY_CURRENT_REL_PATH="${REGISTRY_CURRENT_REL_PATH:-}"
 REGISTRY_HISTORY_REL_PATH="${REGISTRY_HISTORY_REL_PATH:-}"
-REGISTRY_ALLOW_NETWORK="${REGISTRY_ALLOW_NETWORK:-true}"
+REGISTRY_ALLOW_NETWORK="false"
 REGISTRY_AS_OF_DATE="${REGISTRY_AS_OF_DATE:-}"
 PUBLICATION_URL="${PUBLICATION_URL:-}"
 PUBLICATION_DOI="${PUBLICATION_DOI:-}"
@@ -143,46 +202,157 @@ REPORT_PDF="$REPO_ROOT/$REPORT_REL_PATH"
 PROTOCOL_PDF="$REPO_ROOT/$PROTOCOL_REL_PATH"
 SUPPLEMENT_PDF="$REPO_ROOT/$SUPPLEMENT_REL_PATH"
 BASELINE_PDF="$REPO_ROOT/$BASELINE_REL_PATH"
+if [ "$ALLOW_NETWORK" = true ] && [ "$OFFLINE_REQUESTED" = false ]; then
+  REGISTRY_ALLOW_NETWORK="true"
+  export UV_OFFLINE=0
+fi
+if [ "$OFFLINE_REQUESTED" = true ]; then
+  REGISTRY_ALLOW_NETWORK="false"
+  export UV_OFFLINE=1
+elif [ "$ALLOW_NETWORK" = false ]; then
+  export UV_OFFLINE=1
+fi
 
-if [[ ! -f "$REPORT_PDF" ]]; then
-  echo "Missing report PDF: $REPORT_PDF"
-  exit 1
+OUTPUT_ROOT="${OUTPUT_ROOT:-$REPO_ROOT/data/processed/forensics_runs}"
+OUTPUT_ROOT="$(PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py validate-output \
+  --repo-root "$REPO_ROOT" --output-root "$OUTPUT_ROOT")"
+REQUIRED_SOURCES=()
+if has_category randomization; then
+  REQUIRED_SOURCES+=("$REPORT_PDF" "$PROTOCOL_PDF" "$BASELINE_PDF")
 fi
-if [[ ! -f "$PROTOCOL_PDF" ]]; then
-  echo "Missing protocol PDF: $PROTOCOL_PDF"
-  exit 1
+if has_category numeric; then
+  REQUIRED_SOURCES+=("$REPORT_PDF" "$BASELINE_PDF")
 fi
-if [[ ! -f "$SUPPLEMENT_PDF" ]]; then
-  echo "Missing supplement PDF: $SUPPLEMENT_PDF"
-  exit 1
+if has_category registration; then
+  REQUIRED_SOURCES+=("$REPORT_PDF" "$PROTOCOL_PDF")
 fi
-if [[ ! -f "$BASELINE_PDF" ]]; then
-  echo "Missing baseline PDF: $BASELINE_PDF"
-  exit 1
+if has_category visual || has_category transparency; then
+  REQUIRED_SOURCES+=("$REPORT_PDF")
 fi
+if [ "$DRY_RUN" = true ]; then
+  echo "Study: $STUDY_ID"
+  echo "Requested categories: ${FORENSICS_RAW:-none}"
+  echo "Offline: $([ "$OFFLINE_REQUESTED" = true ] || [ "$ALLOW_NETWORK" = false ] && echo true || echo false)"
+  echo "Registry network fetch: $REGISTRY_ALLOW_NETWORK"
+  printf 'Output root: %s (not created)\n' "$OUTPUT_ROOT"
+  printf 'Required source: %s\n' "${REQUIRED_SOURCES[@]:-none}"
+  if has_category numeric && ! has_category randomization; then
+    echo "Randomization table extraction: selected; simdistr inference: not selected"
+  elif has_category randomization; then
+    echo "Randomization table extraction: selected; simdistr inference: selected"
+  else
+    echo "Randomization table extraction: not selected; simdistr inference: not selected"
+  fi
+  if [ "$RENDER_REPORTS" = true ]; then echo "Quarto: selected"; else echo "Quarto: not selected"; fi
+  exit 0
+fi
+
+RUN_INIT_ARGS=(
+  init --repo-root "$REPO_ROOT" --output-root "$OUTPUT_ROOT"
+  --study-id "$STUDY_ID" --categories "$FORENSICS_RAW" --config "$CONFIG_PATH"
+  --setting "network_allowed=$ALLOW_NETWORK"
+  --setting "registry_network_allowed=$REGISTRY_ALLOW_NETWORK"
+  --setting "render_reports=$RENDER_REPORTS"
+  --setting "digitize_plots=$DIGITIZE_PLOTS"
+)
+for required_source in "${REQUIRED_SOURCES[@]}"; do
+  RUN_INIT_ARGS+=(--required-input "$required_source")
+done
+if [ -n "$REGISTRY_CURRENT_REL_PATH" ]; then
+  RUN_INIT_ARGS+=(--input "$REPO_ROOT/$REGISTRY_CURRENT_REL_PATH")
+fi
+if [ -n "$REGISTRY_HISTORY_REL_PATH" ]; then
+  RUN_INIT_ARGS+=(--input "$REPO_ROOT/$REGISTRY_HISTORY_REL_PATH")
+fi
+RUN_INPUTS=()
+if has_category randomization; then
+  RUN_INPUTS+=("$REPORT_PDF" "$PROTOCOL_PDF" "$BASELINE_PDF")
+elif has_category numeric; then
+  RUN_INPUTS+=("$REPORT_PDF" "$BASELINE_PDF")
+fi
+if has_category registration; then RUN_INPUTS+=("$REPORT_PDF" "$PROTOCOL_PDF"); fi
+if has_category visual; then RUN_INPUTS+=("$REPORT_PDF"); fi
+if has_category transparency; then
+  RUN_INPUTS+=("$REPORT_PDF" "$PROTOCOL_PDF" "$SUPPLEMENT_PDF" "$BASELINE_PDF")
+fi
+if has_category registration; then
+  if [ -n "$REGISTRY_CURRENT_REL_PATH" ]; then RUN_INPUTS+=("$REPO_ROOT/$REGISTRY_CURRENT_REL_PATH"); fi
+  if [ -n "$REGISTRY_HISTORY_REL_PATH" ]; then RUN_INPUTS+=("$REPO_ROOT/$REGISTRY_HISTORY_REL_PATH"); fi
+fi
+if has_category visual && [ "$DIGITIZE_PLOTS" = true ] && \
+  [ -f "$REPO_ROOT/data/raw/figures/$STUDY_ID/plot_digitization_targets.csv" ]; then
+  RUN_INPUTS+=("$REPO_ROOT/data/raw/figures/$STUDY_ID/plot_digitization_targets.csv")
+fi
+for run_input in "${RUN_INPUTS[@]}"; do RUN_INIT_ARGS+=(--input "$run_input"); done
+if [ -n "$RUN_ID" ]; then RUN_INIT_ARGS+=(--run-id "$RUN_ID"); fi
+RUN_ROOT="$(PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py "${RUN_INIT_ARGS[@]}")"
+RUN_MANIFEST="$RUN_ROOT/run_manifest.json"
+PROCESSED_ROOT="$RUN_ROOT/processed"
+REPORTS_ROOT="$RUN_ROOT/reports"
+export FORENSICS_DISABLE_SHARED_MANIFEST=true
+CURRENT_STAGE="initializing"
+finish_run_on_exit() {
+  local exit_code=$?
+  if [ -n "${RUN_MANIFEST:-}" ] && [ -f "$RUN_MANIFEST" ]; then
+    if [ "$exit_code" -eq 0 ]; then
+      PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
+        --manifest "$RUN_MANIFEST" --status completed >/dev/null
+    else
+      PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
+        --manifest "$RUN_MANIFEST" --stage "$CURRENT_STAGE" --status failed \
+        --error "Pipeline stopped during $CURRENT_STAGE (exit $exit_code)" >/dev/null || true
+      PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
+        --manifest "$RUN_MANIFEST" --status failed \
+        --error "Pipeline stopped during $CURRENT_STAGE (exit $exit_code)" >/dev/null || true
+    fi
+  fi
+  return "$exit_code"
+}
+trap finish_run_on_exit EXIT
+
+stage_begin() {
+  CURRENT_STAGE="$1"
+  PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
+    --manifest "$RUN_MANIFEST" --stage "$CURRENT_STAGE" --status running
+}
+stage_complete() {
+  local stage="$1"
+  shift
+  for artifact in "$@"; do
+    PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
+      --manifest "$RUN_MANIFEST" --artifact "$artifact"
+  done
+  PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
+    --manifest "$RUN_MANIFEST" --stage "$stage" --status completed
+}
+
+require_file() {
+  local path="$1"
+  local stage="$2"
+  if [[ ! -f "$path" ]]; then
+    echo "Missing required source for $stage: $path" >&2
+    return 1
+  fi
+}
+
+for required_source in "${REQUIRED_SOURCES[@]}"; do
+  if [[ ! -f "$required_source" ]]; then
+    CURRENT_STAGE="source_validation"
+    echo "Missing required source for selected stages: $required_source" >&2
+    exit 1
+  fi
+done
 
 # Ensure src/ is importable without packaging.
 export PYTHONPATH="$REPO_ROOT/src"
 
-# Run deterministic preprocessing
-uv run python scripts/process.py
-
-# Make cheap diagnostics/plots (safe to skip for headless environments)
-uv run python scripts/plot_diagnostics.py --input "$REPO_ROOT/data/processed/sample_processed.csv" --outdir "$REPO_ROOT/reports/diagnostics" ||   echo "Diagnostics generation failed (non-fatal)."
-
 run_randomization_category() {
-  RANDOMIZATION_DATA_DIR="$REPO_ROOT/data/processed/randomization/$STUDY_ID"
-  RANDOMIZATION_REPORT_DIR="$REPO_ROOT/reports/randomization/$STUDY_ID"
+  RANDOMIZATION_DATA_DIR="$PROCESSED_ROOT/randomization"
+  RANDOMIZATION_REPORT_DIR="$REPORTS_ROOT/randomization"
 
+  if [ "$BASELINE_READY" = false ]; then run_baseline_extraction false; fi
   mkdir -p "$RANDOMIZATION_DATA_DIR" "$RANDOMIZATION_REPORT_DIR"
-
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_randomization_table1.py \
-    --report "$REPORT_PDF" \
-    --protocol "$PROTOCOL_PDF" \
-    --baseline-pdf "$BASELINE_PDF" \
-    --baseline-table-label "$BASELINE_TABLE_LABEL" \
-    --out "$RANDOMIZATION_DATA_DIR" \
-    --trial-id "$TRIAL_ID"
+  stage_begin randomization_methods
 
   PYTHONPATH="$REPO_ROOT/src" uv run python scripts/build_randomization_inputs.py \
     --in "$RANDOMIZATION_DATA_DIR/table1_long.csv" \
@@ -194,32 +364,55 @@ run_randomization_category() {
     --m 10000 \
     --plot false
 
-  render_study_report \
-    "notebooks/lungtime_randomization_audit.qmd" \
-    "randomization" \
-    "$RANDOMIZATION_REPORT_DIR" \
-    "${STUDY_ID}_randomization_audit.pdf"
+  stage_complete randomization_methods "$RANDOMIZATION_REPORT_DIR/row_level_results_v2.csv" \
+    "$RANDOMIZATION_REPORT_DIR/reported_test_records_v1.csv" \
+    "$RANDOMIZATION_REPORT_DIR/pooled_descriptive_v2.csv" \
+    "$RANDOMIZATION_REPORT_DIR/allocation_arithmetic_v1.csv" \
+    "$RANDOMIZATION_REPORT_DIR/randomization_run_receipt_v1.csv" \
+    "$RANDOMIZATION_REPORT_DIR/simdistr_variable_pvalues_v1.csv" \
+    "$RANDOMIZATION_REPORT_DIR/simdistr_combined_descriptive_v1.csv"
+  if [ "$RENDER_REPORTS" = true ]; then
+    stage_begin randomization_report
+    render_study_report "notebooks/lungtime_randomization_audit.qmd" "randomization" \
+      "$RANDOMIZATION_REPORT_DIR" "${STUDY_ID}_randomization_audit_v1.pdf"
+    stage_complete randomization_report "$RANDOMIZATION_REPORT_DIR/${STUDY_ID}_randomization_audit_v1.pdf"
+  fi
+}
 
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/mark_forensics_ready.py \
-    --study-id "$STUDY_ID" \
-    --category "randomization" \
-    --source-pdf "$(basename "$REPORT_PDF")|$(basename "$PROTOCOL_PDF")|$(basename "$SUPPLEMENT_PDF")" \
-    --extract-confidence "high" \
-    --page-ref "table1_source_page" \
-    --table-ref "baseline_characteristics" \
-    --ready
+BASELINE_READY=false
+run_baseline_extraction() {
+  local baseline_only="$1"
+  RANDOMIZATION_DATA_DIR="$PROCESSED_ROOT/randomization"
+  mkdir -p "$RANDOMIZATION_DATA_DIR"
+  stage_begin baseline_extraction
+  BASELINE_ARGS=(
+    --report "$REPORT_PDF" --baseline-pdf "$BASELINE_PDF"
+    --baseline-table-label "$BASELINE_TABLE_LABEL" --out "$RANDOMIZATION_DATA_DIR"
+    --trial-id "$TRIAL_ID"
+  )
+  if [ "$baseline_only" = true ]; then
+    BASELINE_ARGS+=(--baseline-only)
+  else
+    require_file "$PROTOCOL_PDF" "randomization extraction"
+    BASELINE_ARGS+=(--protocol "$PROTOCOL_PDF")
+  fi
+  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_randomization_table1.py "${BASELINE_ARGS[@]}"
+  BASELINE_READY=true
+  stage_complete baseline_extraction "$RANDOMIZATION_DATA_DIR/table1_long.csv"
 }
 
 run_numeric_category() {
-  NUMERIC_DATA_DIR="$REPO_ROOT/data/processed/numeric/$STUDY_ID"
-  NUMERIC_REPORT_DIR="$REPO_ROOT/reports/numeric/$STUDY_ID"
-  RANDOMIZATION_DATA_DIR="$REPO_ROOT/data/processed/randomization/$STUDY_ID"
+  NUMERIC_DATA_DIR="$PROCESSED_ROOT/numeric"
+  NUMERIC_REPORT_DIR="$REPORTS_ROOT/numeric"
+  RANDOMIZATION_DATA_DIR="$PROCESSED_ROOT/randomization"
 
   mkdir -p "$NUMERIC_DATA_DIR" "$NUMERIC_REPORT_DIR"
+  stage_begin numeric_methods
 
   PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_numeric.py \
     --table1 "$RANDOMIZATION_DATA_DIR/table1_long.csv" \
     --report-pdf "$REPORT_PDF" \
+    --source-pdf-path "$BASELINE_PDF" \
     --study-id "$STUDY_ID" \
     --source-pdf "$(basename "$BASELINE_PDF")" \
     --out "$NUMERIC_DATA_DIR"
@@ -237,29 +430,27 @@ run_numeric_category() {
   Rscript scripts/run_numeric_forensics.R \
     --in "$NUMERIC_DATA_DIR" \
     --out "$NUMERIC_REPORT_DIR" \
+    --run-id "$RUN_ID" \
     --scrutiny-seq false
 
-  render_study_report \
-    "notebooks/lungtime_numeric_audit.qmd" \
-    "numeric" \
-    "$NUMERIC_REPORT_DIR" \
-    "${STUDY_ID}_numeric_audit.pdf"
-
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/mark_forensics_ready.py \
-    --study-id "$STUDY_ID" \
-    --category "numeric" \
-    --source-pdf "$(basename "$REPORT_PDF")|$(basename "$SUPPLEMENT_PDF")" \
-    --extract-confidence "high" \
-    --page-ref "table1_source_page" \
-    --table-ref "baseline_characteristics" \
-    --ready
+  stage_complete numeric_methods "$NUMERIC_REPORT_DIR/numeric_method_receipts.csv" \
+    "$NUMERIC_REPORT_DIR/numeric_standardized_results.csv" \
+    "$NUMERIC_REPORT_DIR/numeric_standardized_results_v2.csv" \
+    "$NUMERIC_DATA_DIR/metadata/source_evidence.json" "$NUMERIC_REPORT_DIR/numeric_summary.csv"
+  if [ "$RENDER_REPORTS" = true ]; then
+    stage_begin numeric_report
+    render_study_report "notebooks/lungtime_numeric_audit.qmd" "numeric" \
+      "$NUMERIC_REPORT_DIR" "${STUDY_ID}_numeric_audit_v1.pdf"
+    stage_complete numeric_report "$NUMERIC_REPORT_DIR/${STUDY_ID}_numeric_audit_v1.pdf"
+  fi
 }
 
 run_registration_category() {
-  REG_DATA_DIR="$REPO_ROOT/data/processed/registration/$STUDY_ID"
-  REG_REPORT_DIR="$REPO_ROOT/reports/registration/$STUDY_ID"
+  REG_DATA_DIR="$PROCESSED_ROOT/registration"
+  REG_REPORT_DIR="$REPORTS_ROOT/registration"
 
   mkdir -p "$REG_DATA_DIR" "$REG_REPORT_DIR"
+  stage_begin registration_methods
 
   REGISTRY_ARGS=(
     --allow-network "$REGISTRY_ALLOW_NETWORK"
@@ -304,31 +495,28 @@ run_registration_category() {
     --in "$REG_DATA_DIR" \
     --out "$REG_REPORT_DIR"
 
-  render_study_report \
-    "notebooks/lungtime_registration_audit.qmd" \
-    "registration" \
-    "$REG_REPORT_DIR" \
-    "${STUDY_ID}_registration_audit.pdf"
-
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/mark_forensics_ready.py \
-    --study-id "$STUDY_ID" \
-    --category "registration" \
-    --source-pdf "$(basename "$REPORT_PDF")|$(basename "$PROTOCOL_PDF")" \
-    --extract-confidence "medium" \
-    --page-ref "claim_level" \
-    --table-ref "report_vs_protocol" \
-    --ready
+  stage_complete registration_methods "$REG_REPORT_DIR/registration_summary.csv" \
+    "$REG_REPORT_DIR/registration_row_results.csv"
+  if [ "$RENDER_REPORTS" = true ]; then
+    stage_begin registration_report
+    render_study_report "notebooks/lungtime_registration_audit.qmd" "registration" \
+      "$REG_REPORT_DIR" "${STUDY_ID}_registration_audit_v1.pdf"
+    stage_complete registration_report "$REG_REPORT_DIR/${STUDY_ID}_registration_audit_v1.pdf"
+  fi
 }
 
 run_visual_category() {
-  VISUAL_DATA_DIR="$REPO_ROOT/data/processed/visual/$STUDY_ID"
-  VISUAL_REPORT_DIR="$REPO_ROOT/reports/visual/$STUDY_ID"
+  VISUAL_DATA_DIR="$PROCESSED_ROOT/visual"
+  VISUAL_REPORT_DIR="$REPORTS_ROOT/visual"
   FIGURE_RAW_ROOT="$REPO_ROOT/data/raw/figures"
-  DIGITIZE_TARGETS="$FIGURE_RAW_ROOT/$STUDY_ID/plot_digitization_targets.csv"
-  DIGITIZE_PROJECT_DIR="$REPO_ROOT/data/generated/plot_digitization/$STUDY_ID/metaDigitise"
+  SOURCE_DIGITIZE_TARGETS="$FIGURE_RAW_ROOT/$STUDY_ID/plot_digitization_targets.csv"
+  DIGITIZE_TARGET_ROOT="$VISUAL_DATA_DIR/inputs/plot_digitization_targets"
+  DIGITIZE_TARGETS="$DIGITIZE_TARGET_ROOT/$STUDY_ID/plot_digitization_targets.csv"
+  DIGITIZE_PROJECT_DIR="$RUN_ROOT/generated/plot_digitization/$STUDY_ID/metaDigitise"
   DIGITIZE_OUTPUT="$VISUAL_DATA_DIR/inputs/plot_digitized_values.csv"
 
   mkdir -p "$VISUAL_DATA_DIR" "$VISUAL_REPORT_DIR"
+  stage_begin visual_methods
 
   PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_visual.py \
     --report "$REPORT_PDF" \
@@ -336,9 +524,13 @@ run_visual_category() {
     --out "$VISUAL_DATA_DIR"
 
   if [ "$DIGITIZE_PLOTS" = "true" ]; then
+    if [ -f "$SOURCE_DIGITIZE_TARGETS" ]; then
+      mkdir -p "$DIGITIZE_TARGET_ROOT/$STUDY_ID"
+      cp "$SOURCE_DIGITIZE_TARGETS" "$DIGITIZE_TARGETS"
+    fi
     PYTHONPATH="$REPO_ROOT/src" uv run python scripts/init_plot_digitization_targets.py \
       --study-id "$STUDY_ID" \
-      --out-root "$FIGURE_RAW_ROOT"
+      --out-root "$DIGITIZE_TARGET_ROOT"
 
     Rscript scripts/run_plot_digitization.R \
       --targets "$DIGITIZE_TARGETS" \
@@ -354,33 +546,33 @@ run_visual_category() {
     --in "$VISUAL_DATA_DIR" \
     --out "$VISUAL_REPORT_DIR"
 
-  render_study_report \
-    "notebooks/lungtime_visual_audit.qmd" \
-    "visual" \
-    "$VISUAL_REPORT_DIR" \
-    "${STUDY_ID}_visual_audit.pdf"
-
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/mark_forensics_ready.py \
-    --study-id "$STUDY_ID" \
-    --category "visual" \
-    --source-pdf "$(basename "$REPORT_PDF")" \
-    --extract-confidence "low" \
-    --page-ref "figure_mentions" \
-    --table-ref "figure_caption_text" \
-    --ready
+  VISUAL_ARTIFACTS=("$VISUAL_REPORT_DIR/visual_summary.csv" "$VISUAL_REPORT_DIR/visual_row_results.csv")
+  if [ "$DIGITIZE_PLOTS" = true ]; then
+    VISUAL_ARTIFACTS+=("$DIGITIZE_TARGETS" "$DIGITIZE_OUTPUT")
+  fi
+  stage_complete visual_methods "${VISUAL_ARTIFACTS[@]}"
+  if [ "$RENDER_REPORTS" = true ]; then
+    stage_begin visual_report
+    render_study_report "notebooks/lungtime_visual_audit.qmd" "visual" \
+      "$VISUAL_REPORT_DIR" "${STUDY_ID}_visual_audit_v1.pdf"
+    stage_complete visual_report "$VISUAL_REPORT_DIR/${STUDY_ID}_visual_audit_v1.pdf"
+  fi
 }
 
 run_transparency_category() {
-  TRANSPARENCY_DATA_DIR="$REPO_ROOT/data/processed/transparency/$STUDY_ID"
-  TRANSPARENCY_REPORT_DIR="$REPO_ROOT/reports/transparency/$STUDY_ID"
+  TRANSPARENCY_DATA_DIR="$PROCESSED_ROOT/transparency"
+  TRANSPARENCY_REPORT_DIR="$REPORTS_ROOT/transparency"
 
   mkdir -p "$TRANSPARENCY_DATA_DIR" "$TRANSPARENCY_REPORT_DIR"
+  stage_begin transparency_methods
+
+  TRANSPARENCY_SOURCE_ARGS=(--report "$REPORT_PDF")
+  if [ -f "$PROTOCOL_PDF" ]; then TRANSPARENCY_SOURCE_ARGS+=(--protocol "$PROTOCOL_PDF"); fi
+  if [ -f "$SUPPLEMENT_PDF" ]; then TRANSPARENCY_SOURCE_ARGS+=(--supplement "$SUPPLEMENT_PDF"); fi
+  if [ -f "$BASELINE_PDF" ]; then TRANSPARENCY_SOURCE_ARGS+=(--baseline "$BASELINE_PDF"); fi
 
   PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_transparency.py \
-    --report "$REPORT_PDF" \
-    --protocol "$PROTOCOL_PDF" \
-    --supplement "$SUPPLEMENT_PDF" \
-    --baseline "$BASELINE_PDF" \
+    "${TRANSPARENCY_SOURCE_ARGS[@]}" \
     --study-id "$STUDY_ID" \
     --study-title "$STUDY_TITLE" \
     --trial-id "$TRIAL_ID" \
@@ -399,31 +591,37 @@ run_transparency_category() {
     --in "$TRANSPARENCY_DATA_DIR" \
     --out "$TRANSPARENCY_REPORT_DIR"
 
-  render_study_report \
-    "notebooks/lungtime_transparency_audit.qmd" \
-    "transparency" \
-    "$TRANSPARENCY_REPORT_DIR" \
-    "${STUDY_ID}_transparency_audit.pdf"
-
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/mark_forensics_ready.py \
-    --study-id "$STUDY_ID" \
-    --category "transparency" \
-    --source-pdf "$(join_unique_basenames "$REPORT_PDF" "$PROTOCOL_PDF" "$SUPPLEMENT_PDF" "$BASELINE_PDF")" \
-    --extract-confidence "medium" \
-    --page-ref "page_level_text" \
-    --table-ref "research_object_lite" \
-    --ready
+  stage_complete transparency_methods "$TRANSPARENCY_REPORT_DIR/transparency_summary.csv" \
+    "$TRANSPARENCY_REPORT_DIR/transparency_row_results.csv"
+  if [ "$RENDER_REPORTS" = true ]; then
+    stage_begin transparency_report
+    render_study_report "notebooks/lungtime_transparency_audit.qmd" "transparency" \
+      "$TRANSPARENCY_REPORT_DIR" "${STUDY_ID}_transparency_audit_v1.pdf"
+    stage_complete transparency_report "$TRANSPARENCY_REPORT_DIR/${STUDY_ID}_transparency_audit_v1.pdf"
+  fi
 }
 
 run_meta_category() {
-  META_DATA_DIR="$REPO_ROOT/data/processed/meta/$STUDY_ID"
-  META_REPORT_DIR="$REPO_ROOT/reports/meta/$STUDY_ID"
-
+  META_DATA_DIR="$PROCESSED_ROOT/meta"
+  META_REPORT_DIR="$REPORTS_ROOT/meta"
+  META_REQUESTED_CATEGORIES=""
+  for category in randomization numeric registration visual transparency; do
+    if has_category "$category"; then
+      if [ -n "$META_REQUESTED_CATEGORIES" ]; then
+        META_REQUESTED_CATEGORIES+=","
+      fi
+      META_REQUESTED_CATEGORIES+="$category"
+    fi
+  done
   mkdir -p "$META_DATA_DIR" "$META_REPORT_DIR"
+  stage_begin meta_aggregation
 
   PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_meta.py \
     --study-id "$STUDY_ID" \
     --repo-root "$REPO_ROOT" \
+    --reports-root "$REPORTS_ROOT" \
+    --run-manifest "$RUN_MANIFEST" \
+    --requested-categories "$META_REQUESTED_CATEGORIES" \
     --out "$META_DATA_DIR"
 
   PYTHONPATH="$REPO_ROOT/src" uv run python scripts/build_meta_inputs.py \
@@ -434,29 +632,22 @@ run_meta_category() {
     --in "$META_DATA_DIR" \
     --out "$META_REPORT_DIR"
 
-  render_study_report \
-    "notebooks/lungtime_meta_audit.qmd" \
-    "meta" \
-    "$META_REPORT_DIR" \
-    "${STUDY_ID}_meta_audit.pdf"
-
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/mark_forensics_ready.py \
-    --study-id "$STUDY_ID" \
-    --category "meta" \
-    --source-pdf "derived_from_category_reports" \
-    --extract-confidence "medium" \
-    --page-ref "n/a" \
-    --table-ref "category_summary_tables" \
-    --ready
+  stage_complete meta_aggregation "$META_REPORT_DIR/meta_evidence_coverage_v2_out.csv" \
+    "$META_REPORT_DIR/meta_coverage_summary_v1.csv" \
+    "$META_REPORT_DIR/meta_candidate_concerns_v1_out.csv"
+  if [ "$RENDER_REPORTS" = true ]; then
+    stage_begin meta_report
+    render_study_report "notebooks/lungtime_meta_audit.qmd" "meta" \
+      "$META_REPORT_DIR" "${STUDY_ID}_meta_audit_v2.pdf"
+    stage_complete meta_report "$META_REPORT_DIR/${STUDY_ID}_meta_audit_v2.pdf"
+  fi
 }
 
 if [ -n "$FORENSICS_RAW" ]; then
-  NEED_RANDOMIZATION=false
-  if has_category randomization || has_category numeric || has_category meta; then
-    NEED_RANDOMIZATION=true
-  fi
-  if [ "$NEED_RANDOMIZATION" = true ]; then
+  if has_category randomization; then
     run_randomization_category
+  elif has_category numeric; then
+    run_baseline_extraction true
   fi
   if has_category numeric; then
     run_numeric_category
