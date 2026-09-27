@@ -108,6 +108,38 @@ def test_candidate_mapping_requires_completed_or_partial_receipt_and_exact_evide
         map_candidate_result({**result, "schema_version": "numeric_result_v1"}, [receipt], evidence)
 
 
+def test_candidate_receipt_counts_reject_fractional_values() -> None:
+    receipt = _receipt("statcheck", "run-1", "completed", 1, 1, 0, 0)
+    with pytest.raises(ValueError, match="integer"):
+        build_candidate_dossier([{**receipt, "n_evaluated": 1.5}], [])
+
+
+def test_rounding_bias_receipt_cannot_emit_candidate_evidence() -> None:
+    evidence_record = _source_evidence()
+    result = {
+        "schema_version": "numeric_result_v2",
+        "method_id": "scrutiny_rounding_bias",
+        "run_id": "run-1",
+        "result_id": "rounding-result-1",
+        "input_evidence_ids": [evidence_record["evidence_id"]],
+        "candidate_kind": "rounding_bias",
+        "source_locator": evidence_record["locator"],
+        "details": "synthetic adversarial result",
+    }
+    receipt = _receipt(
+        "scrutiny_rounding_bias",
+        "run-1",
+        "completed",
+        1,
+        1,
+        0,
+        1,
+        evidence_record["evidence_id"],
+    )
+    with pytest.raises(ValueError, match="Rounding-bias candidates are blocked"):
+        map_candidate_result(result, [receipt], [evidence_record])
+
+
 def test_caption_signal_cannot_complete_image_integrity_route() -> None:
     result = {
         "schema_version": "numeric_result_v2",

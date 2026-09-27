@@ -7,18 +7,9 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from support.inspect_sr_fixtures import write_numeric_method_fixture
 
 from research_project.inspect_sr.adapters import map_candidate_result
-from research_project.inspect_sr.records import source_version_id
-from research_project.numeric_integrity import (
-    attach_source_evidence,
-    build_scrutiny_cases,
-    build_scrutiny_debit_input,
-    build_scrutiny_duplicate_input,
-    build_scrutiny_grim_input,
-    build_scrutiny_grimmer_input,
-    build_scrutiny_rounding_bias_input,
-)
 
 PINNED_R_PACKAGES = {
     "scrutiny": "0.6.2",
@@ -51,119 +42,6 @@ def _require_pinned_r_packages(rscript: str) -> None:
         if required:
             pytest.fail(f"Pinned native R packages are required:\n{result.stderr}")
         pytest.skip("Pinned native R packages are unavailable; package lane is not covered")
-
-
-def _write_numeric_fixture(input_dir: Path) -> list[dict[str, str]]:
-    input_dir.mkdir(parents=True)
-
-    def write_numeric_csv(frame: pd.DataFrame, name: str) -> None:
-        frame = frame.copy()
-        for column in (
-            "x",
-            "sd",
-            "x_str",
-            "sd_str",
-            "raw_value",
-            "raw_count",
-            "reported_percent_raw",
-            "reported_p",
-            "reported_p_raw",
-            "reported_p_comparator",
-        ):
-            if column not in frame:
-                frame[column] = pd.NA
-        frame.to_csv(input_dir / name, index=False)
-
-    summary = pd.DataFrame(
-        [
-            {
-                "trial_id": "synthetic_native",
-                "source_pdf": "synthetic.pdf",
-                "source_table": "synthetic_table",
-                "source_page": 1,
-                "source_locator": f"table1:row{i}",
-                "raw_value": "0.5" if i == 1 else "0.50",
-                "reported_decimals": i,
-                "reported_p_raw": "P=.50",
-                "reported_p_comparator": "=",
-                "variable": "synthetic mean",
-                "level": "all",
-                "group": f"arm_{i}",
-                "n": 100,
-                "analysis_n": 100,
-                "x_str": "0.5" if i == 1 else "0.50",
-                "sd_str": "0.5" if i == 1 else "0.50",
-                "digits_x": i,
-                "digits_sd": i,
-                "statistic_kind": "arithmetic_mean",
-                "measurement_scale": "bernoulli",
-                "raw_or_adjusted": "raw",
-                "weighting": "unweighted",
-                "imputation_status": "not_imputed",
-                "transformation_status": "none",
-                "granularity_transformation": "",
-                "eligibility_evidence": "synthetic fixture explicitly declares raw count mean",
-            }
-            for i in (1, 2)
-        ]
-    )
-    cases = build_scrutiny_cases(pd.DataFrame(), summary, source_pdf="synthetic.pdf")
-    source_hash = "a" * 64
-    cases, evidence_records = attach_source_evidence(
-        cases,
-        [
-            {
-                "source_id": "synthetic-report",
-                "source_name": "synthetic.pdf",
-                "source_version_id": source_version_id("synthetic-report", source_hash),
-                "content_sha256": source_hash,
-            }
-        ],
-    )
-    write_numeric_csv(cases, "scrutiny_cases.csv")
-    write_numeric_csv(build_scrutiny_grim_input(cases), "scrutiny_grim_input.csv")
-    write_numeric_csv(build_scrutiny_grimmer_input(cases), "scrutiny_grimmer_input.csv")
-    write_numeric_csv(build_scrutiny_debit_input(cases), "scrutiny_debit_input.csv")
-    write_numeric_csv(build_scrutiny_duplicate_input(cases), "scrutiny_duplicates_input.csv")
-    write_numeric_csv(build_scrutiny_rounding_bias_input(cases), "scrutiny_rounding_bias_input.csv")
-
-    numeric_checks = pd.DataFrame(
-        [
-            {
-                "trial_id": "synthetic_native",
-                "variable": "synthetic mean",
-                "level": "all",
-                "group": "arm_1",
-                "source_unit": "synthetic:table1:row1",
-                "abs_percent_delta": 0.0,
-                "legacy_abs_percent_delta": 0.0,
-                "compatibility_status": "compatible",
-                "reported_percent": 50.0,
-                "computed_percent": 50.0,
-                "reported_p": 0.5,
-            }
-        ]
-    )
-    write_numeric_csv(numeric_checks, "numeric_checks_input.csv")
-    statcheck_input = pd.DataFrame(columns=["trial_id", "source_unit"])
-    write_numeric_csv(statcheck_input, "statcheck_input.csv")
-    rsprite2_input = pd.DataFrame(
-        columns=[
-            "trial_id",
-            "variable",
-            "level",
-            "group_a",
-            "group_b",
-            "percent_a",
-            "percent_b",
-            "abs_percent_between_arms",
-        ]
-    )
-    write_numeric_csv(rsprite2_input, "rsprite2_input.csv")
-    (input_dir / "statcheck_text.txt").write_text(
-        "The synthetic test reported t(28) = 2.20, p = .036.", encoding="utf-8"
-    )
-    return evidence_records
 
 
 def test_malformed_simdistr_output_raises_instead_of_becoming_no_finding() -> None:
@@ -248,13 +126,15 @@ stopifnot(any(grepl("synthetic[[:space:]]+1([[:space:]]|$)", separated)))
     subprocess.run([rscript, "-e", expression], check=True, capture_output=True, text=True)
 
 
-def test_numeric_production_runner_executes_pinned_method_packages(tmp_path: Path) -> None:
+def test_numeric_production_runner_executes_pinned_method_packages(
+    tmp_path: Path, preserve_synthetic_artifact
+) -> None:
     rscript = _rscript()
     _require_pinned_r_packages(rscript)
     project_root = Path(__file__).resolve().parents[1]
     input_dir = tmp_path / "inputs"
     output_dir = tmp_path / "numeric-output"
-    evidence_records = _write_numeric_fixture(input_dir)
+    evidence_records = write_numeric_method_fixture(input_dir)
     bias_input_path = input_dir / "scrutiny_rounding_bias_input.csv"
     bias_input = pd.read_csv(bias_input_path)
     pd.concat([bias_input, bias_input.iloc[[0]]], ignore_index=True).to_csv(
@@ -282,16 +162,22 @@ def test_numeric_production_runner_executes_pinned_method_packages(tmp_path: Pat
         "scrutiny_grimmer_map",
         "scrutiny_debit_map",
         "scrutiny_duplicates",
-        "scrutiny_rounding_bias",
         "statcheck",
     ):
         receipt = receipts.loc[method_id]
         assert receipt["execution"] == "completed", (method_id, receipt.to_dict())
         assert receipt["n_evaluated"] >= 1, (method_id, receipt.to_dict())
     rounding_receipt = receipts.loc["scrutiny_rounding_bias"]
+    assert rounding_receipt["execution"] == "blocked"
+    assert rounding_receipt["applicability"] == "unknown"
+    assert rounding_receipt["result_status"] == "indeterminate"
     assert rounding_receipt["n_input"] == 3
-    assert rounding_receipt["n_eligible"] == 2
-    assert rounding_receipt["n_evaluated"] == 2
+    assert rounding_receipt["n_eligible"] == 0
+    assert rounding_receipt["n_evaluated"] == 0
+    assert pd.isna(rounding_receipt["n_flagged"])
+    assert rounding_receipt["method_version"] == "rounding_bias_blocked_v1"
+    assert "input contract" in rounding_receipt["diagnostic"].lower()
+    assert pd.read_csv(output_dir / "numeric_scrutiny_rounding_bias.csv").empty
     assert set(pd.read_csv(output_dir / "numeric_package_status.csv")["version"].dropna()) >= {
         "0.6.2",
         "1.5.0",
@@ -299,6 +185,7 @@ def test_numeric_production_runner_executes_pinned_method_packages(tmp_path: Pat
     assert pd.read_csv(output_dir / "numeric_standardized_results.csv").shape[0] > 0
     results_v2 = pd.read_csv(output_dir / "numeric_standardized_results_v2.csv")
     assert set(results_v2["schema_version"]) == {"numeric_result_v2"}
+    assert "scrutiny_rounding_bias" not in set(results_v2["method_id"])
     assert set(results_v2["run_id"]) == {"native-run-fixture"}
     assert results_v2["result_id"].notna().all()
     assert "source_locator" in results_v2.columns
@@ -317,6 +204,12 @@ def test_numeric_production_runner_executes_pinned_method_packages(tmp_path: Pat
         candidate_rows.extend(map_candidate_result(result, receipt_records, evidence_records))
     assert candidate_rows
     assert all(candidate["candidate_status"] == "candidate_only" for candidate in candidate_rows)
+    preserve_synthetic_artifact(
+        "native-method-receipts.csv", output_dir / "numeric_method_receipts.csv"
+    )
+    preserve_synthetic_artifact(
+        "native-standardized-results.csv", output_dir / "numeric_standardized_results_v2.csv"
+    )
 
 
 def test_randomization_production_runner_executes_seeded_pinned_simdistr(

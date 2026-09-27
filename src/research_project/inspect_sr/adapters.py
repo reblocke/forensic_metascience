@@ -5,7 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 from collections.abc import Mapping, Sequence
+from numbers import Integral, Real
 from typing import Any
 
 from research_project.inspect_sr.records import evidence_id as calculate_evidence_id
@@ -200,15 +202,10 @@ def _validate_method_receipt(receipt: Mapping[str, Any]) -> None:
         "completed",
     }:
         raise ValueError("Method receipt has an unknown execution state.")
-    try:
-        n_input = int(receipt["n_input"])
-        n_eligible = int(receipt["n_eligible"])
-        n_evaluated = int(receipt["n_evaluated"])
-        n_failed = int(receipt["n_failed"])
-    except (KeyError, TypeError, ValueError) as exc:
-        raise ValueError(
-            "Method receipt requires valid input, eligible, evaluated, and failed counts."
-        ) from exc
+    n_input, n_eligible, n_evaluated, n_failed = (
+        _receipt_count(receipt[field], field)
+        for field in ("n_input", "n_eligible", "n_evaluated", "n_failed")
+    )
     if min(n_input, n_eligible, n_evaluated, n_failed) < 0:
         raise ValueError("Method receipt counts cannot be negative.")
     if n_eligible > n_input or n_evaluated > n_eligible or n_evaluated + n_failed > n_eligible:
@@ -217,10 +214,7 @@ def _validate_method_receipt(receipt: Mapping[str, Any]) -> None:
     if isinstance(flagged, float) and math.isnan(flagged):
         flagged = None
     if flagged is not None:
-        try:
-            flagged = int(flagged)
-        except (TypeError, ValueError) as exc:
-            raise ValueError("Method receipt n_flagged must be an integer or null.") from exc
+        flagged = _receipt_count(flagged, "n_flagged")
         if flagged < 0 or flagged > n_evaluated:
             raise ValueError("Method receipt flagged count exceeds evaluated units.")
     execution = receipt["execution"]
@@ -236,6 +230,22 @@ def _validate_method_receipt(receipt: Mapping[str, Any]) -> None:
         n_evaluated != 0 or flagged is not None
     ):
         raise ValueError("An unexecuted receipt cannot claim evaluated results or flags.")
+
+
+def _receipt_count(value: Any, field: str) -> int:
+    if isinstance(value, bool):
+        raise ValueError(f"Method receipt {field} must be a nonnegative integer.")
+    if isinstance(value, Integral):
+        result = int(value)
+    elif isinstance(value, Real) and math.isfinite(float(value)) and float(value).is_integer():
+        result = int(value)
+    elif isinstance(value, str) and re.fullmatch(r"[0-9]+", value):
+        result = int(value)
+    else:
+        raise ValueError(f"Method receipt {field} must be a nonnegative integer.")
+    if result < 0:
+        raise ValueError(f"Method receipt {field} must be a nonnegative integer.")
+    return result
 
 
 def _stable_candidate_id(result: Mapping[str, Any], evidence_ids: list[str]) -> str:
@@ -273,6 +283,8 @@ def map_candidate_result(
     if result.get("schema_version") != "numeric_result_v2":
         raise ValueError("Candidate mapping requires the numeric_result_v2 contract.")
     method_id = _clean_text(result.get("method_id"))
+    if method_id == "scrutiny_rounding_bias":
+        raise ValueError("Rounding-bias candidates are blocked pending a qualified input contract.")
     result_run_id = _clean_text(result.get("run_id"))
     result_id = _clean_text(result.get("result_id"))
     source_locator = _clean_text(result.get("source_locator"))

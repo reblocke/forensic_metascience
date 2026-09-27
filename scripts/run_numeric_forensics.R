@@ -655,73 +655,13 @@ run_scrutiny_duplicates <- function(scrutiny_duplicates_input) {
 }
 
 run_scrutiny_rounding_bias <- function(scrutiny_rounding_bias_input) {
-  if (!requireNamespace("scrutiny", quietly = TRUE)) {
-    return(list(
-      executed = FALSE,
-      raw = empty_rounding_bias(),
-      message = "Package `scrutiny` not installed."
-    ))
-  }
-  if (nrow(scrutiny_rounding_bias_input) == 0) {
-    return(list(
-      executed = FALSE,
-      raw = empty_rounding_bias(),
-      message = "No rows for rounding-bias checks."
-    ))
-  }
-
-  prepared <- scrutiny_rounding_bias_input %>%
-    mutate(
-      x = as.numeric(x),
-      digits_x = as.integer(digits_x)
-    ) %>%
-    filter(!is.na(x), !is.na(digits_x), digits_x >= 0)
-
-  if (nrow(prepared) == 0) {
-    return(list(
-      executed = FALSE,
-      raw = empty_rounding_bias(),
-      message = "No rows after rounding-bias filtering."
-    ))
-  }
-
-  tryCatch(
-    {
-      bias <- prepared %>%
-        group_by(trial_id, digits_x) %>%
-        summarise(
-          n_values = n(),
-          bias_up = scrutiny::rounding_bias(
-            x = x,
-            digits = first(digits_x),
-            rounding = "up",
-            mean = TRUE
-          ),
-          bias_down = scrutiny::rounding_bias(
-            x = x,
-            digits = first(digits_x),
-            rounding = "down",
-            mean = TRUE
-          ),
-          .groups = "drop"
-        ) %>%
-        mutate(
-          abs_bias_gap = abs(as.numeric(bias_up) - as.numeric(bias_down)),
-          anomaly_flag = abs_bias_gap >= 0.05
-        )
-      list(
-        executed = TRUE,
-        raw = bias,
-        message = "ok"
-      )
-    },
-    error = function(exc) {
-      list(
-        executed = FALSE,
-        raw = empty_rounding_bias(),
-        message = paste("Rounding-bias execution error:", conditionMessage(exc))
-      )
-    }
+  list(
+    executed = FALSE,
+    raw = empty_rounding_bias(),
+    message = paste(
+      "Blocked: the input contract contains only already-printed values and precision;",
+      "it does not provide independent higher-precision measurements for rounding-bias assessment."
+    )
   )
 }
 
@@ -1262,10 +1202,18 @@ main <- function() {
     } else NULL
     receipt_from_method_run(
       run_id = run_id, method_id = method_id,
-      method_version = "numeric_eligibility_precision_v3",
+      method_version = if (method_id == "scrutiny_rounding_bias") {
+        "rounding_bias_blocked_v1"
+      } else {
+        "numeric_eligibility_precision_v3"
+      },
       package_name = package_name, package_version = safe_package_version(package_name),
       unit_of_evaluation = unit, input_evidence_ids = evidence_ids(tbl),
-      parameters = "input_contract=numeric_eligibility_precision_v3",
+      parameters = if (method_id == "scrutiny_rounding_bias") {
+        "execution=blocked;reason=independent higher-precision inputs unavailable"
+      } else {
+        "input_contract=numeric_eligibility_precision_v3"
+      },
       input_count = input_n, eligible_count = eligible_n, method_run = method_run,
       output_reference = output, requested = requested, implemented = implemented,
       applicability_override = applicability,
@@ -1290,10 +1238,7 @@ main <- function() {
         duplicates_run$raw$x_dup | duplicates_run$raw$sd_dup | duplicates_run$raw$n_dup
       ) else if (duplicates_run$executed) 0L else NULL),
     receipt("scrutiny_rounding_bias", "scrutiny", "trial_digits_group", scrutiny_rounding_bias_input,
-      nrow(scrutiny_rounding_bias_input %>%
-        mutate(x = as.numeric(x), digits_x = as.integer(digits_x)) %>%
-        filter(!is.na(x), !is.na(digits_x), digits_x >= 0) %>%
-        distinct(trial_id, digits_x)), rounding_bias_run, basename(rounding_bias_path),
+      0L, rounding_bias_run, basename(rounding_bias_path), applicability = "unknown",
       input_n = nrow(scrutiny_rounding_bias_input),
       flag_override = if (nrow(rounding_bias_run$raw) > 0L) as_logical_count(
         rounding_bias_run$raw$anomaly_flag
