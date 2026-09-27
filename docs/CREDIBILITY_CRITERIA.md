@@ -32,6 +32,7 @@ This document defines minimum standards for analyses that evaluate research-clai
   - `registration_registry_fetch_metadata.csv`
 - Registry history checks are local-input only unless a stable public history endpoint is explicitly adopted and documented.
 - Missing, ambiguous, or non-NCT registry cases should be represented as `not_assessed` or `indeterminate`, not as failures.
+- Non-randomized or quasi-randomized wording, conflicting design statements, and multiple registry IDs without explicit index-trial mapping remain indeterminate. Current source claim extracts use `registration_source_claims_v4`; earlier v3 files remain historical.
 - Mismatch rates should use assessed rows only.
 
 ## 4) Reproducibility and provenance
@@ -66,6 +67,7 @@ This document defines minimum standards for analyses that evaluate research-clai
 - Use only the locally pinned v1.1.2 catalogue and its verified source hashes.
 - Catalogue checks, source versions, evidence, candidate method results, human responses, domain judgments, overall judgments, adjudication, and synthesis policy are separate records.
 - Candidate results require a `method_receipt_v4` for the same run and exact source evidence. Version 4 checks method-specific result fields and reconciles returned evaluation-unit identities; older artifacts remain historical and cannot be silently upgraded. A check without a validated receipt remains manual-only; a missing image is not a negative response.
+- Current candidates use `inspect_sr_candidate_evidence_v2` in `inspect_sr_candidate_dossier_v3`. Their identities bind typed method results and source evidence; report model v3 displays raw source values, unresolved mapping reasons, and early-stop rationale while keeping candidates separate from human responses.
 - Final synthesis requires an approved, versioned policy, a local manifest that rechecks source bytes and evidence records, and the complete two-reviewer adjudication/finalization chain. A supplied hash alone cannot establish currency. Primary versus sensitivity policy must be selected explicitly.
 - Trial dispositions are one row per stable trial ID; report and comparison joins preserve row counts and existing RoB/effect fields. Unresolved trials block export unless the caller explicitly selects unresolved-list mode.
 - Public export requires explicit trial selection and review and contains only allowlisted identifiers/dispositions. It must not carry source excerpts, private notes, or reviewer identity fields.

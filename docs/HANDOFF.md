@@ -1,6 +1,140 @@
 # Handoff (for multi-session work)
 
-## Active FM-12 continuation — 2026-09-26
+## Current release status — 2026-09-27
+
+### Verified hosted checkpoint
+
+The exact push run on commit `51fa32a19e069eaf6e10e0c61620e419cd629ae2`
+([run 36302854692](https://github.com/reblocke/forensic_metascience/actions/runs/36302854692))
+completed successfully. Each required lane ran with network isolation, zero
+skips, and required artifacts:
+
+| Lane | Tests | Failures / errors / skips | Job |
+|---|---:|---:|---|
+| Python | 133 | 0 / 0 / 0 | [python-fast](https://github.com/reblocke/forensic_metascience/actions/runs/36302854692/job/108573679195) |
+| Native R | 13 | 0 / 0 / 0 | [native-r](https://github.com/reblocke/forensic_metascience/actions/runs/36302854692/job/108573679361) |
+| Report/review | 4 | 0 / 0 / 0 | [report-review](https://github.com/reblocke/forensic_metascience/actions/runs/36302854692/job/108573679390) |
+
+A duplicate `pull_request` event run, [36302857364](https://github.com/reblocke/forensic_metascience/actions/runs/36302857364), also passed. Hosted runtimes in the primary run: Python **3.11.16**, R **4.6.0**, Quarto **1.9.37**, TinyTeX **v2026.09 / LaTeX 2026**; `scrutiny` **0.6.2**, `statcheck` **1.5.0**, `simdistr` **1.0.1**, `cpp11` **0.5.5**, `progress` **1.2.3**, `knitr` **1.52**, and `rmarkdown` **2.32**. The report lane prepared TeX before isolation and rendered both INSPECT-SR and private prediction-review HTML/PDF.
+
+The uploaded allowlisted artifacts are `inspect-sr-python-36302854692`
+(artifact ID `10926575396`), `inspect-sr-native-r-36302854692` (`10926177797`),
+and `inspect-sr-report-review-36302854692` (`10926601312`). JUnit SHA-256:
+Python `fa826a2139e65f339019567204483319a3d34032af95c83344b5da02bf8030f0`,
+native R `0c6763f3e7a856581d8cc884087fded5230637f3bc9cd956e8cfce6c1d7c425e`,
+report/review `c65b6c96cde04e61d8a1d77703a716bbc2a0704b01bb88aa52cbe26dcf518841`.
+Native receipt/result hashes are `757e42dcb558ecd1f5355987d2919d4df118a1bf3568a2f7def13b7b33e16566`
+and `4eaf89de97750e10cbdc6cdc29a5fa7efecdedfcd2a86da705e703e025b8801e`.
+Rendered hashes: INSPECT-SR HTML `f3f411e651e04dacf52eeb1a14811dd93277cd032de1f070b8922924781b4dad`,
+PDF `0354d54a4a070309c17860dad98e3e1c2401d796385a53b7245c848c640ba67a`;
+private prediction HTML `670130a59e289988ef4ad8798101be96a42e3f33fc048c8168e37b5ee2f80e60`,
+PDF `f889f37a29e55b32727fb230e1b3de383ab42bc7a6fb619c45f1e6adf4b9491d`.
+The runtime and source-hash inventory hashes are recorded in the hosted artifacts;
+private working stores were not uploaded.
+
+The earlier run on `fd0212f` failed receipt enforcement because YAML folded a
+continued command argument into a path with leading whitespace. Commit `51fa32a`
+changed the workflow command to a literal block; the run above verifies that fix.
+These hosted results are a checkpoint for `51fa32a`, not acceptance evidence for
+the subsequent changes below.
+
+### Follow-up audit and active work
+
+A follow-up audit at the same head opened [FM-14](https://github.com/reblocke/forensic_metascience/issues/6)
+with five P1 findings. The current branch changes address result retention/report
+visibility, duplicate count reconciliation, strict receipt semantics, human-record
+load validation, and randomized/registry ambiguity. Candidate, dossier, report,
+and registration claim outputs are versioned; no historical files are rewritten.
+Local acceptance for these changes passes in all three lanes. FM-14 also passes
+all three hosted lanes on implementation commit `c0296ab2c7b5d9258d9d245796d24eccc902b1d1`
+below. The hosted `51fa32a` run remains historical and does not close FM-12.
+Fresh hosted checks for the final documentation PR head and merged `main` are
+still required.
+
+| Ticket | Current status |
+|---|---|
+| FM-01–FM-02 | Complete against mapped evidence. |
+| FM-03 | Complete against M3 receipt state/count regressions and native CSV boundary checks. |
+| FM-04–FM-05 | Complete against M1 result identity, candidate visibility, and rendered-evidence regressions. |
+| FM-06 | Complete; design-qualified seeded simdistr evidence remains mapped. |
+| FM-07 | Complete against M5 non/quasi-randomized and ambiguous registry regressions. |
+| FM-08 | Complete against pinned v1.1.2 snapshot and hashes. |
+| FM-09–FM-11 | Complete against M1 report fidelity and M4 record-load invariants. |
+| FM-12 | Open until all three hosted lanes pass on the final PR head and merged `main`. |
+| FM-13 | Deferred; R33–R34 remain out of scope. |
+| FM-14 | M1–M5 implemented; all local lanes and hosted run `36325935748` pass on `c0296ab`; final documentation head remains to verify. |
+
+### FM-14 local acceptance receipts
+
+Verified on the complete working tree at base `51fa32a19e069eaf6e10e0c61620e419cd629ae2`.
+Python, native R, and report/review commands ran offline after environment
+preparation. No test was skipped within a required lane; deselections are tests
+belonging to the other lanes.
+
+| Lane | Command summary | Result | JUnit SHA-256 |
+|---|---|---|---|
+| Python | `PYTHONPATH=src UV_OFFLINE=1 uv run --offline pytest -q -o addopts='' --tb=short -m 'not native_r and not report_integration'` | 145 passed, 18 deselected | `07958b31c2d3a9fddce62d45c2f80b406bc0aa38993d6b9b5595d4874116f213` |
+| Native R | `FM_TEST_ARTIFACT_DIR=/tmp/fm14-release/native PYTHONPATH=src R_LIBS_USER=/tmp/fm-inspect-r.locked-library FORENSICS_REQUIRE_R_INTEGRATION=1 UV_OFFLINE=1 uv run --offline pytest -q -o addopts='' --tb=short -m native_r` | 13 passed, 150 deselected | `fc0a6949f1eb39fbe11d09b7c529ef6fb945ad8b9ce9052c084a56d309d8e5d0` |
+| Report/review | `FM_TEST_ARTIFACT_DIR=/tmp/fm14-release/report PYTHONPATH=src R_LIBS_USER=/tmp/fm-inspect-r.locked-library FORENSICS_REQUIRE_R_INTEGRATION=1 FORENSICS_REQUIRE_REPORT_INTEGRATION=1 UV_OFFLINE=1 uv run --offline pytest -q -o addopts='' --tb=short -m report_integration tests/test_inspect_sr_reporting.py tests/test_inspect_sr_cli_workflow.py tests/test_pipeline.py::test_randomization_report_renders_only_current_run_inputs` | 5 passed, 7 deselected | `d5bda87ab07ddffec895b27a8cff40bbf116be8b996374dd0f148bc51be25ebf` |
+
+Each JUnit gate passed with zero skips, failures, or errors and the required
+artifacts present. The report lane rendered finalized HTML/PDF, early-stop
+HTML/PDF, and private prediction-review HTML/PDF. Native outputs were
+`native-method-receipts.csv` (SHA-256
+`1c28fd26544c42a0057beeaf928e8e5c038a8596b8cdf952edfa6bafd1fe6dfa`) and
+`native-standardized-results.csv` (SHA-256
+`73abf6ff558093218fa7e312bcce489045ea478b1bf80b36f9a863f41c0ec0e2`).
+Rendered report hashes: finalized HTML `a4af08c945c47d1f447294f42b383e79abad30ea58781e55295aea830a391b1b`,
+PDF `6a8a69d3ef780b2bdd7a8a7eaa842a71df18c94ded01bd3fb09c562e9692cd3c`,
+early-stop HTML `f4ff6b2b8105914e0ee0b668d4687b5c58e01147f646c5922216db77548c8a90`,
+PDF `fb9b639adb6475309725a5be3a904b98d935cd058dd025f77bb9e175d8c8577a`,
+private prediction-review HTML `45eadedb223aeabfb1a1244caf21229a1ea163dacf166ac6122ce868bcb46c0a`,
+PDF `dc9badbb3d47724aefe96cfad8493665d659f7870320cee314c044060cb61b18`.
+Local runtimes: Python 3.13.0, R 4.6.1, Quarto 1.10.18, TinyTeX v2025.12 /
+LaTeX 2025; `scrutiny` 0.6.2, `statcheck` 1.5.0, `simdistr` 1.0.1. These are
+local receipts; hosted runtime receipts remain authoritative for release.
+
+### FM-14 hosted implementation receipt
+
+Push run [36325935748](https://github.com/reblocke/forensic_metascience/actions/runs/36325935748)
+passed on exact head `c0296ab2c7b5d9258d9d245796d24eccc902b1d1`; the duplicate PR
+event [36325938305](https://github.com/reblocke/forensic_metascience/actions/runs/36325938305)
+also passed on the same SHA. The primary run completed Python (145 tests),
+native R (13), and report/review (5), with zero skips/failures/errors in the
+required lanes. Job links: [Python](https://github.com/reblocke/forensic_metascience/actions/runs/36325935748/job/108638584572),
+[native R](https://github.com/reblocke/forensic_metascience/actions/runs/36325935748/job/108638584422),
+[report/review](https://github.com/reblocke/forensic_metascience/actions/runs/36325935748/job/108638584259).
+
+Allowlisted artifact IDs are Python `10933528452`, native R `10934256724`, and
+report/review `10934043246`. Artifact SHA-256 digests are respectively
+`31820c48f80fe0453a13174210346ecfb2c26fc0e7c4890d0f600305035a0b59d`,
+`152c6326f01145ad29662d44ea3f71bad928f03ffe57394a01816c5d23c50d3c`, and
+`1cc9c4197488c709106ff192d533def98d9f20f7500d5063be855e9d9d9bf867`. JUnit
+SHA-256 values: Python `9d7b5d11fcdebb8e4048de06050771ca5dbf1493c681d49f6d4f88b197416f43`,
+native R `2e69778e0a6bd33234a857090848726338f618ca56eb6d8c2dd4fd41ab78ac99`,
+report/review `1252b810202abbdc4d6790b4057f1f4cc17f4a92ad8ea39717481a4d1d8d2169`.
+The native receipt and result CSV hashes are unchanged from the verified
+fixture hashes above. Hosted versions: Python 3.11.16, R 4.6.0, Quarto 1.9.37,
+TinyTeX v2026.09 / LaTeX 2026; `scrutiny` 0.6.2, `statcheck` 1.5.0,
+`simdistr` 1.0.1, `cpp11` 0.5.5, `progress` 1.2.3, `knitr` 1.52, and
+`rmarkdown` 2.32. The source-hash inventory SHA-256 is
+`7d660ee141686f86ed28c4b094013cb7968d9e2f39b72bf0a003571b09de82b6`.
+Rendered artifact hashes: INSPECT-SR HTML
+`cca17267d4bd0771a087f576be946681a97b0ccadd2844a3326c9ee4351a97de`, PDF
+`4ca3a193a5561620f3084c9335f8660c32ff7ae2932e4bc56dc05d44a5eceaeb`,
+early-stop HTML `5e3d24758ea7d4456d4a8d1278d588f598c93abfdb41a3b1237f963af84a0ea2`,
+PDF `c73feb8fb8bbec730400a3bcf0c2b635753782c9961cb50efe0fcedc3b1add30`,
+private prediction-review HTML `670130a59e289988ef4ad8798101be96a42e3f33fc048c8168e37b5ee2f80e60`,
+PDF `1db7555a9c4511cd4553c9875633eda6bde89e9e7ef96251ee9dd3605e6bf84f`.
+No private working store was uploaded. The duplicate PR event also passed all
+three jobs; the final docs head still requires a new run before merge.
+
+`run-b2.html` remains untracked and unchanged at SHA-256
+`2be30454a0a1a24390a18c994fe669dc22682d4a9eda4b074b18351a362f6035`.
+No source-paper analysis, historical-results rewrite, deployment, or human
+adjudication was performed. The PR remains a draft until the new checks pass.
+
+## Local acceptance checkpoint — 2026-09-26
 
 The authorized repair is continuing on `codex/inspect-sr-resumption` from
 `4b2d84bdf35f1b5e4893658026052902b242e524`. Existing uncommitted changes and

@@ -43,6 +43,11 @@ signals or legacy tiers into responses or judgments. See [the INSPECT-SR record
 and workflow guide](docs/INSPECT_SR.md); this workflow remains a draft until
 all scientific-method and hosted release gates pass.
 
+Current candidate evidence uses `inspect_sr_candidate_evidence_v2`, dossier
+v3, and report-model v3. Reports retain typed native results, linked raw source
+values, unresolved mapping reasons, and early-stop rationale; older records
+remain historical and are not silently upgraded.
+
 The local record workflow is available through `uv run python scripts/inspect_sr.py --help`.
 It stores human material write-once under the
 ignored private review directory, keeps unresolved source evidence explicit,
@@ -315,6 +320,7 @@ This repo is **R-first** for the inferential/forensic engines. Python is used fo
     - GRIM/GRIMMER depend on correctly interpreted rounding and denominator/sample size.
     - DEBIT applies only to binary/proportion-style summaries and has strict eligibility constraints.
     - Duplicate signals can be benign (reporting conventions or reused constants); they are candidate evidence only. Rounding-bias is not executed or routed as candidate evidence.
+    - Duplicate candidate rows require at least two repeated fields among x, SD, and n. Receipt and summary candidate counts use the same rule; rows with any repeated field are a separate descriptive count.
 
 - `statcheck` (CRAN): https://CRAN.R-project.org/package=statcheck
   - Objective: recompute p-values from extracted test statistics and compare to reported p-values.

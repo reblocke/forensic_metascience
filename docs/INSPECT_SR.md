@@ -79,6 +79,13 @@ coverage under `rounding_bias_blocked_v1`; the adapter rejects rounding-bias
 candidate records even if supplied a fabricated completed receipt. The other
 checks are manual-only until their producers have a validated receipt contract;
 similarly named Python outputs or synthetic receipts do not activate a route.
+Current candidates use `inspect_sr_candidate_evidence_v2` and the containing
+`inspect_sr_candidate_dossier_v3`. Their IDs bind the native result ID, metric,
+numeric value, nullable P value and anomaly flag, source scope/locator, details,
+native output reference, and evidence identities. `inspect_sr_report_model_v3`
+renders those typed results with linked raw source values, unresolved result
+reasons, and any early-stop rationale. Historical v1 candidate and v2 report
+records remain unchanged and are not silently promoted.
 Rounding-bias is blocked because available inputs contain printed values and
 precision, not independent higher-precision measurements. It reports unknown
 applicability and indeterminate status, evaluates zero units, preserves its
