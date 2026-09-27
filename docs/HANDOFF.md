@@ -45,11 +45,11 @@ with five P1 findings. The current branch changes address result retention/repor
 visibility, duplicate count reconciliation, strict receipt semantics, human-record
 load validation, and randomized/registry ambiguity. Candidate, dossier, report,
 and registration claim outputs are versioned; no historical files are rewritten.
-Local acceptance for these changes passes in all three lanes. FM-14 also passes
-all three hosted lanes on implementation commit `c0296ab2c7b5d9258d9d245796d24eccc902b1d1`
-below. The hosted `51fa32a` run remains historical and does not close FM-12.
-Fresh hosted checks for the final documentation PR head and merged `main` are
-still required.
+Local acceptance for these changes passes in all three lanes. Hosted run
+`36326885997` also passed all three lanes on documentation head
+`3365cbc74ba33543dd1341fae61893f1d37d21e7`, as recorded below. The hosted
+`51fa32a` run remains historical and does not close FM-12. FM-12 stays open
+until all lanes pass on the final PR head and merged `main`.
 
 | Ticket | Current status |
 |---|---|
@@ -62,7 +62,7 @@ still required.
 | FM-09–FM-11 | Complete against M1 report fidelity and M4 record-load invariants. |
 | FM-12 | Open until all three hosted lanes pass on the final PR head and merged `main`. |
 | FM-13 | Deferred; R33–R34 remain out of scope. |
-| FM-14 | M1–M5 implemented; all local lanes and hosted run `36325935748` pass on `c0296ab`; final documentation head remains to verify. |
+| FM-14 | M1–M5 implemented; all local lanes and hosted run `36326885997` pass on documentation head `3365cbc`; final handoff receipt update requires fresh hosted checks. |
 
 ### FM-14 local acceptance receipts
 
@@ -127,7 +127,31 @@ PDF `c73feb8fb8bbec730400a3bcf0c2b635753782c9961cb50efe0fcedc3b1add30`,
 private prediction-review HTML `670130a59e289988ef4ad8798101be96a42e3f33fc048c8168e37b5ee2f80e60`,
 PDF `1db7555a9c4511cd4553c9875633eda6bde89e9e7ef96251ee9dd3605e6bf84f`.
 No private working store was uploaded. The duplicate PR event also passed all
-three jobs; the final docs head still requires a new run before merge.
+three jobs; this run on `3365cbc` verifies that then-current documentation head.
+
+The subsequent documentation-only handoff update records this receipt. It does
+not change code or test inputs; the new PR head still requires fresh Python,
+native R, and report/review checks before the PR can be marked ready or merged.
+
+Final documentation-head run [36326885997](https://github.com/reblocke/forensic_metascience/actions/runs/36326885997)
+passed on `3365cbc74ba33543dd1341fae61893f1d37d21e7`; duplicate PR event
+[36326888869](https://github.com/reblocke/forensic_metascience/actions/runs/36326888869)
+also passed on that SHA. Counts remained 145 Python, 13 native R, and 5
+report/review, with zero skips/failures/errors. Job links: [Python](https://github.com/reblocke/forensic_metascience/actions/runs/36326885997/job/108641248155),
+[native R](https://github.com/reblocke/forensic_metascience/actions/runs/36326885997/job/108641248119),
+[report/review](https://github.com/reblocke/forensic_metascience/actions/runs/36326885997/job/108641247978).
+Artifact IDs: Python `10933524507`, native R `10934725725`, report/review
+`10933829730`. Artifact SHA-256 digests: Python
+`c4e9ef5a0ca7096c3591a2e646a3cf803ab83d321307a9187354999b0208cdaa`, native R
+`41fd80c24e282153674318949fb66a57b64e2e8e43edee1467f620afd0bfff54`,
+report/review `e4c3d3e4ddf845d89a7a934ac4d5727bee1b66a61d7954d9d1fc8525d36c230f`.
+JUnit SHA-256 values: Python
+`ecd19d6fa021caa1b71548669ad822258a1491fe716a90ca23984eba3aa24f9a`, native R
+`0c5aa95c4349d4f307f2c79bf3923331d74830200b9dff01168adaa51a0ac772`,
+report/review `1031595670ca4f36fe6f386be0bf7280f6ff800604bab507d3b68b5c869a465e`.
+Native receipt and result hashes remained
+`1c28fd26544c42a0057beeaf928e8e5c038a8596b8cdf952edfa6bafd1fe6dfa` and
+`4eaf89de97750e10cbdc6cdc29a5fa7efecdedfcd2a86da705e703e025b8801e`.
 
 `run-b2.html` remains untracked and unchanged at SHA-256
 `2be30454a0a1a24390a18c994fe669dc22682d4a9eda4b074b18351a362f6035`.
