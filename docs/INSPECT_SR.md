@@ -73,14 +73,17 @@ evidence IDs leave results unresolved. Older outputs remain readable as
 historical records and are not promoted into current candidates. One
 candidate can link to multiple checks while retaining one shared candidate ID;
 this is not counted as independent evidence. Current machine routes are limited
-to the numeric methods that actually emit those receipts: GRIM/GRIMMER/DEBIT,
-statcheck, duplicates, and rounding-bias. The other checks are manual-only until
-their producers have a validated receipt contract; similarly named Python
-outputs or synthetic receipts do not activate a route.
-Rounding-bias currently has an unresolved input-contract issue: its wrapper
-rerounds already printed values at the same precision, which can generate a
-zero difference by construction. Its candidate route is therefore not
-scientifically qualified for release, even when a native receipt says completed.
+to qualified numeric methods that actually emit those receipts: GRIM/GRIMMER/DEBIT,
+statcheck, and duplicates. The rounding-bias receipt remains visible as blocked
+coverage under `rounding_bias_blocked_v1`; the adapter rejects rounding-bias
+candidate records even if supplied a fabricated completed receipt. The other
+checks are manual-only until their producers have a validated receipt contract;
+similarly named Python outputs or synthetic receipts do not activate a route.
+Rounding-bias is blocked because available inputs contain printed values and
+precision, not independent higher-precision measurements. It reports unknown
+applicability and indeterminate status, evaluates zero units, preserves its
+input count, and emits no anomaly or candidate. A scientific input contract
+and separate qualification are required before this behavior can change.
 
 The dossier reports method coverage as `available`, `missing`, `ineligible`,
 `failed`, or `manual_only`. These are workflow/evidence states. Candidate records
@@ -174,5 +177,7 @@ allowlisted public writer drops all arbitrary source text, notes, and reviewer
 fields; approver identity remains in the private export receipt.
 
 No domain or overall judgment is computed by this package. There is no universal
-synthesis policy. FM-12 remains open until native R methods and current-run
-HTML/PDF acceptance pass.
+synthesis policy. See [`INSPECT_SR_ACCEPTANCE.md`](INSPECT_SR_ACCEPTANCE.md) for
+the R01–R32 test map. FM-12 remains open until all three hosted lanes pass on the
+same final PR head and merged `main`, with current-run HTML/PDF acceptance and
+no skipped required coverage.

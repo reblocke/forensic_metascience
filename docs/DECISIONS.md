@@ -1,5 +1,13 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-09-26: Keep rounding-bias blocked and close acceptance with fail-closed lanes
+
+- **Decision:** The current numeric input contract supplies already-printed values and decimal precision, not independent higher-precision observations. Rounding-bias therefore uses method revision `rounding_bias_blocked_v1`, preserving the input count while returning `applicability=unknown`, `execution=blocked`, `result_status=indeterminate`, zero evaluated units, and null findings. The candidate adapter rejects that method ID even if a malformed or fabricated completed receipt is supplied. This supersedes the earlier execution/qualification proposal below; no inferential assumption or threshold is added.
+- **Execution gate:** Python, native R, and report/review lanes run inside a network namespace after environment preparation. The namespace process drops back to the original runner UID/GID and receives only the required runtime variables. JUnit validation fails on empty, skipped, failed, or errored suites; artifact uploads fail when required receipts are absent. R/package and report versions remain pinned in the existing manifests.
+- **Report behavior:** The assessment report converts different evidence/candidate records to fixed scalar table cells. Quarto intermediate outputs are staged in a private temporary subdirectory; final HTML/PDF writes are checked for containment, leaf symlinks, and collisions.
+- **Migration and affected outputs:** No receipt/result/review schema changes are required for these repairs. New numeric runs carry the blocked rounding-bias receipt revision in `numeric_method_receipts.csv`; their rounding-bias raw file remains header-only and no `scrutiny_rounding_bias` candidate is created. Historical results and human records are unchanged. See `docs/INSPECT_SR_ACCEPTANCE.md` for test mapping.
+- **Verification boundary:** Local lane passes do not complete FM-12. All three hosted lanes must pass on the final PR head and merged `main`, without skipped required tests and with retained JUnit, runtime/source hashes, native outputs, and synthetic reports.
+
 ## 2026-09-25: Repair INSPECT-SR review provenance and native result acceptance
 
 - **Decision:** A private `inspect_sr_source_snapshot_v1` now binds one assessment to versioned source records and evidence records and rechecks the source bytes at review time. The local CLI creates and stores the manifest before reviewer submission. Finalized reports and actionable synthesis exports resolve the complete stored two-reviewer, adjudication, and finalization chain. A caller-supplied hash alone cannot establish currency. Human records remain append-only and private.

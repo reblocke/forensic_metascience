@@ -1,5 +1,122 @@
 # Handoff (for multi-session work)
 
+## Active FM-12 continuation — 2026-09-26
+
+The authorized repair is continuing on `codex/inspect-sr-resumption` from
+`4b2d84bdf35f1b5e4893658026052902b242e524`. Existing uncommitted changes and
+`run-b2.html` are preserved; its starting SHA-256 was
+`2be30454a0a1a24390a18c994fe669dc22682d4a9eda4b074b18351a362f6035`.
+
+- Fixed the mixed candidate/evidence table rows in
+  `notebooks/inspect_sr_assessment.qmd` by normalizing displayed values to
+  scalar text cells. The connected native-to-review CLI workflow now passes
+  locally through current evidence, source snapshot, candidate mapping,
+  independent submissions, adjudication, finalization, HTML/PDF rendering, and
+  allowlisted export.
+- Added `scripts/run_offline_test_lane.sh` and wired all three hosted lanes to
+  create a network namespace, drop back to the runner account, carry explicit
+  runtime variables, and invoke the prepared Python environment by absolute
+  path. `scripts/check_pytest_junit.py` is required in each lane to reject an
+  empty suite or any skip/failure/error. CI artifacts include JUnit, runtime
+  inventories, source hashes, and allowlisted synthetic outputs; private stores
+  are not uploaded.
+- Added a failing adapter regression, confirmed it failed before the code fix,
+  then blocked all rounding-bias candidate mapping. The native receipt remains
+  `rounding_bias_blocked_v1` with unknown applicability, blocked execution,
+  indeterminate result, zero evaluated units, preserved input count, null
+  findings, and no anomaly output. Optional sequence checks remain blocked;
+  SPRITE remains unimplemented.
+- Replaced one-column private prediction-review fixtures with populated
+  contract-shaped synthetic CSVs and added HTML/PDF artifact allowlisting. The
+  mixed evidence/candidate report path checks rendered candidate evidence and
+  its source locator. Added JUnit and required-artifact gate regressions.
+- `docs/INSPECT_SR_ACCEPTANCE.md` maps R01–R32 and subsequent review findings
+  to tests and lanes. README, credibility criteria, INSPECT-SR guide, and this
+  decision/handoff now describe rounding-bias as blocked. R33–R34 remain
+  deferred under FM-13.
+
+### Ticket ledger at this checkpoint
+
+| Ticket | Status against current local evidence |
+|---|---|
+| FM-01–FM-02 | Complete: eligibility, precision, denominators, source text, and P-value comparator cases pass mapped Python/R boundary tests. |
+| FM-03 | Complete: malformed, partial, failed, zero-eligible, missing-dependency, and unknown outputs remain distinct in native receipt tests. |
+| FM-04–FM-05 | Complete: no composite judgment; source-bound candidate mapping, current-run isolation, and immutable run-manifest behavior are covered. |
+| FM-06 | Complete: design-gated seeded simdistr production path passes with independent numerical expectations. |
+| FM-07 | Complete: negation-aware registration claims and malformed history handling pass. |
+| FM-08 | Complete: pinned v1.1.2 source files, catalogue, licenses, and hashes are present and validated. |
+| FM-09–FM-11 | Complete: source-linked candidates, independent review/adjudication, finalization, rendered reports, and allowlisted export pass connected synthetic CLI/report coverage. |
+| FM-12 | Open: hosted Python, native R, and report/review lanes must pass on the same final PR head and merged `main`. |
+| FM-13 | Deferred; R33–R34 remain outside this repair. |
+
+“Complete” for FM-01–FM-11 means the implementation and mapped local
+acceptance are complete. The all-lanes release/integration claim remains
+withheld until FM-12 passes on hosted CI and merged `main`.
+
+### Local acceptance receipts for the current uncommitted tree
+
+- Python passed **133 tests, 17 deselected**; its JUnit gate reported zero
+  skipped or failed tests:
+
+  ```bash
+  PYTHONPATH=src UV_OFFLINE=1 uv run --offline pytest -q -o addopts='' --tb=short -m 'not native_r and not report_integration' --junitxml=/tmp/fm-inspect-final-delivery-0926/python/junit.xml
+  uv run --offline python scripts/check_pytest_junit.py /tmp/fm-inspect-final-delivery-0926/python/junit.xml /tmp/fm-inspect-final-delivery-0926/python/python-version.txt
+  ```
+
+- Native R passed **13 tests, 136 deselected**; its JUnit gate reported zero
+  skipped or failed tests:
+
+  ```bash
+  FM_TEST_ARTIFACT_DIR=/tmp/fm-inspect-final-delivery-0926/native PYTHONPATH=src R_LIBS_USER=/tmp/fm-inspect-r.locked-library FORENSICS_REQUIRE_R_INTEGRATION=1 UV_OFFLINE=1 uv run --offline pytest -q -o addopts='' --tb=short -m native_r --junitxml=/tmp/fm-inspect-final-delivery-0926/native/junit.xml
+  uv run --offline python scripts/check_pytest_junit.py /tmp/fm-inspect-final-delivery-0926/native/junit.xml /tmp/fm-inspect-final-delivery-0926/native/python-version.txt /tmp/fm-inspect-final-delivery-0926/native/r-packages.csv /tmp/fm-inspect-final-delivery-0926/native/r-session.txt /tmp/fm-inspect-final-delivery-0926/native/source-hashes.sha256 /tmp/fm-inspect-final-delivery-0926/native/native-method-receipts.csv /tmp/fm-inspect-final-delivery-0926/native/native-standardized-results.csv
+  ```
+
+- Report/review passed **4 tests, 7 deselected**; its JUnit gate reported zero
+  skipped or failed tests. This selection rendered synthetic INSPECT-SR and
+  private prediction-review reports in HTML/PDF and completed the CLI workflow,
+  early-stop branch, symlink checks, and allowlisted export:
+
+  ```bash
+  FM_TEST_ARTIFACT_DIR=/tmp/fm-inspect-final-delivery-0926/report PYTHONPATH=src R_LIBS_USER=/tmp/fm-inspect-r.locked-library FORENSICS_REQUIRE_R_INTEGRATION=1 FORENSICS_REQUIRE_REPORT_INTEGRATION=1 UV_OFFLINE=1 uv run --offline pytest -q -o addopts='' --tb=short -m report_integration tests/test_inspect_sr_reporting.py tests/test_inspect_sr_cli_workflow.py tests/test_pipeline.py::test_randomization_report_renders_only_current_run_inputs --junitxml=/tmp/fm-inspect-final-delivery-0926/report/junit.xml
+  uv run --offline python scripts/check_pytest_junit.py /tmp/fm-inspect-final-delivery-0926/report/junit.xml /tmp/fm-inspect-final-delivery-0926/report/python-version.txt /tmp/fm-inspect-final-delivery-0926/report/r-packages.csv /tmp/fm-inspect-final-delivery-0926/report/r-session.txt /tmp/fm-inspect-final-delivery-0926/report/quarto-version.txt /tmp/fm-inspect-final-delivery-0926/report/quarto-environment.txt /tmp/fm-inspect-final-delivery-0926/report/source-hashes.sha256 /tmp/fm-inspect-final-delivery-0926/report/inspect-sr-review.html /tmp/fm-inspect-final-delivery-0926/report/inspect-sr-review.pdf /tmp/fm-inspect-final-delivery-0926/report/private-prediction-review.html /tmp/fm-inspect-final-delivery-0926/report/private-prediction-review.pdf
+  ```
+- Checks: `uv run ruff check .`, `uv run ruff format . --check`, `bash -n
+  scripts/run_offline_test_lane.sh scripts/install_inspect_sr_r_methods.sh`,
+  Ruby YAML parsing of `.github/workflows/ci.yml`, R parsing of
+  `scripts/run_numeric_forensics.R` and `R/method_receipts.R`, and
+  `git diff --check` passed.
+- Local runtime: Python **3.13.0**, R **4.6.1**, Quarto **1.10.18**, TinyTeX
+  **v2025.12** / LaTeX **2025**. R packages: scrutiny **0.6.2**, statcheck
+  **1.5.0**, simdistr **1.0.1**, rmarkdown **2.32**, knitr **1.51**, cpp11
+  **0.5.5**, progress **1.2.3**. Quarto PDF rendering passed. `pdflatex` is
+  not separately available on the local shell PATH; Quarto resolves its bundled
+  TinyTeX. Hosted CI records its own Quarto/TeX runtime inventory.
+- Local JUnit SHA-256: Python
+  `3163516bc48d38e116262fff2fe2dc7280581bfbe66fb32b7105c988a850b0fd`; native
+  `72dd45b29fe51f8a32d2ca2383609acf6605a5d999a301b987a85cfe9b785fde`; report
+  `1ceaf7d9f0c608292f7fb5fd02f451fef3dcf7748bc2e692e3957fecad5e4145`.
+  Synthetic report hashes: INSPECT-SR HTML
+  `afe55cfa54a149cf067f0f21479b87ed4bbd3ab736765d41c22572499a1c982d`, PDF
+  `4fe7570198aaee722b67e27f9cbcb9bb70b9732cea6ff80640712d4a11b1a007`;
+  private prediction HTML
+  `45eadedb223aeabfb1a1244caf21229a1ea163dacf166ac6122ce868bcb46c0a`, PDF
+  `5364e057575e8aa49c926450d7b195678a1ff460d7f19454d24f0852f3841b62`.
+  Native method receipt SHA-256 is
+  `757e42dcb558ecd1f5355987d2919d4df118a1bf3568a2f7def13b7b33e16566`; the
+  standardized result SHA-256 is
+  `73abf6ff558093218fa7e312bcce489045ea478b1bf80b36f9a863f41c0ec0e2`.
+- The `run-b2.html` SHA-256 remains
+  `2be30454a0a1a24390a18c994fe669dc22682d4a9eda4b074b18351a362f6035`.
+  These are local receipts only. The macOS runs do not verify Linux network
+  namespace setup; hosted CI must exercise that wrapper before FM-12 can close.
+
+**Still open:** Push the reviewable commits, exercise the exact network-namespace
+wrapper on hosted runners, pass all three hosted lanes on the same final PR SHA,
+review and mark PR #5 ready, merge with a merge commit, then verify on merged
+`main`. FM-12 remains open and no ticket is declared fully integrated yet. No
+source-paper analysis, historical-results rewrite, deployment, or human
+adjudication was performed.
+
 ## Hosted acceptance continuation — 2026-09-25
 
 Draft PR #5 remains open and unmerged. On commit `a353f3d`, hosted Actions

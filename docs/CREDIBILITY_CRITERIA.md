@@ -81,3 +81,6 @@ This document defines minimum standards for analyses that evaluate research-clai
   - synthetic run-scoped execution for pipeline changes; do not run source-paper analyses as a substitute for scientific validation
   - Quarto HTML/PDF smoke checks with temporary run-scoped inputs when `.qmd` files or render paths change
   - missing R/Quarto/package runtimes are blocked or skipped coverage, never a pass
+  - required hosted lanes use a network namespace and fail if setup, selected tests, runtime coverage, or required artifacts are missing
+  - rounding-bias has revision `rounding_bias_blocked_v1`: preserved input count, unknown applicability, blocked execution, indeterminate status, zero evaluated units, null findings, and no candidates
+  - optional sequence diagnostics remain blocked and SPRITE remains unimplemented; none of these states is a negative result
