@@ -22,12 +22,27 @@ jobs:
           pip install uv
       - name: Install deps
         run: uv sync --locked --dev
+      - name: Prepare test receipts
+        run: |
+          mkdir -p "$RUNNER_TEMP/inspect-sr-artifacts/python"
+          echo "FM_TEST_ARTIFACT_DIR=$RUNNER_TEMP/inspect-sr-artifacts/python" >> "$GITHUB_ENV"
+          python --version > "$RUNNER_TEMP/inspect-sr-artifacts/python/python-version.txt" 2>&1
       - name: Lint
         run: uv run ruff check .
       - name: Format check
         run: uv run ruff format . --check
       - name: Tests
-        run: uv run pytest -q -m 'not native_r'
+        run: bash scripts/run_offline_test_lane.sh python "$GITHUB_WORKSPACE/.venv/bin/python" -m pytest -q -m 'not native_r and not report_integration' --junitxml="$FM_TEST_ARTIFACT_DIR/junit.xml"
+      - name: Enforce Python acceptance receipt
+        if: always()
+        run: python scripts/check_pytest_junit.py "$FM_TEST_ARTIFACT_DIR/junit.xml" "$FM_TEST_ARTIFACT_DIR/python-version.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: inspect-sr-python-${{ github.run_id }}
+          path: ${{ runner.temp }}/inspect-sr-artifacts/python/
+          if-no-files-found: error
+          retention-days: 14
 
   native-r:
     runs-on: ubuntu-latest
@@ -49,10 +64,37 @@ jobs:
           pip install uv
       - name: Install Python test environment
         run: uv sync --locked --dev
+      - name: Prepare test receipts
+        run: |
+          mkdir -p "$RUNNER_TEMP/inspect-sr-artifacts/native"
+          echo "FM_TEST_ARTIFACT_DIR=$RUNNER_TEMP/inspect-sr-artifacts/native" >> "$GITHUB_ENV"
       - name: Install hash-verified method packages in isolated R library
         run: bash scripts/install_inspect_sr_r_methods.sh
+      - name: Record native runtime and pinned source hashes
+        run: |
+          Rscript -e 'write.csv(installed.packages()[, c("Package", "Version")], file=file.path(Sys.getenv("FM_TEST_ARTIFACT_DIR"), "r-packages.csv"), row.names=FALSE)'
+          Rscript -e 'writeLines(capture.output(sessionInfo()), file.path(Sys.getenv("FM_TEST_ARTIFACT_DIR"), "r-session.txt"))'
+          python --version > "$FM_TEST_ARTIFACT_DIR/python-version.txt" 2>&1
+          sha256sum config/inspect_sr/r_method_packages.lock.json config/inspect_sr/v1.1.2/SHA256SUMS > "$FM_TEST_ARTIFACT_DIR/source-hashes.sha256"
       - name: Native Python to R method integration
-        run: uv run pytest -q -m native_r
+        run: bash scripts/run_offline_test_lane.sh native_r "$GITHUB_WORKSPACE/.venv/bin/python" -m pytest -q -m native_r --junitxml="$FM_TEST_ARTIFACT_DIR/junit.xml"
+      - name: Enforce native R acceptance receipt
+        if: always()
+        run: python scripts/check_pytest_junit.py \
+          "$FM_TEST_ARTIFACT_DIR/junit.xml" \
+          "$FM_TEST_ARTIFACT_DIR/python-version.txt" \
+          "$FM_TEST_ARTIFACT_DIR/r-packages.csv" \
+          "$FM_TEST_ARTIFACT_DIR/r-session.txt" \
+          "$FM_TEST_ARTIFACT_DIR/source-hashes.sha256" \
+          "$FM_TEST_ARTIFACT_DIR/native-method-receipts.csv" \
+          "$FM_TEST_ARTIFACT_DIR/native-standardized-results.csv"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: inspect-sr-native-r-${{ github.run_id }}
+          path: ${{ runner.temp }}/inspect-sr-artifacts/native/
+          if-no-files-found: error
+          retention-days: 14
 
   report-review:
     runs-on: ubuntu-latest
@@ -77,14 +119,53 @@ jobs:
           pip install uv
       - name: Install Python test environment
         run: uv sync --locked --dev
+      - name: Prepare test receipts
+        run: |
+          mkdir -p "$RUNNER_TEMP/inspect-sr-artifacts/report"
+          echo "FM_TEST_ARTIFACT_DIR=$RUNNER_TEMP/inspect-sr-artifacts/report" >> "$GITHUB_ENV"
       - name: Prepare Quarto report engine
         run: |
-          mkdir -p "$R_LIBS_USER"
-          Rscript -e 'install.packages(c("jsonlite", "knitr"), lib=Sys.getenv("R_LIBS_USER"), repos="https://cran.rstudio.com", dependencies=c("Depends", "Imports"))'
+          bash scripts/install_inspect_sr_r_methods.sh
           quarto install tinytex
+          Rscript -e 'write.csv(installed.packages()[, c("Package", "Version")], file=file.path(Sys.getenv("FM_TEST_ARTIFACT_DIR"), "r-packages.csv"), row.names=FALSE)'
+          Rscript -e 'writeLines(capture.output(sessionInfo()), file.path(Sys.getenv("FM_TEST_ARTIFACT_DIR"), "r-session.txt"))'
+          python --version > "$FM_TEST_ARTIFACT_DIR/python-version.txt" 2>&1
+          quarto --version > "$FM_TEST_ARTIFACT_DIR/quarto-version.txt"
+          quarto check > "$FM_TEST_ARTIFACT_DIR/quarto-environment.txt" 2>&1
+          sha256sum config/inspect_sr/r_method_packages.lock.json config/inspect_sr/v1.1.2/SHA256SUMS > "$FM_TEST_ARTIFACT_DIR/source-hashes.sha256"
+      - name: Prepare TeX resources with disposable synthetic renders
+        env:
+          PYTHONPATH: src
+          FORENSICS_REQUIRE_REPORT_INTEGRATION: "1"
+        run: |
+          env -u FM_TEST_ARTIFACT_DIR uv run --offline pytest -q -o addopts='' \
+            tests/test_inspect_sr_reporting.py::test_inspect_sr_report_qmd_renders_html_and_pdf_in_requested_directory \
+            tests/test_inspect_sr_reporting.py::test_private_prediction_review_renders_current_synthetic_inputs
       - name: Current-run HTML/PDF and private-review report integration
         run: |
-          uv run pytest -q \
+          bash scripts/run_offline_test_lane.sh report_integration "$GITHUB_WORKSPACE/.venv/bin/python" -m pytest -q -m report_integration \
             tests/test_inspect_sr_reporting.py \
             tests/test_inspect_sr_cli_workflow.py \
-            tests/test_pipeline.py::test_randomization_report_renders_only_current_run_inputs
+            tests/test_pipeline.py::test_randomization_report_renders_only_current_run_inputs \
+            --junitxml="$FM_TEST_ARTIFACT_DIR/junit.xml"
+      - name: Enforce report/review acceptance receipt
+        if: always()
+        run: python scripts/check_pytest_junit.py \
+          "$FM_TEST_ARTIFACT_DIR/junit.xml" \
+          "$FM_TEST_ARTIFACT_DIR/python-version.txt" \
+          "$FM_TEST_ARTIFACT_DIR/r-packages.csv" \
+          "$FM_TEST_ARTIFACT_DIR/r-session.txt" \
+          "$FM_TEST_ARTIFACT_DIR/quarto-version.txt" \
+          "$FM_TEST_ARTIFACT_DIR/quarto-environment.txt" \
+          "$FM_TEST_ARTIFACT_DIR/source-hashes.sha256" \
+          "$FM_TEST_ARTIFACT_DIR/inspect-sr-review.html" \
+          "$FM_TEST_ARTIFACT_DIR/inspect-sr-review.pdf" \
+          "$FM_TEST_ARTIFACT_DIR/private-prediction-review.html" \
+          "$FM_TEST_ARTIFACT_DIR/private-prediction-review.pdf"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: inspect-sr-report-review-${{ github.run_id }}
+          path: ${{ runner.temp }}/inspect-sr-artifacts/report/
+          if-no-files-found: error
+          retention-days: 14
