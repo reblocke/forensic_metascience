@@ -53,7 +53,7 @@ The authorized repair is continuing on `codex/inspect-sr-resumption` from
 acceptance are complete. The all-lanes release/integration claim remains
 withheld until FM-12 passes on hosted CI and merged `main`.
 
-### Local acceptance receipts for the current uncommitted tree
+### Local acceptance receipts for the current branch tree
 
 - Python passed **133 tests, 17 deselected**; its JUnit gate reported zero
   skipped or failed tests:
