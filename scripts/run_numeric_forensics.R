@@ -863,7 +863,8 @@ standardize_duplicates <- function(duplicates_df) {
   }
   duplicates_df %>%
     mutate(
-      dup_count = as.integer(x_dup) + as.integer(sd_dup) + as.integer(n_dup)
+      dup_count = as.integer(x_dup) + as.integer(sd_dup) + as.integer(n_dup),
+      candidate_flag = dup_count >= 2L
     ) %>%
     transmute(
       trial_id = as.character(trial_id),
@@ -882,8 +883,8 @@ standardize_duplicates <- function(duplicates_df) {
       metric = "duplicate_fields_count",
       value_numeric = as.numeric(dup_count),
       p_value = NA_real_,
-      anomaly_flag = dup_count >= 2,
-      severity = ifelse(dup_count >= 2, "medium", "low"),
+      anomaly_flag = candidate_flag,
+      severity = ifelse(candidate_flag, "medium", "low"),
       details = paste0("x_dup=", x_dup, "; sd_dup=", sd_dup, "; n_dup=", n_dup)
     )
 }
@@ -1235,7 +1236,7 @@ main <- function() {
     receipt("scrutiny_duplicates", "scrutiny", "summary_case", scrutiny_duplicates_input,
       nrow(scrutiny_duplicates_input), duplicates_run, basename(duplicates_path),
       flag_override = if (nrow(duplicates_run$raw) > 0L) as_logical_count(
-        duplicates_run$raw$x_dup | duplicates_run$raw$sd_dup | duplicates_run$raw$n_dup
+        rowSums(duplicates_run$raw[c("x_dup", "sd_dup", "n_dup")]) >= 2L
       ) else if (duplicates_run$executed) 0L else NULL),
     receipt("scrutiny_rounding_bias", "scrutiny", "trial_digits_group", scrutiny_rounding_bias_input,
       0L, rounding_bias_run, basename(rounding_bias_path), applicability = "unknown",
@@ -1290,6 +1291,9 @@ main <- function() {
     debit_incons_cases = receipt_flags("scrutiny_debit_map"),
     duplicates_available = requireNamespace("scrutiny", quietly = TRUE),
     duplicate_flag_rows = receipt_flags("scrutiny_duplicates"),
+    duplicate_any_field_rows = if (nrow(duplicates_run$raw) > 0L) as_logical_count(
+      duplicates_run$raw$x_dup | duplicates_run$raw$sd_dup | duplicates_run$raw$n_dup
+    ) else 0L,
     rounding_bias_available = requireNamespace("scrutiny", quietly = TRUE),
     rounding_bias_groups = receipt_coverage("scrutiny_rounding_bias"),
     statcheck_available = requireNamespace("statcheck", quietly = TRUE),

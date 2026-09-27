@@ -61,6 +61,24 @@ def test_native_method_adapters_match_independent_synthetic_expectations() -> No
     _require_pinned_r_packages(rscript)
     expression = r"""
 source("scripts/run_numeric_forensics.R")
+source("R/method_receipts.R")
+invalid_receipt <- function(...) {
+  tryCatch({ new_method_receipt(...); FALSE }, error = function(e) TRUE)
+}
+receipt_args <- list(
+  run_id = "run", method_id = "method", method_version = "1", package_name = "pkg",
+  package_version = "1", unit_of_evaluation = "case", input_evidence_ids = "e1",
+  parameters = "fixture", applicability = "eligible", execution = "completed",
+  n_input = 1L, n_eligible = 1L, n_evaluated = 1L, n_failed = 0L, n_flagged = 0L,
+  output_reference = "raw.csv", diagnostic = "ok"
+)
+stopifnot(!do.call(invalid_receipt, receipt_args))
+fractional_args <- receipt_args
+fractional_args$n_input <- 1.5
+stopifnot(do.call(invalid_receipt, fractional_args))
+inconsistent_args <- receipt_args
+inconsistent_args$applicability <- "ineligible"
+stopifnot(do.call(invalid_receipt, inconsistent_args))
 base <- tibble::tibble(
   case_id = c("valid", "invalid"), trial_id = "synthetic", source_unit = "table:row",
   variable = "binary_count", level = "event", group = "arm",
@@ -135,6 +153,14 @@ def test_numeric_production_runner_executes_pinned_method_packages(
     input_dir = tmp_path / "inputs"
     output_dir = tmp_path / "numeric-output"
     evidence_records = write_numeric_method_fixture(input_dir)
+    duplicate_input_path = input_dir / "scrutiny_duplicates_input.csv"
+    duplicate_input = pd.read_csv(duplicate_input_path)
+    duplicate_input.loc[0, "x"] = 0.25
+    duplicate_input.loc[0, "sd"] = 0.50
+    duplicate_input.loc[1, "x"] = 0.75
+    duplicate_input.loc[1, "sd"] = 0.43
+    duplicate_input.loc[:, "n"] = 4
+    duplicate_input.to_csv(duplicate_input_path, index=False)
     bias_input_path = input_dir / "scrutiny_rounding_bias_input.csv"
     bias_input = pd.read_csv(bias_input_path)
     pd.concat([bias_input, bias_input.iloc[[0]]], ignore_index=True).to_csv(
@@ -190,6 +216,15 @@ def test_numeric_production_runner_executes_pinned_method_packages(
     assert results_v2["result_id"].notna().all()
     assert "source_locator" in results_v2.columns
     assert "input_evidence_ids" in results_v2.columns
+    duplicate_results = results_v2.loc[results_v2["method_id"] == "scrutiny_duplicates"]
+    assert len(duplicate_results) == 2
+    assert not duplicate_results["anomaly_flag"].any()
+    duplicate_receipt = receipts.loc["scrutiny_duplicates"]
+    assert duplicate_receipt["n_flagged"] == 0
+    assert duplicate_receipt["n_evaluated"] == 2
+    numeric_summary = pd.read_csv(output_dir / "numeric_summary.csv").iloc[0]
+    assert numeric_summary["duplicate_flag_rows"] == 0
+    assert numeric_summary["duplicate_any_field_rows"] == 2
     candidate_rows = []
     result_records = results_v2.astype(object).where(pd.notna(results_v2), None).to_dict("records")
     receipt_records = (

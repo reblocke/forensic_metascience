@@ -13,6 +13,10 @@ JUDGMENTS = {"no concerns", "some concerns", "serious concerns"}
 JUDGMENT_RANK = {"no concerns": 0, "some concerns": 1, "serious concerns": 2}
 
 
+def _nonblank_text(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
 def immutable_record_id(record: Mapping[str, Any], id_field: str, prefix: str) -> str:
     """Bind every serialized v3 record field except its own content ID."""
     payload = {key: value for key, value in record.items() if key != id_field}
@@ -49,7 +53,7 @@ def validate_reviewer_submission(submission: Mapping[str, Any]) -> None:
         if response is not None:
             if row.get("workflow_status") != "assessed":
                 raise ValueError(f"Answered check {row['check_id']} must be assessed.")
-            if not str(row.get("rationale", "")).strip():
+            if not _nonblank_text(row.get("rationale")):
                 raise ValueError(f"Check {row['check_id']} needs a reviewer rationale.")
             if not isinstance(row.get("evidence_ids"), list):
                 raise ValueError(f"Check {row['check_id']} evidence_ids must be a list.")
@@ -68,19 +72,19 @@ def validate_judgment_set(judgments: Mapping[str, Any]) -> dict[str, Any]:
     for domain in domains:
         if domain.get("judgment") not in JUDGMENTS:
             raise ValueError("Invalid human domain judgment.")
-        if not str(domain.get("rationale", "")).strip():
+        if not _nonblank_text(domain.get("rationale")):
             raise ValueError(f"Domain {domain['domain_id']} requires a rationale.")
     overall = judgments.get("overall")
     if not isinstance(overall, Mapping) or overall.get("judgment") not in JUDGMENTS:
         raise ValueError("A human overall judgment is required.")
-    if not str(overall.get("rationale", "")).strip():
+    if not _nonblank_text(overall.get("rationale")):
         raise ValueError("Overall judgment requires a rationale.")
     warnings = []
     lower_than_domain = any(
         JUDGMENT_RANK[overall["judgment"]] < JUDGMENT_RANK[domain["judgment"]] for domain in domains
     )
     if lower_than_domain:
-        if not str(overall.get("justification", "")).strip():
+        if not _nonblank_text(overall.get("justification")):
             raise ValueError(
                 "Overall judgment below a domain judgment requires an explicit justification."
             )
@@ -106,6 +110,24 @@ def validate_finalization(
         )
     if finalization.get("schema_version") != "inspect_sr_finalization_v3":
         raise ValueError("Unsupported finalization schema.")
+    is_early_stop = finalization.get("workflow_status") == "finalized_early_stop"
+    if is_early_stop:
+        early_judgments = finalization.get("judgments")
+        overall = early_judgments.get("overall") if isinstance(early_judgments, Mapping) else None
+        domains = early_judgments.get("domains") if isinstance(early_judgments, Mapping) else None
+        if (
+            not _nonblank_text(finalization.get("early_stop_reason"))
+            or not isinstance(overall, Mapping)
+            or overall.get("judgment") != "serious concerns"
+            or not isinstance(domains, list)
+            or not any(
+                isinstance(domain, Mapping) and domain.get("judgment") == "serious concerns"
+                for domain in domains
+            )
+        ):
+            raise ValueError(
+                "Early-stop finalization requires a reason and serious-concerns judgment."
+            )
     checks = finalization.get("checks")
     if not isinstance(checks, list) or [row.get("check_id") for row in checks] != list(
         EXPECTED_CHECK_IDS
@@ -114,7 +136,7 @@ def validate_finalization(
     for row in checks:
         status, response = row.get("workflow_status"), row.get("response")
         if status == "assessed":
-            if response not in CHECK_RESPONSES or not str(row.get("rationale", "")).strip():
+            if response not in CHECK_RESPONSES or not _nonblank_text(row.get("rationale")):
                 raise ValueError("Finalized responses require an allowed response and rationale.")
             if not isinstance(row.get("evidence_ids"), list):
                 raise ValueError("Finalized response evidence_ids must be a list.")

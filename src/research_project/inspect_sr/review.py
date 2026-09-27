@@ -74,7 +74,8 @@ def create_reviewer_submission(
         response = source.get("response")
         if response is not None and response not in CHECK_RESPONSES:
             raise ValueError(f"Invalid response for check {check_id}.")
-        rationale = str(source.get("rationale", "")).strip() or None
+        rationale_value = source.get("rationale")
+        rationale = rationale_value.strip() if isinstance(rationale_value, str) else None
         if response is not None and not rationale:
             raise ValueError(f"Human response for check {check_id} requires a rationale.")
         evidence_ids = source.get("evidence_ids", [])
@@ -180,7 +181,8 @@ def create_adjudication_record(
                 "Adjudication decisions must address each listed disagreement at most once."
             )
         response = decision.get("response")
-        rationale = str(decision.get("rationale", "")).strip()
+        rationale_value = decision.get("rationale")
+        rationale = rationale_value.strip() if isinstance(rationale_value, str) else ""
         evidence_ids = decision.get("evidence_ids", [])
         if response not in CHECK_RESPONSES or not rationale or not isinstance(evidence_ids, list):
             raise ValueError(
@@ -299,7 +301,7 @@ def finalize_review(
         raise ValueError("Finalization is blocked by pending checks.")
     validated_judgments = validate_judgment_set(judgments)
     if early_stop:
-        if not early_stop_reason.strip():
+        if not isinstance(early_stop_reason, str) or not early_stop_reason.strip():
             raise ValueError("Early stopping requires an explicit rationale.")
         if validated_judgments["overall"]["judgment"] != "serious concerns":
             raise ValueError(

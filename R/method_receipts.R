@@ -27,15 +27,21 @@ new_method_receipt <- function(
   stopifnot(length(applicability) == 1L, applicability %in% METHOD_APPLICABILITY_STATES)
   stopifnot(length(execution) == 1L, execution %in% METHOD_EXECUTION_STATES)
   counts <- c(n_input, n_eligible, n_evaluated, n_failed)
-  if (anyNA(counts) || any(counts < 0) || n_eligible > n_input ||
+  if (anyNA(counts) || any(!is.finite(counts)) || any(counts != floor(counts)) ||
+      any(counts < 0) || n_eligible > n_input ||
       n_evaluated > n_eligible || n_evaluated + n_failed > n_eligible) {
-    stop("Method receipt counts violate input/evaluation bounds.")
+    stop("Method receipt counts must be nonnegative integers within input/evaluation bounds.")
+  }
+  if (length(n_flagged) != 1L || (!is.na(n_flagged) &&
+      (!is.finite(n_flagged) || n_flagged != floor(n_flagged)))) {
+    stop("Method receipt flagged count must be an integer or NA.")
   }
   if (!is.na(n_flagged) && (n_flagged < 0 || n_flagged > n_evaluated)) {
     stop("Method receipt flagged count must be bounded by evaluated units.")
   }
   if (execution == "completed" &&
-      (n_evaluated < 1L || n_failed != 0L || n_evaluated != n_eligible || is.na(n_flagged))) {
+      (n_evaluated < 1L || n_failed != 0L || n_evaluated != n_eligible || is.na(n_flagged) ||
+       !applicability %in% c("eligible", "mixed"))) {
     stop("A completed method requires positive evaluated coverage and no failed units.")
   }
   if (execution == "partial" &&

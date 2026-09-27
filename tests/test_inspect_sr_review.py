@@ -22,6 +22,7 @@ from research_project.inspect_sr.review import (
     validate_judgment_set,
     validate_reviewer_submission,
 )
+from research_project.inspect_sr.validation import immutable_record_id
 
 
 def _all_answers(response: str = "No") -> list[dict[str, object]]:
@@ -166,6 +167,24 @@ def test_pending_checks_block_finalization_but_early_stop_is_explicit() -> None:
     assert remaining and all(
         item["workflow_status"] == "not_assessed_early_stop" for item in remaining
     )
+    altered = deepcopy(final)
+    altered["early_stop_reason"] = None
+    altered["judgments"]["overall"]["judgment"] = "no concerns"
+    altered["judgments"]["domains"] = [
+        {**domain, "judgment": "no concerns"} for domain in altered["judgments"]["domains"]
+    ]
+    altered["finalization_id"] = immutable_record_id(altered, "finalization_id", "finalization_")
+    with pytest.raises(ValueError, match="Early-stop"):
+        validate_finalization(altered, current_source_snapshot_sha256="a" * 64)
+
+
+def test_loaded_reviewer_submission_rejects_null_rationale_with_recomputed_identity() -> None:
+    first, _ = _submissions()
+    malformed = deepcopy(first)
+    malformed["checks"][0]["rationale"] = None
+    malformed["submission_id"] = immutable_record_id(malformed, "submission_id", "submission_")
+    with pytest.raises(ValueError, match="rationale"):
+        validate_reviewer_submission(malformed)
 
 
 def test_clear_finalization_accepts_unclear_as_completed_and_never_scores_yes_answers() -> None:
