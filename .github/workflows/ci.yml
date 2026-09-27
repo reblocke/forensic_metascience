@@ -80,7 +80,8 @@ jobs:
         run: bash scripts/run_offline_test_lane.sh native_r "$GITHUB_WORKSPACE/.venv/bin/python" -m pytest -q -m native_r --junitxml="$FM_TEST_ARTIFACT_DIR/junit.xml"
       - name: Enforce native R acceptance receipt
         if: always()
-        run: python scripts/check_pytest_junit.py \
+        run: |
+          python scripts/check_pytest_junit.py \
           "$FM_TEST_ARTIFACT_DIR/junit.xml" \
           "$FM_TEST_ARTIFACT_DIR/python-version.txt" \
           "$FM_TEST_ARTIFACT_DIR/r-packages.csv" \
@@ -150,7 +151,8 @@ jobs:
             --junitxml="$FM_TEST_ARTIFACT_DIR/junit.xml"
       - name: Enforce report/review acceptance receipt
         if: always()
-        run: python scripts/check_pytest_junit.py \
+        run: |
+          python scripts/check_pytest_junit.py \
           "$FM_TEST_ARTIFACT_DIR/junit.xml" \
           "$FM_TEST_ARTIFACT_DIR/python-version.txt" \
           "$FM_TEST_ARTIFACT_DIR/r-packages.csv" \
