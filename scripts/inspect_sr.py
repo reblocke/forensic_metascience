@@ -9,9 +9,11 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -58,11 +60,35 @@ def read_json(path: Path) -> Any:
 def read_records(path: Path) -> list[dict[str, Any]]:
     if path.suffix.lower() == ".csv":
         frame = pd.read_csv(path, dtype=str, keep_default_na=False)
-        return frame.to_dict(orient="records")
+        records = frame.to_dict(orient="records")
+        for record in records:
+            if record.get("schema_version") == "method_receipt_v4":
+                for field in ("n_input", "n_eligible", "n_evaluated", "n_failed"):
+                    record[field] = _parse_receipt_count(record.get(field), field)
+                record["n_flagged"] = _parse_receipt_count(
+                    record.get("n_flagged"), "n_flagged", nullable=True
+                )
+        return records
     value = read_json(path)
     if not isinstance(value, list) or any(not isinstance(row, dict) for row in value):
         raise ValueError(f"Expected a JSON list of records in {path}.")
     return value
+
+
+def _parse_receipt_count(value: Any, field: str, *, nullable: bool = False) -> int | None:
+    if nullable and value in {"", "NA", None}:
+        return None
+    if isinstance(value, bool):
+        raise ValueError(f"Method receipt {field} count must be a nonnegative integer.")
+    if isinstance(value, int):
+        number = value
+    elif isinstance(value, str) and re.fullmatch(r"[0-9]+", value):
+        number = int(value)
+    else:
+        raise ValueError(f"Method receipt {field} count must be a nonnegative integer.")
+    if number < 0:
+        raise ValueError(f"Method receipt {field} count must be a nonnegative integer.")
+    return number
 
 
 def write_exclusive(path: Path, value: Any) -> None:
@@ -88,6 +114,23 @@ def record_path(store: Path, folder: str, record_id: str, suffix: str = ".json")
     destination = root / folder / f"{record_id}{suffix}"
     if root not in destination.resolve().parents:
         raise ValueError("Private record destination escapes the private store.")
+    return destination
+
+
+def new_report_output(report_dir: Path, filename: str) -> Path:
+    report_root = report_dir.absolute()
+    resolved_root = report_dir.resolve()
+    private_root(resolved_root)
+    if report_root != resolved_root:
+        raise ValueError("Private report output directory cannot be a symlink.")
+    if not filename or Path(filename).name != filename:
+        raise ValueError("Private report output must be a simple filename.")
+    destination = report_dir / filename
+    resolved_destination = destination.resolve()
+    if report_root not in resolved_destination.parents:
+        raise ValueError("Private report output escapes its revision directory.")
+    if destination.exists() or destination.is_symlink():
+        raise ValueError(f"Private report output already exists or is redirected: {filename}.")
     return destination
 
 
@@ -443,27 +486,51 @@ def command_render(args: argparse.Namespace) -> None:
     report_dir = record_path(
         store / "reports", assessment["assessment_id"], args.revision, suffix=""
     )
-    model_path = report_dir / "report-model.json"
-    write_exclusive(model_path, model)
-    qmd = ROOT / "notebooks" / "inspect_sr_assessment.qmd"
-    copied_qmd = report_dir / qmd.name
     report_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(qmd, copied_qmd)
+    qmd = ROOT / "notebooks" / "inspect_sr_assessment.qmd"
     formats = ("html", "pdf") if args.format == "both" else (args.format,)
+    expected_outputs = ["report-model.json", qmd.name] + [
+        f"assessment.{output_format}" for output_format in formats
+    ]
+    for filename in expected_outputs:
+        new_report_output(report_dir, filename)
+
+    model_path = new_report_output(report_dir, "report-model.json")
+    write_exclusive(model_path, model)
+    copied_qmd = new_report_output(report_dir, qmd.name)
+    with copied_qmd.open("xb") as destination, qmd.open("rb") as source:
+        shutil.copyfileobj(source, destination)
     for output_format in formats:
         output_name = f"assessment.{output_format}"
+        new_report_output(report_dir, output_name)
         env = {
             **os.environ,
             "INSPECT_SR_REPORT_JSON": str(model_path.resolve()),
         }
-        subprocess.run(
-            ["quarto", "render", str(copied_qmd), "--to", output_format, "--output", output_name],
-            cwd=report_dir,
-            env=env,
-            check=True,
-        )
-        if not (report_dir / output_name).is_file():
-            raise RuntimeError(f"Quarto did not create the expected report: {output_name}")
+        with tempfile.TemporaryDirectory(prefix=".render-", dir=report_dir) as temporary:
+            temporary_dir = Path(temporary)
+            temporary_qmd = temporary_dir / qmd.name
+            shutil.copy2(copied_qmd, temporary_qmd)
+            subprocess.run(
+                [
+                    "quarto",
+                    "render",
+                    str(temporary_qmd),
+                    "--to",
+                    output_format,
+                    "--output",
+                    output_name,
+                ],
+                cwd=temporary_dir,
+                env=env,
+                check=True,
+            )
+            rendered = temporary_dir / output_name
+            if not rendered.is_file() or rendered.is_symlink():
+                raise RuntimeError(f"Quarto did not create a regular report: {output_name}")
+            output_path = new_report_output(report_dir, output_name)
+            with output_path.open("xb") as destination, rendered.open("rb") as source:
+                shutil.copyfileobj(source, destination)
     print(report_dir)
 
 

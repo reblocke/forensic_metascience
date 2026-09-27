@@ -435,6 +435,7 @@ def test_report_rejects_candidate_without_current_receipt_and_evidence() -> None
         )
 
 
+@pytest.mark.report_integration
 def test_inspect_sr_report_qmd_renders_html_and_pdf_in_requested_directory(tmp_path: Path) -> None:
     if not shutil.which("quarto"):
         if os.environ.get("FORENSICS_REQUIRE_REPORT_INTEGRATION") == "1":
@@ -530,7 +531,10 @@ def test_inspect_sr_report_qmd_renders_html_and_pdf_in_requested_directory(tmp_p
             assert "adjudication-fixture" in contents
 
 
-def test_private_prediction_review_renders_current_synthetic_inputs(tmp_path: Path) -> None:
+@pytest.mark.report_integration
+def test_private_prediction_review_renders_current_synthetic_inputs(
+    tmp_path: Path, preserve_synthetic_artifact
+) -> None:
     quarto = shutil.which("quarto")
     if not quarto:
         if os.environ.get("FORENSICS_REQUIRE_REPORT_INTEGRATION") == "1":
@@ -540,16 +544,37 @@ def test_private_prediction_review_renders_current_synthetic_inputs(tmp_path: Pa
     stale = tmp_path / "stale-run"
     current.mkdir()
     stale.mkdir()
-    for name in (
-        "review_summary.csv",
-        "review_table2_reproducibility.csv",
-        "review_table3_metric_checks.csv",
-        "review_calibration_checks.csv",
-        "review_flow_checks.csv",
-        "review_standardized_results.csv",
-    ):
-        (current / name).write_text("status\nCURRENT_PRIVATE_CANARY\n", encoding="utf-8")
-        (stale / name).write_text("status\nSTALE_PRIVATE_CANARY\n", encoding="utf-8")
+    fixtures = {
+        "review_summary.csv": (
+            "study_id,statcheck_rows,statcheck_errors,statcheck_decision_errors,"
+            "grim_incons_cases,grimmer_incons_cases,duplicate_flag_rows,rounding_bias_flags,"
+            "table2_reproducible_rows,table2_flagged_rows,exact_confusion_match_count,"
+            "best_confusion_total_abs_delta,calibration_displayed_expected_events,flow_failed_checks\n"
+            "CURRENT_PRIVATE_CANARY,1,0,0,0,0,0,0,2,0,1,0,14,0\n"
+        ),
+        "review_table2_reproducibility.csv": (
+            "variable,statistic,reported_value,recomputed_value,status\n"
+            "age,mean,51.2,51.2,reproducible\n"
+        ),
+        "review_table3_metric_checks.csv": (
+            "metric,reported_value,recomputed_value,compatible\nsensitivity,0.82,0.82,TRUE\n"
+        ),
+        "review_calibration_checks.csv": (
+            "decile,observed_events,expected_events,calibration_check\n1,2,1.8,compatible\n"
+        ),
+        "review_flow_checks.csv": (
+            "flow_step,reported_n,recomputed_n,arithmetic_check\nscreened,100,100,pass\n"
+        ),
+        "review_standardized_results.csv": (
+            "method_id,result_status,flag_count\nsynthetic_check,completed,0\n"
+        ),
+    }
+    for name, contents in fixtures.items():
+        (current / name).write_text(contents, encoding="utf-8")
+        (stale / name).write_text(
+            contents.replace("CURRENT_PRIVATE_CANARY", "STALE_PRIVATE_CANARY"),
+            encoding="utf-8",
+        )
     qmd = Path(__file__).parents[1] / "notebooks" / "prediction_validation_review.qmd"
     copied = current / qmd.name
     shutil.copy2(qmd, copied)
@@ -569,6 +594,9 @@ def test_private_prediction_review_renders_current_synthetic_inputs(tmp_path: Pa
             text=True,
         )
         assert (current / f"prediction.{fmt}").is_file()
+        preserve_synthetic_artifact(
+            f"private-prediction-review.{fmt}", current / f"prediction.{fmt}"
+        )
     html = (current / "prediction.html").read_text(encoding="utf-8")
     assert "CURRENT_PRIVATE_CANARY" in html
     assert "STALE_PRIVATE_CANARY" not in html

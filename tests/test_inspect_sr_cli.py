@@ -143,6 +143,66 @@ def test_csv_loader_preserves_identifiers_and_printed_precision(tmp_path: Path) 
     ]
 
 
+def test_csv_loader_decodes_only_method_receipt_numeric_fields(tmp_path: Path) -> None:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("inspect_sr_cli_receipt_csv", SCRIPT)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    path = tmp_path / "method_receipts.csv"
+    path.write_text(
+        "schema_version,run_id,source_id,raw_value,printed_p,n_input,n_eligible,"
+        "n_evaluated,n_failed,n_flagged\n"
+        "method_receipt_v4,run-1,00123,0.50,NA,2,0,0,0,NA\n",
+        encoding="utf-8",
+    )
+    record = module.read_records(path)[0]
+    assert record == {
+        "schema_version": "method_receipt_v4",
+        "run_id": "run-1",
+        "source_id": "00123",
+        "raw_value": "0.50",
+        "printed_p": "NA",
+        "n_input": 2,
+        "n_eligible": 0,
+        "n_evaluated": 0,
+        "n_failed": 0,
+        "n_flagged": None,
+    }
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("n_input", "1.5"), ("n_eligible", "-1"), ("n_evaluated", "NA")],
+)
+def test_csv_loader_rejects_invalid_method_receipt_counts(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("inspect_sr_cli_bad_receipt_csv", SCRIPT)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    counts = {name: "0" for name in ("n_input", "n_eligible", "n_evaluated", "n_failed")}
+    counts["n_input"] = "1"
+    counts["n_eligible"] = "1"
+    counts["n_evaluated"] = "1"
+    counts["n_flagged"] = "0"
+    counts[field] = value
+    path = tmp_path / "bad_method_receipts.csv"
+    path.write_text(
+        "schema_version,n_input,n_eligible,n_evaluated,n_failed,n_flagged\n"
+        "method_receipt_v4,{n_input},{n_eligible},{n_evaluated},{n_failed},{n_flagged}\n".format(
+            **counts
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="count"):
+        module.read_records(path)
+
+
 def test_private_record_path_rejects_absolute_and_traversal_ids(
     monkeypatch, tmp_path: Path
 ) -> None:

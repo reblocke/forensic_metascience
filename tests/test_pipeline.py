@@ -264,6 +264,7 @@ def test_meta_aggregates_versioned_randomization_producer_outputs(tmp_path: Path
     assert concerns.loc[0, "source_unit"] == "Table 1"
 
 
+@pytest.mark.report_integration
 def test_randomization_report_renders_only_current_run_inputs(tmp_path: Path) -> None:
     quarto = shutil.which("quarto")
     if quarto is None:

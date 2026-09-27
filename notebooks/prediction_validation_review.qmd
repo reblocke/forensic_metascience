@@ -4,6 +4,7 @@ format:
   pdf:
     toc: true
     number-sections: true
+    latex-auto-install: false
 execute:
   echo: true
   warning: false
