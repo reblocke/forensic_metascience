@@ -4,8 +4,8 @@ This map connects the supplied R01–R32 acceptance scenarios to executable
 coverage and required CI lanes. `Python` is the Python-only lane, `Native R`
 is the pinned package and R boundary lane, and `Report/review` is the Quarto
 and connected CLI lane. A local pass is evidence for that checkout only; FM-12
-closes only after all three hosted lanes pass on the final PR head and merged
-`main`.
+closed after all three hosted lanes passed on the final PR head and merged
+`main` ([merged-main run 36328679295](https://github.com/reblocke/forensic_metascience/actions/runs/36328679295)).
 
 | ID | Acceptance scenario | Test evidence | Required lane |
 |---|---|---|---|
@@ -68,5 +68,5 @@ The workflow writes per-lane JUnit, runtime/package inventories, source hashes,
 and explicitly allowlisted synthetic outputs to the CI artifact store. The
 connected report lane must have zero skips and retain synthetic HTML/PDF; private
 working stores are excluded. R33–R34 are not acceptance requirements for this
-repair: they remain deferred with FM-13. Hosted receipts and their final verified
-commit SHA are added to `docs/HANDOFF.md` before FM-12 can close.
+repair: they remain deferred with FM-13. The final PR-head and merged-main
+receipts and commit SHAs are recorded in `docs/HANDOFF.md`.

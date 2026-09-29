@@ -1,5 +1,11 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-09-29: Use the locked Python runtime and record the completed FM-12 gate
+
+- **Runtime decision:** Both shell entrypoints now invoke Python through `uv run --offline --locked python` for manifest operations and category stages. This removes their prior dependence on whichever system `python3` happened to be first on `PATH`. Registry network opt-in remains separate from dependency preparation; package resolution stays offline during execution.
+- **Affected outputs and migration:** No schema, scientific method, package pin, or historical output changes. New run-scoped outputs use the same contracts with the declared locked Python environment. Existing artifacts and human submissions are preserved.
+- **Acceptance status:** PR #5 merged at `ee121274f093df984803479fdce92385a9ad4596`; Python, native R, and report/review jobs passed on that merged commit in [run 36328679295](https://github.com/reblocke/forensic_metascience/actions/runs/36328679295). This supersedes older dated statements below that FM-12 or the PR is open. The blocked rounding-bias, sequence, and unimplemented SPRITE capabilities remain separate deferred items, not reasons to relabel the passed gate. See `docs/TODO.md`.
+
 ## 2026-09-27: Close follow-up evidence and validation findings before FM-12
 
 - **Candidate/report contract:** Candidate evidence advances to `inspect_sr_candidate_evidence_v2`, its dossier to `inspect_sr_candidate_dossier_v3`, and the report model to `inspect_sr_report_model_v3`. Candidates retain result identity, metric, numeric value, P value, nullable anomaly flag, source scope/locator, details, and native-output reference. Candidate IDs bind these fields and linked evidence. Reports show source raw values, unresolved mapping reasons, and early-stop rationale. These remain candidate records and never set official responses.

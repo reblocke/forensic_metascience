@@ -50,11 +50,12 @@ fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
+UV_PYTHON=(uv run --offline --locked python)
 export PYTHONPATH="$REPO_ROOT/src"
 export UV_OFFLINE=1
 export FORENSICS_DISABLE_SHARED_MANIFEST=true
 OUTPUT_ROOT="${OUTPUT_ROOT:-$REPO_ROOT/data/processed/forensics_runs/private_reviews}"
-OUTPUT_ROOT="$(python3 scripts/forensics_run.py validate-output --repo-root "$REPO_ROOT" --output-root "$OUTPUT_ROOT")"
+OUTPUT_ROOT="$("${UV_PYTHON[@]}" scripts/forensics_run.py validate-output --repo-root "$REPO_ROOT" --output-root "$OUTPUT_ROOT")"
 if [[ "$REPORT_PATH" != /* ]]; then REPORT_PATH="$REPO_ROOT/$REPORT_PATH"; fi
 
 if [ "$DRY_RUN" = true ]; then
@@ -77,7 +78,7 @@ RUN_ARGS=(
   --input "$REPORT_PATH" --required-input "$REPORT_PATH"
 )
 if [ -n "$RUN_ID" ]; then RUN_ARGS+=(--run-id "$RUN_ID"); fi
-RUN_ROOT="$(python3 scripts/forensics_run.py "${RUN_ARGS[@]}")"
+RUN_ROOT="$("${UV_PYTHON[@]}" scripts/forensics_run.py "${RUN_ARGS[@]}")"
 RUN_MANIFEST="$RUN_ROOT/run_manifest.json"
 REVIEW_DATA_DIR="$RUN_ROOT/processed"
 REVIEW_REPORT_DIR="$RUN_ROOT/reports"
@@ -86,30 +87,30 @@ finish_run_on_exit() {
   local exit_code=$?
   if [ -f "$RUN_MANIFEST" ]; then
     if [ "$exit_code" -eq 0 ]; then
-      python3 scripts/forensics_run.py update --manifest "$RUN_MANIFEST" --status completed >/dev/null
+      "${UV_PYTHON[@]}" scripts/forensics_run.py update --manifest "$RUN_MANIFEST" --status completed >/dev/null
     else
-      python3 scripts/forensics_run.py update --manifest "$RUN_MANIFEST" --stage "$CURRENT_STAGE" \
+      "${UV_PYTHON[@]}" scripts/forensics_run.py update --manifest "$RUN_MANIFEST" --stage "$CURRENT_STAGE" \
         --status failed --error "Private review stopped during $CURRENT_STAGE (exit $exit_code)" >/dev/null || true
-      python3 scripts/forensics_run.py update --manifest "$RUN_MANIFEST" --status failed \
+      "${UV_PYTHON[@]}" scripts/forensics_run.py update --manifest "$RUN_MANIFEST" --status failed \
         --error "Private review stopped during $CURRENT_STAGE (exit $exit_code)" >/dev/null || true
     fi
   fi
   return "$exit_code"
 }
 trap finish_run_on_exit EXIT
-python3 scripts/forensics_run.py update --manifest "$RUN_MANIFEST" \
+"${UV_PYTHON[@]}" scripts/forensics_run.py update --manifest "$RUN_MANIFEST" \
   --stage "$CURRENT_STAGE" --status running
 
-python3 scripts/extract_prediction_review.py \
+"${UV_PYTHON[@]}" scripts/extract_prediction_review.py \
   --report "$REPORT_PATH" --study-id "$STUDY_ID" \
   --review-type "$REVIEW_TYPE" --out "$REVIEW_DATA_DIR"
-python3 scripts/build_prediction_review_inputs.py \
+"${UV_PYTHON[@]}" scripts/build_prediction_review_inputs.py \
   --in "$REVIEW_DATA_DIR" --out "$REVIEW_DATA_DIR"
 Rscript scripts/run_numeric_forensics.R \
   --in "$REVIEW_DATA_DIR" --out "$REVIEW_REPORT_DIR" --scrutiny-seq false
-python3 scripts/extract_visual.py \
+"${UV_PYTHON[@]}" scripts/extract_visual.py \
   --report "$REPORT_PATH" --study-id "$STUDY_ID" --out "$REVIEW_DATA_DIR"
-python3 scripts/build_visual_inputs.py \
+"${UV_PYTHON[@]}" scripts/build_visual_inputs.py \
   --in "$REVIEW_DATA_DIR" --out "$REVIEW_DATA_DIR"
 Rscript scripts/run_visual_forensics.R \
   --in "$REVIEW_DATA_DIR" --out "$REVIEW_REPORT_DIR"
@@ -117,15 +118,15 @@ Rscript scripts/run_prediction_review_forensics.R \
   --in "$REVIEW_DATA_DIR" --out "$REVIEW_REPORT_DIR"
 for artifact in "$REVIEW_REPORT_DIR"/*; do
   if [ -f "$artifact" ]; then
-    python3 scripts/forensics_run.py update --manifest "$RUN_MANIFEST" --artifact "$artifact"
+    "${UV_PYTHON[@]}" scripts/forensics_run.py update --manifest "$RUN_MANIFEST" --artifact "$artifact"
   fi
 done
-python3 scripts/forensics_run.py update --manifest "$RUN_MANIFEST" \
+"${UV_PYTHON[@]}" scripts/forensics_run.py update --manifest "$RUN_MANIFEST" \
   --stage "$CURRENT_STAGE" --status completed
 
 if [ "$RENDER_REPORT" = true ]; then
   CURRENT_STAGE="prediction_validation_report"
-  python3 scripts/forensics_run.py update --manifest "$RUN_MANIFEST" \
+  "${UV_PYTHON[@]}" scripts/forensics_run.py update --manifest "$RUN_MANIFEST" \
     --stage "$CURRENT_STAGE" --status running
   (
     cd "$REVIEW_REPORT_DIR"
@@ -134,9 +135,9 @@ if [ "$RENDER_REPORT" = true ]; then
       quarto render "$REPO_ROOT/notebooks/prediction_validation_review.qmd" \
       --to pdf --output "${STUDY_ID}_prediction_validation_review_v1.pdf"
   )
-  python3 scripts/forensics_run.py update --manifest "$RUN_MANIFEST" \
+  "${UV_PYTHON[@]}" scripts/forensics_run.py update --manifest "$RUN_MANIFEST" \
     --artifact "$REVIEW_REPORT_DIR/${STUDY_ID}_prediction_validation_review_v1.pdf"
-  python3 scripts/forensics_run.py update --manifest "$RUN_MANIFEST" \
+  "${UV_PYTHON[@]}" scripts/forensics_run.py update --manifest "$RUN_MANIFEST" \
     --stage "$CURRENT_STAGE" --status completed
 fi
 printf 'Completed private review run: %s\n' "$RUN_ROOT"

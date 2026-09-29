@@ -153,16 +153,9 @@ human judgments only when the local snapshot, all referenced evidence, both
 stored reviewer submissions, adjudication, and finalization validate together.
 The `render` CLI command creates the private model and HTML/PDF under
 `data/private/inspect_sr/reports/<assessment-id>/<revision>/`. The QMD reads
-only that explicit model through `INSPECT_SR_REPORT_JSON`; a direct Quarto
-render is suitable only for inspecting an already validated private model:
-
-```bash
-mkdir -p data/private/inspect_sr/reports
-cp notebooks/inspect_sr_assessment.qmd data/private/inspect_sr/reports/
-(cd data/private/inspect_sr/reports && \
-  INSPECT_SR_REPORT_JSON="../review-model.json" quarto render \
-  inspect_sr_assessment.qmd --to html --output review.html)
-```
+only that explicit model through `INSPECT_SR_REPORT_JSON`. Use the CLI for
+current finalized reviews so snapshot and reference validation run before
+rendering; invoking Quarto directly does not establish finalization.
 
 The rendered overview, full checks, evidence locators and alternatives, method
 receipts, reviewer history, adjudication, and unresolved checks are all report
@@ -185,6 +178,6 @@ fields; approver identity remains in the private export receipt.
 
 No domain or overall judgment is computed by this package. There is no universal
 synthesis policy. See [`INSPECT_SR_ACCEPTANCE.md`](INSPECT_SR_ACCEPTANCE.md) for
-the R01–R32 test map. FM-12 remains open until all three hosted lanes pass on the
-same final PR head and merged `main`, with current-run HTML/PDF acceptance and
-no skipped required coverage.
+the R01–R32 test map. FM-12 closed after all three hosted lanes passed on the
+final PR head and merged `main`, including current-run HTML/PDF acceptance with
+no skipped required coverage. The merged-main receipt is in `HANDOFF.md`.

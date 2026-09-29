@@ -50,7 +50,7 @@ Use `docs/TASK_TEMPLATE.md`.
 ### 1.2 Create a safe workspace
 For non-trivial work:
 ```bash
-git checkout -b feat/my-task
+git switch -c codex/my-task
 # optional: checkpoint commit before letting the agent make large edits
 ```
 
@@ -118,13 +118,15 @@ Once the result looks correct:
 - add docs (README + docstrings + `docs/DECISIONS.md`)
 
 ## 6) Ship
-Before merging:
+Before merging, use the offline Python lane and output-free orchestration
+preview. Run the separate native R and report/review lanes named in
+`docs/INSPECT_SR_ACCEPTANCE.md` when their interfaces change; use only synthetic,
+run-scoped inputs for report renders.
 ```bash
-uv run ruff check .
-uv run ruff format .
-uv run pytest -q
-bash scripts/run_pipeline.sh
-quarto render notebooks  # if .qmd files changed
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -m 'not native_r and not report_integration'
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+bash scripts/run_pipeline.sh --forensics all --dry-run --offline
 ```
 
 Then open a PR with:

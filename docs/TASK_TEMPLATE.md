@@ -19,10 +19,11 @@
 ## Definition of done
 - Tests added/updated:
 - Commands passing:
-  - `uv run pytest -q`
-  - `uv run ruff check .`
-  - `bash scripts/run_pipeline.sh`
-  - `quarto render notebooks` (if `.qmd` files changed)
+  - `UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -m 'not native_r and not report_integration'`
+  - `UV_OFFLINE=1 uv run --offline --locked ruff check .`
+  - `UV_OFFLINE=1 uv run --offline --locked ruff format . --check`
+  - `bash scripts/run_pipeline.sh --forensics all --dry-run --offline`
+  - Native R and synthetic Quarto HTML/PDF lanes when their interfaces change (see `docs/INSPECT_SR_ACCEPTANCE.md`)
 - Outputs generated (where):
 - Package provenance captured (where):
 - Quarto/report artifacts generated (where):

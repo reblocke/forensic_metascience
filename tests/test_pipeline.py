@@ -47,6 +47,53 @@ def test_forensics_pipeline_help_and_dry_run_are_output_free(tmp_path: Path) -> 
     assert not dry_run_root.exists()
 
 
+@pytest.mark.parametrize(
+    ("script_name", "arguments"),
+    [
+        ("run_pipeline.sh", ["--forensics", "numeric"]),
+        (
+            "run_manuscript_review.sh",
+            [
+                "--study-id",
+                "private_x",
+                "--report",
+                "missing.pdf",
+                "--review-type",
+                "prediction_validation",
+            ],
+        ),
+    ],
+)
+def test_shell_entrypoints_use_locked_python_instead_of_incidental_system_python(
+    tmp_path: Path, script_name: str, arguments: list[str]
+) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    fake_bin = tmp_path / "fake-bin"
+    fake_bin.mkdir()
+    incidental_python = fake_bin / "python3"
+    incidental_python.write_text("#!/bin/sh\necho incidental-python-invoked >&2\nexit 97\n")
+    incidental_python.chmod(0o755)
+    output_root = repo_root / "data/processed" / f"{script_name}_interpreter_test"
+    result = subprocess.run(
+        [
+            "bash",
+            str(repo_root / "scripts" / script_name),
+            *arguments,
+            "--dry-run",
+            "--offline",
+            "--output-root",
+            str(output_root),
+        ],
+        capture_output=True,
+        text=True,
+        env={**os.environ, "PATH": f"{fake_bin}:{os.environ['PATH']}", "UV_OFFLINE": "1"},
+    )
+    assert result.returncode == 0, result.stderr
+    assert "incidental-python-invoked" not in result.stderr
+    assert "python3 scripts/" not in (repo_root / "scripts" / script_name).read_text()
+    assert not output_root.exists()
+
+
 def test_run_manifest_is_fresh_hashes_inputs_and_refuses_collision(tmp_path: Path) -> None:
     source = tmp_path / "source.pdf"
     config = tmp_path / "study.sh"
