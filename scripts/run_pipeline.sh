@@ -174,6 +174,7 @@ render_study_report() {
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
+UV_PYTHON=(uv run --offline --locked python)
 
 if [[ ! "$STUDY_ID" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$ ]]; then
   echo "Invalid study ID: $STUDY_ID" >&2
@@ -214,7 +215,7 @@ elif [ "$ALLOW_NETWORK" = false ]; then
 fi
 
 OUTPUT_ROOT="${OUTPUT_ROOT:-$REPO_ROOT/data/processed/forensics_runs}"
-OUTPUT_ROOT="$(PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py validate-output \
+OUTPUT_ROOT="$(PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/forensics_run.py validate-output \
   --repo-root "$REPO_ROOT" --output-root "$OUTPUT_ROOT")"
 REQUIRED_SOURCES=()
 if has_category randomization; then
@@ -285,7 +286,7 @@ if has_category visual && [ "$DIGITIZE_PLOTS" = true ] && \
 fi
 for run_input in "${RUN_INPUTS[@]}"; do RUN_INIT_ARGS+=(--input "$run_input"); done
 if [ -n "$RUN_ID" ]; then RUN_INIT_ARGS+=(--run-id "$RUN_ID"); fi
-RUN_ROOT="$(PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py "${RUN_INIT_ARGS[@]}")"
+RUN_ROOT="$(PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/forensics_run.py "${RUN_INIT_ARGS[@]}")"
 RUN_MANIFEST="$RUN_ROOT/run_manifest.json"
 PROCESSED_ROOT="$RUN_ROOT/processed"
 REPORTS_ROOT="$RUN_ROOT/reports"
@@ -295,13 +296,13 @@ finish_run_on_exit() {
   local exit_code=$?
   if [ -n "${RUN_MANIFEST:-}" ] && [ -f "$RUN_MANIFEST" ]; then
     if [ "$exit_code" -eq 0 ]; then
-      PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
+      PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/forensics_run.py update \
         --manifest "$RUN_MANIFEST" --status completed >/dev/null
     else
-      PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
+      PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/forensics_run.py update \
         --manifest "$RUN_MANIFEST" --stage "$CURRENT_STAGE" --status failed \
         --error "Pipeline stopped during $CURRENT_STAGE (exit $exit_code)" >/dev/null || true
-      PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
+      PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/forensics_run.py update \
         --manifest "$RUN_MANIFEST" --status failed \
         --error "Pipeline stopped during $CURRENT_STAGE (exit $exit_code)" >/dev/null || true
     fi
@@ -312,17 +313,17 @@ trap finish_run_on_exit EXIT
 
 stage_begin() {
   CURRENT_STAGE="$1"
-  PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/forensics_run.py update \
     --manifest "$RUN_MANIFEST" --stage "$CURRENT_STAGE" --status running
 }
 stage_complete() {
   local stage="$1"
   shift
   for artifact in "$@"; do
-    PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
+    PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/forensics_run.py update \
       --manifest "$RUN_MANIFEST" --artifact "$artifact"
   done
-  PYTHONPATH="$REPO_ROOT/src" python3 scripts/forensics_run.py update \
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/forensics_run.py update \
     --manifest "$RUN_MANIFEST" --stage "$stage" --status completed
 }
 
@@ -354,7 +355,7 @@ run_randomization_category() {
   mkdir -p "$RANDOMIZATION_DATA_DIR" "$RANDOMIZATION_REPORT_DIR"
   stage_begin randomization_methods
 
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/build_randomization_inputs.py \
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/build_randomization_inputs.py \
     --in "$RANDOMIZATION_DATA_DIR/table1_long.csv" \
     --out "$RANDOMIZATION_DATA_DIR"
 
@@ -396,7 +397,7 @@ run_baseline_extraction() {
     require_file "$PROTOCOL_PDF" "randomization extraction"
     BASELINE_ARGS+=(--protocol "$PROTOCOL_PDF")
   fi
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_randomization_table1.py "${BASELINE_ARGS[@]}"
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/extract_randomization_table1.py "${BASELINE_ARGS[@]}"
   BASELINE_READY=true
   stage_complete baseline_extraction "$RANDOMIZATION_DATA_DIR/table1_long.csv"
 }
@@ -409,7 +410,7 @@ run_numeric_category() {
   mkdir -p "$NUMERIC_DATA_DIR" "$NUMERIC_REPORT_DIR"
   stage_begin numeric_methods
 
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_numeric.py \
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/extract_numeric.py \
     --table1 "$RANDOMIZATION_DATA_DIR/table1_long.csv" \
     --report-pdf "$REPORT_PDF" \
     --source-pdf-path "$BASELINE_PDF" \
@@ -417,13 +418,13 @@ run_numeric_category() {
     --source-pdf "$(basename "$BASELINE_PDF")" \
     --out "$NUMERIC_DATA_DIR"
 
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_numeric_summary_tables.py \
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/extract_numeric_summary_tables.py \
     --report "$REPORT_PDF" \
     --trial-id "$TRIAL_ID" \
     --source-pdf "$(basename "$REPORT_PDF")" \
     --out "$NUMERIC_DATA_DIR"
 
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/build_numeric_inputs.py \
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/build_numeric_inputs.py \
     --in "$NUMERIC_DATA_DIR" \
     --out "$NUMERIC_DATA_DIR"
 
@@ -480,14 +481,14 @@ run_registration_category() {
     REGISTRY_ARGS+=(--publication-pmid "$PUBLICATION_PMID")
   fi
 
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_registration.py \
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/extract_registration.py \
     --report "$REPORT_PDF" \
     --protocol "$PROTOCOL_PDF" \
     --study-id "$STUDY_ID" \
     --out "$REG_DATA_DIR" \
     "${REGISTRY_ARGS[@]}"
 
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/build_registration_inputs.py \
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/build_registration_inputs.py \
     --in "$REG_DATA_DIR" \
     --out "$REG_DATA_DIR"
 
@@ -518,7 +519,7 @@ run_visual_category() {
   mkdir -p "$VISUAL_DATA_DIR" "$VISUAL_REPORT_DIR"
   stage_begin visual_methods
 
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_visual.py \
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/extract_visual.py \
     --report "$REPORT_PDF" \
     --study-id "$STUDY_ID" \
     --out "$VISUAL_DATA_DIR"
@@ -528,7 +529,7 @@ run_visual_category() {
       mkdir -p "$DIGITIZE_TARGET_ROOT/$STUDY_ID"
       cp "$SOURCE_DIGITIZE_TARGETS" "$DIGITIZE_TARGETS"
     fi
-    PYTHONPATH="$REPO_ROOT/src" uv run python scripts/init_plot_digitization_targets.py \
+    PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/init_plot_digitization_targets.py \
       --study-id "$STUDY_ID" \
       --out-root "$DIGITIZE_TARGET_ROOT"
 
@@ -538,7 +539,7 @@ run_visual_category() {
       --out "$DIGITIZE_OUTPUT"
   fi
 
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/build_visual_inputs.py \
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/build_visual_inputs.py \
     --in "$VISUAL_DATA_DIR" \
     --out "$VISUAL_DATA_DIR"
 
@@ -571,7 +572,7 @@ run_transparency_category() {
   if [ -f "$SUPPLEMENT_PDF" ]; then TRANSPARENCY_SOURCE_ARGS+=(--supplement "$SUPPLEMENT_PDF"); fi
   if [ -f "$BASELINE_PDF" ]; then TRANSPARENCY_SOURCE_ARGS+=(--baseline "$BASELINE_PDF"); fi
 
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_transparency.py \
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/extract_transparency.py \
     "${TRANSPARENCY_SOURCE_ARGS[@]}" \
     --study-id "$STUDY_ID" \
     --study-title "$STUDY_TITLE" \
@@ -583,7 +584,7 @@ run_transparency_category() {
     --publication-pmid "$PUBLICATION_PMID" \
     --out "$TRANSPARENCY_DATA_DIR"
 
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/build_transparency_inputs.py \
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/build_transparency_inputs.py \
     --in "$TRANSPARENCY_DATA_DIR" \
     --out "$TRANSPARENCY_DATA_DIR"
 
@@ -616,7 +617,7 @@ run_meta_category() {
   mkdir -p "$META_DATA_DIR" "$META_REPORT_DIR"
   stage_begin meta_aggregation
 
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/extract_meta.py \
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/extract_meta.py \
     --study-id "$STUDY_ID" \
     --repo-root "$REPO_ROOT" \
     --reports-root "$REPORTS_ROOT" \
@@ -624,7 +625,7 @@ run_meta_category() {
     --requested-categories "$META_REQUESTED_CATEGORIES" \
     --out "$META_DATA_DIR"
 
-  PYTHONPATH="$REPO_ROOT/src" uv run python scripts/build_meta_inputs.py \
+  PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/build_meta_inputs.py \
     --in "$META_DATA_DIR" \
     --out "$META_DATA_DIR"
 
