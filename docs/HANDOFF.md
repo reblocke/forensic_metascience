@@ -1,5 +1,43 @@
 # Handoff (for multi-session work)
 
+## Current status — 2026-09-29
+
+PR [#5](https://github.com/reblocke/forensic_metascience/pull/5) merged as
+`ee121274f093df984803479fdce92385a9ad4596`. The final PR head
+`3c37db62f31be421fa83f9721ec7907b1d9bfe25` passed the
+[push run 36327764042](https://github.com/reblocke/forensic_metascience/actions/runs/36327764042)
+and [PR run 36327766774](https://github.com/reblocke/forensic_metascience/actions/runs/36327766774).
+All three required jobs passed again on merged `main` in
+[run 36328679295](https://github.com/reblocke/forensic_metascience/actions/runs/36328679295):
+[`python-fast`](https://github.com/reblocke/forensic_metascience/actions/runs/36328679295/job/108646284009),
+[`native-r`](https://github.com/reblocke/forensic_metascience/actions/runs/36328679295/job/108646283833),
+and [`report-review`](https://github.com/reblocke/forensic_metascience/actions/runs/36328679295/job/108646283969).
+FM-01–FM-12 and FM-14 are closed against that acceptance map and hosted gate.
+FM-13 remains deferred. The 2026-09-27 checkpoints and older open-status
+statements below are historical; they do not describe the current release.
+
+This follow-up consolidates checkout/branch state and corrects the two shell
+launchers to use locked offline `uv` Python for every Python stage. The focused
+regression first failed twice (`incidental-python-invoked` from a simulated
+system Python), then passed twice after the fix:
+
+```bash
+PYTHONPATH=src UV_OFFLINE=1 uv run --offline pytest -q -o addopts='' tests/test_pipeline.py::test_shell_entrypoints_use_locked_python_instead_of_incidental_system_python
+bash -n scripts/run_pipeline.sh scripts/run_manuscript_review.sh
+```
+
+No scientific method, schema, or historical result changed. The affected
+outputs are only new runs made through those entrypoints; their Python stages
+now consistently use the locked environment. `run-b2.html` remains untracked;
+its starting SHA-256 is
+`2be30454a0a1a24390a18c994fe669dc22682d4a9eda4b074b18351a362f6035`.
+The clean detached baseline worktree was removed. Merged branch heads were
+retired; the nonancestor patch-equivalent PR #1 head remains reachable through
+`archive/llm-readiness-pr1-0d46330` (peeled commit
+`0d46330878640847abb51d255f5c96b87d55c9d3`). See `docs/TODO.md` for
+deferred work. Current correction PR and post-merge verification receipts will
+be added here after the hosted lanes run.
+
 ## Current release status — 2026-09-27
 
 ### Verified hosted checkpoint
