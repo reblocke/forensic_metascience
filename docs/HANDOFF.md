@@ -2,6 +2,33 @@
 
 ## Current status — 2026-09-29
 
+### Post-merge verification of PR #7
+
+PR [#7](https://github.com/reblocke/forensic_metascience/pull/7) merged with
+history preserved at `a5ea62a37b996f7c41080bee78abb36e3ad51c2c`, matching
+verified final head `5b2d18a31e8ed3516c3dfe81330f3b9043d7a5da`.
+That exact head passed all three jobs in
+[run 36620814836](https://github.com/reblocke/forensic_metascience/actions/runs/36620814836).
+The merged commit passed [run 36622448626](https://github.com/reblocke/forensic_metascience/actions/runs/36622448626):
+[Python](https://github.com/reblocke/forensic_metascience/actions/runs/36622448626/job/109590974435),
+[native R](https://github.com/reblocke/forensic_metascience/actions/runs/36622448626/job/109590974627),
+and [report/review](https://github.com/reblocke/forensic_metascience/actions/runs/36622448626/job/109590974691).
+Downloaded JUnit receipts on merged `main` showed 147 / 13 / 5 tests, each
+with zero failures, errors, or skips. Their SHA-256 values were
+`359fa5630426dc2f811496cd3bf996e0131d3886ec33236d8662014361dc1395`,
+`fa61418001703eeda8cdd9fbb046fc7e1d151215a498554cfe32734c050436c8`,
+and `82220f845e5ef0ab781a4d4008207ef2f33b732e638c1c1159119b2e0ab9bd7c`.
+Allowlisted artifact IDs/digests were Python `11059595846` /
+`a738159fc281852019c36446ff4cf8541591f5b30a0845d842b46f829593eaa8`,
+native R `11059457829` /
+`e2b5016da9812dbb199968877b3b5daaa5e7664ba401e0dd65f5ab274f99791e`,
+and report/review `11059058505` /
+`122607035819d209277e39842fc9075c453a8736a45d444194ac2019ddc9f36b`.
+No private working store was uploaded. The primary checkout and remote have
+only the `main` branch head, and `run-b2.html` retains the hash below. This
+receipt-only documentation update introduces no method or output change; its
+new commit must also pass all three hosted lanes before final handoff.
+
 PR [#5](https://github.com/reblocke/forensic_metascience/pull/5) merged as
 `ee121274f093df984803479fdce92385a9ad4596`. The final PR head
 `3c37db62f31be421fa83f9721ec7907b1d9bfe25` passed the
