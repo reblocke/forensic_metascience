@@ -35,8 +35,61 @@ The clean detached baseline worktree was removed. Merged branch heads were
 retired; the nonancestor patch-equivalent PR #1 head remains reachable through
 `archive/llm-readiness-pr1-0d46330` (peeled commit
 `0d46330878640847abb51d255f5c96b87d55c9d3`). See `docs/TODO.md` for
-deferred work. Current correction PR and post-merge verification receipts will
-be added here after the hosted lanes run.
+deferred work. A recheck after the branch cleanup found only `main` and the
+temporary correction branch on the remote, and one active local worktree.
+
+### Correction PR #7 verification checkpoint
+
+The first correction head `2d19a08df4209f2ba79df29d7dcd3a10c331ac37`
+passed all three hosted jobs in
+[PR run 36619195602](https://github.com/reblocke/forensic_metascience/actions/runs/36619195602):
+[Python](https://github.com/reblocke/forensic_metascience/actions/runs/36619195602/job/109579931588),
+[native R](https://github.com/reblocke/forensic_metascience/actions/runs/36619195602/job/109579932060),
+and [report/review](https://github.com/reblocke/forensic_metascience/actions/runs/36619195602/job/109579932111).
+The allowlisted artifacts were Python `11058081176` (archive SHA-256
+`241c6e1e7462f56cd9165fcdded23b878d064a0fda3c2161113e0d7998dec5d1`),
+native R `11058222889` (`9c7fe9faa115002d981e7c5e034e1a89ee56efe2bd44a46f0da257fdf37503bf`),
+and report/review `11058277730` (`a31007eaee7137689e9a895649e8931d9121a68c9c462d02f366f451e894f327`).
+Downloaded JUnit receipts showed 147 / 13 / 5 tests respectively, with zero
+failures, errors, or skips. JUnit SHA-256 values were Python
+`8dc50156bb083b51ba2d94bb4319b767876164b87ee057f0b3149d6d1078ef08`,
+native R `8438e5a3349c1caf861ba821818e016d91f204d7c089115d13df3160fe3504f4`,
+and report/review `17800cff0b6249fdac16481856c0800d1808a951ae50700115dcbc5abbdfb728`.
+Hosted runtimes were Python 3.11.16, R 4.6.0, Quarto 1.9.37; method packages
+were `scrutiny` 0.6.2, `statcheck` 1.5.0, and `simdistr` 1.0.1. Source SHA-256
+values were `b0826ae470e0a009c6fce9486500a1a7232ff9bc87203c0d71d38206da839619`
+for the R lock file and `76de5b5be8938b2329439f78c86ac4debe32f0fc7e42f843a8ead8ea9aae9c56`
+for the guidance sums. Native receipt/result SHA-256 values were
+`1c28fd26544c42a0057beeaf928e8e5c038a8596b8cdf952edfa6bafd1fe6dfa`
+and `4eaf89de97750e10cbdc6cdc29a5fa7efecdedfcd2a86da705e703e025b8801e`.
+Finalized INSPECT-SR HTML/PDF hashes were
+`904863de7d8bf0cb3f0496a3816ecb5d086e5d10fb3e5b4ee2d9e665e30d6332`
+and `9148c5482741d3bd5194ea71592f91ffe943eb91b4b126dcd2aa915856bc81c4`;
+private prediction-review HTML/PDF hashes were
+`670130a59e289988ef4ad8798101be96a42e3f33fc048c8168e37b5ee2f80e60`
+and `85b2a7cbb43d5d03a8a938dd55b792b8dc26a63b99bc048f03e5c36da7f1aaac`.
+No private working store was uploaded.
+
+Local commands on that head, without source-paper analysis:
+
+```bash
+PYTHONPATH=src UV_OFFLINE=1 uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration'   # 147 passed, 18 deselected
+FORENSICS_REQUIRE_R_INTEGRATION=1 R_LIBS_USER=/tmp/fm-inspect-r.locked-library PYTHONPATH=src UV_OFFLINE=1 uv run --offline --locked pytest -q -o addopts='' -m native_r   # 13 passed, 152 deselected
+FORENSICS_REQUIRE_R_INTEGRATION=1 FORENSICS_REQUIRE_REPORT_INTEGRATION=1 R_LIBS_USER=/tmp/fm-inspect-r.locked-library PYTHONPATH=src UV_OFFLINE=1 uv run --offline --locked pytest -q -o addopts='' -m report_integration   # 5 passed, 160 deselected
+UV_OFFLINE=1 uv run --offline --locked ruff check .   # passed
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check   # 63 files already formatted
+bash -n scripts/run_pipeline.sh scripts/run_manuscript_review.sh   # passed
+bash scripts/run_pipeline.sh --forensics all --dry-run --offline   # passed, no run created
+bash scripts/run_manuscript_review.sh --study-id private_x --report missing.pdf --review-type prediction_validation --dry-run --offline   # passed, no run created
+git diff --check main...HEAD   # passed
+```
+
+The local default R library did not contain `scrutiny`; selecting the existing
+isolated library loaded the approved package versions and all native tests
+passed. GitHub action/runner migration warnings are recorded in `docs/TODO.md`.
+This receipt is a checkpoint for the code head above. The documentation-only
+receipt update requires all three hosted lanes on its new exact head and again
+after merge to `main`.
 
 ## Current release status — 2026-09-27
 
