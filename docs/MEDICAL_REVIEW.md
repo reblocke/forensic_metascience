@@ -473,9 +473,18 @@ presentation of supplied labels, not automatic source-semantic classification.
 Long display values include 64-character hashes; wrapping preserves every
 character and never changes the JSON identity or original source bytes.
 Long field labels or unbroken values use separate paragraphs so the label does
-not consume the value's available PDF width. Original-source navigation is still
-part of the remaining WP4 acceptance audit; retained IDs/locators alone are not
-claimed as completed clickable-source access.
+not consume the value's available PDF width.
+
+New reports include protected original-source links and links beside exact cited
+evidence. Targets are derived only from the rechecked bundle, retain the original
+source version/hash, and use encoded paths relative to the private report layout.
+Custom private output-root depth is recorded and validated; public destinations
+remain refused. A declared zero-based PDF page index adds a one-based `#page=`
+target; unknown page indices and non-PDF sources do not acquire invented pages.
+Missing or permission-excluded sources stay explicitly unavailable without links.
+Links neither fetch a source nor establish extraction fidelity or human review.
+Historical renderer-bound reports may predate this additive navigation record;
+they remain historical and are not rewritten on read.
 
 All formats distinguish model dispositions from operator-attested human decisions,
 retain unknown coverage and show numerical input-review status separately from

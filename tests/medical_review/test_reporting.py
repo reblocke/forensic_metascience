@@ -391,6 +391,15 @@ def test_medical_current_model_renders_major_concern_and_caveat_html_pdf(
     for text in ("proposed_transcription", "qualified method result", "false"):
         assert text in html and text in pdf
     stored = json.loads((output / "processed/medical_review/report_model.json").read_text())
+    href = stored["source_navigation"]["documents"][0]["href"]
+    assert f'href="{href}"' in html
+    source_targets = [
+        str(annotation.get_object().get("/A", {}).get("/URI", ""))
+        for page in PdfReader(pdf_path).pages
+        for annotation in page.get("/Annots", [])
+    ]
+    assert href in source_targets
+    assert "Open original source" in pdf
     assert stored["arithmetic_results"][0]["qualified_method_result"] is False
     assert stored["manual_adoption_packet"]["arithmetic_result_ids"] == [
         stored["arithmetic_results"][0]["result_id"]

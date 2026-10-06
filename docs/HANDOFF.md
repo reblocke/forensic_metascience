@@ -1,5 +1,55 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 WP4 original-source navigation checkpoint (milestone still incomplete)
+
+After safeguard checkpoint `30cbeeb`, reports now contain protected links to the
+exact original document versions and exact cited evidence. The additive
+navigation record stores repo-relative targets, version/hash, availability and
+the private output root. Links are encoded and resolve correctly from default
+and nested private report roots. Known zero-based PDF page indices become
+one-based navigation targets; unknown pages/non-PDF files receive no invented
+page target. Sources are hash/containment-rechecked; no lookup, transmission or
+extra filesystem access is authorized by a link. Missing sources have no link.
+Historical renderer-bound reports may lack navigation and remain unmodified on
+read. The report loader checks its navigation base against the actual run root.
+
+Five navigation cases failed before implementation (missing navigation contract
+and unsupported link-base argument). After implementation, nine focused cases
+passed in 8.37s, including changed-source/symlink refusal, encoded Unicode/reserved
+filenames, custom output depths and historical-field compatibility. The earlier
+combined report/navigation reproduction passed 18 cases, two report integration
+cases deselected, in 28.15s. One search referenced a nonexistent test filename;
+the actual inventory identified the existing modules and the new focused file.
+
+Final local gates, after all code/test changes and without added dependencies:
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration' --junitxml=/tmp/fm-med-wp4-navigation-python-final.xml
+# 315 passed, 21 deselected, 158.11s; zero failures/errors/skips.
+R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_R_INTEGRATION=1 FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp4-navigation-native-artifacts-final UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m native_r --junitxml=/tmp/fm-med-wp4-navigation-native-final.xml
+# 14 passed, 322 deselected, 30.20s; zero failures/errors/skips.
+PATH=/Applications/quarto/bin/tools:$PATH RSTUDIO_PANDOC=/Applications/quarto/bin/tools R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_REPORT_INTEGRATION=1 FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp4-navigation-report-artifacts-final UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m report_integration --junitxml=/tmp/fm-med-wp4-navigation-report-final.xml
+# 7 passed, 329 deselected, 76.74s; zero failures/errors/skips.
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+git diff --check
+# Clean; 93 Python files formatted.
+pdftoppm -scale-to 1200 -png /tmp/fm-med-wp4-navigation-report-artifacts-final/medical-review.pdf /tmp/fm-med-wp4-navigation-report-qc-final/page
+pdftoppm -scale-to 1200 -png /tmp/fm-med-wp4-navigation-report-artifacts-final/medical-native-review.pdf /tmp/fm-med-wp4-navigation-native-qc-final/page
+# Output directories were created first; all 13/23 actual PDF pages inspected.
+```
+
+Actual HTML contains the expected source hrefs and PDF annotations contain the
+same destinations; source-link text is visible. All final pages were inspected,
+including full-size checks where contact-sheet resizing was ambiguous. No clipped
+values were observed in these synthetic reports; this is layout/navigation QA,
+not evidence of medical source fidelity or clinical performance. The WP4 diff
+against WP3 leaves R engines, INSPECT-SR adapters/records, the old manuscript
+runner and dependency manifests unchanged. Final delivered-head hosted gates
+and the full WP4 requirement audit remain required, followed by WP5 evaluation
+readiness. No live run/search, human adjudication, new qualification or main merge
+occurred. Keep the full goal active.
+
 ## 2026-10-06 WP4 safeguard/report checkpoint (milestone still incomplete)
 
 The active goal and `codex/medical-review-verification-reporting` checkout were

@@ -1,5 +1,11 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Bind original-source navigation to protected versions and report roots
+
+- **Scope:** New private report models include an additive navigation record derived only from their source bundle. Original sources are rechecked for hashes/containment before generating links; unavailable documents never receive a path. The scope/source index and exact evidence references open the original version, preserving source IDs, hashes and locators rather than replacing them with a hyperlink identity.
+- **Paths:** Encoded repo-relative targets resolve from the canonical `<output-root>/<study>/<run>/reports/medical_review` layout, including custom private output depths. The stored root is validated against the actual report run on read. Model-supplied URLs, fuzzy references and unrelated filesystem paths cannot become link targets. No retrieval, execution or transmission is introduced.
+- **Pages and history:** PDF targets use a declared zero-based page index only, converted to one-based navigation. An unknown index or non-PDF source has no invented page target; a link is not visual/source-semantic verification. Historical reports bound to an older renderer may lack navigation and remain readable without rewriting original artifacts. Existing proposal, source, numerical and human identities are unchanged.
+
 ## 2026-10-06: Pin verification/editor templates and exercise paired medical safeguards
 
 - **Prompt scope:** Require reviewed counterevidence/editor template hashes alongside the existing module prompts. New plans/replays bind their bytes; tampering or omitted stage provenance fails closed. Templates grant no execution or search permission. Counterevidence remains supplied offline and reports remain deterministic; no editor backend is enabled.

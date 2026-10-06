@@ -10,12 +10,14 @@ import re
 import subprocess
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from research_project.medical_review.audit import (
     load_dossier,
     load_human_history,
     validate_human_record,
 )
+from research_project.medical_review.bundle import validate_bundle
 from research_project.medical_review.numeric_inputs import load_input_reviews, validate_input_review
 from research_project.medical_review.records import (
     MAX_JSON_BYTES,
@@ -29,6 +31,58 @@ from research_project.medical_review.records import (
 from research_project.run_manifest import create_run, update_run
 
 TITLE = "AI-assisted manuscript audit: unverified proposals"
+
+
+def _source_navigation(repo: Path, bundle: dict[str, Any], output_root: Path) -> dict[str, Any]:
+    """Link only rechecked local versions, relative to the canonical report layout."""
+    root = private_path(repo, output_root, PRIVATE_RUNS)
+    validate_bundle(repo, bundle)
+    # create_run places reports at <output-root>/<study>/<run>/reports/medical_review.
+    ascent = "../" * (len(root.relative_to(repo).parts) + 4)
+    documents = []
+    for document in bundle["documents"]:
+        reference = (
+            (repo / document["path"]).resolve().relative_to(repo).as_posix()
+            if document["availability"] == "supplied"
+            else None
+        )
+        documents.append(
+            {
+                "source_id": document["source_id"],
+                "source_version_id": document.get("source_version_id"),
+                "sha256": document.get("sha256"),
+                "availability": document["availability"],
+                "source_reference": reference,
+                "href": ascent + quote(reference, safe="/") if reference is not None else None,
+            }
+        )
+    return {"report_output_root": root.relative_to(repo).as_posix(), "documents": documents}
+
+
+def _evidence_link_lines(model: dict[str, Any], proposal: dict[str, Any]) -> list[str]:
+    documents = {
+        row["source_version_id"]: row
+        for row in model["source_navigation"]["documents"]
+        if row["href"] is not None
+    }
+    evidence = {row["evidence_id"]: row for row in model["bundle"]["evidence"]}
+    lines = []
+    for link in proposal["evidence_links"]:
+        row = evidence.get(link.get("evidence_id"))
+        source = documents.get(link.get("source_version_id"))
+        if link.get("resolution") != "exact" or row is None or source is None:
+            continue
+        href = source["href"]
+        if (
+            source["source_reference"].lower().endswith(".pdf")
+            and row.get("page_index") is not None
+        ):
+            href += f"#page={row['page_index'] + 1}"
+        lines.append(
+            f"**Source for cited evidence:** [Open original source]({href}) "
+            f"— {_escaped(row['locator'])}\n"
+        )
+    return lines
 
 
 def _groups(proposals: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -178,8 +232,18 @@ def _markdown(model: dict[str, Any]) -> str:
         ),
         "Exact source/evidence identities, mapping, permissions and parsed hashes are retained "
         "in the current-run report model. Unsupported extraction is not a manuscript defect.\n",
-        "## Study reconstruction and unresolved gaps\n",
     ]
+    lines.append("### Original source access\n")
+    for source in model["source_navigation"]["documents"]:
+        name = _escaped(source["source_id"])
+        lines.append(
+            f"**{name}:** [Open original source]({source['href']})\n"
+            if source["href"] is not None
+            else f"**{name}:** {_escaped(source['availability'])}; original source unavailable.\n"
+        )
+        if source["source_version_id"] is not None:
+            lines.extend(_record_lines({"source_version_id": source["source_version_id"]}))
+    lines.append("## Study reconstruction and unresolved gaps\n")
     for scope in [*model["study_context"]["studies"], *model["study_context"]["comparisons"]]:
         unknown = []
         for field, value in sorted(scope["fields"].items()):
@@ -219,6 +283,7 @@ def _markdown(model: dict[str, Any]) -> str:
             for proposal, status in zip(members, statuses, strict=True):
                 lines.extend(
                     [
+                        *_evidence_link_lines(model, proposal),
                         *_record_lines(status),
                         *_record_lines(
                             {"source_reported_category": proposal["original"]["category"]}
@@ -317,7 +382,9 @@ def _markdown(model: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def build_report_model(repo_root: Path, dossier: dict[str, Any]) -> dict[str, Any]:
+def build_report_model(
+    repo_root: Path, dossier: dict[str, Any], *, output_root: Path | None = None
+) -> dict[str, Any]:
     """Consolidate validated records without changing their scientific or human authority."""
     repo = repo_root.resolve()
     history = load_human_history(repo, dossier)
@@ -336,6 +403,9 @@ def build_report_model(repo_root: Path, dossier: dict[str, Any]) -> dict[str, An
         "title": TITLE,
         "renderer_source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "source_run": source,
+        "source_navigation": _source_navigation(
+            repo, dossier["bundle"], output_root or dossier["run_root"].parent.parent
+        ),
         **{
             key: copy.deepcopy(dossier[key])
             for key in (
@@ -460,6 +530,19 @@ def validate_report_model(model: dict[str, Any], dossier: dict[str, Any]) -> Non
     current_renderer = (
         model["renderer_source_sha256"] == hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     )
+    if current_renderer or "source_navigation" in model:
+        navigation = model.get("source_navigation")
+        if (
+            not isinstance(navigation, dict)
+            or not isinstance(navigation.get("report_output_root"), str)
+            or navigation
+            != _source_navigation(
+                dossier["repo_root"],
+                dossier["bundle"],
+                Path(navigation["report_output_root"]),
+            )
+        ):
+            raise ValueError("Report source navigation changed or is missing.")
     for key, rows, identity_field in (
         ("arithmetic_result_ids", dossier["arithmetic_results"], "result_id"),
         ("method_handoff_ids", dossier.get("method_handoffs", []), "handoff_id"),
@@ -507,7 +590,7 @@ def render_review(
     repo = repo_root.resolve()
     root = private_path(repo, output_root or PRIVATE_RUNS, PRIVATE_RUNS)
     dossier = load_dossier(repo, source_run)
-    model = build_report_model(repo, dossier)
+    model = build_report_model(repo, dossier, output_root=root)
     if (
         len((json.dumps(model, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode())
         > MAX_JSON_BYTES

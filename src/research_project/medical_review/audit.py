@@ -242,6 +242,12 @@ def load_dossier(repo_root: Path, run_path: Path, *, _depth: int = 0) -> dict[st
             ):
                 raise ValueError("Report model or renderer archive binding changed.")
             validate_report_model(model, dossier)
+            if (
+                "source_navigation" in model
+                and model["source_navigation"]["report_output_root"]
+                != run.parent.parent.relative_to(repo).as_posix()
+            ):
+                raise ValueError("Report source navigation does not match its actual output root.")
         return {
             **dossier,
             "run_root": run,
