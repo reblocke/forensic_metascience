@@ -11,8 +11,10 @@ source-reference ledger are under development on a stacked branch; these
 checkpoints do not complete full software acceptance or medical evaluation
 readiness. Plan head `f78fe9d` passed hosted PR run `37524362946` and push run
 `37524320291`; the downloaded PR receipts have 338 Python, 14 native-R and 7 report
-tests with zero failures/errors/skips. The subsequent ledger checkpoint needs
-its own delivered-head evidence.
+tests with zero failures/errors/skips. Ledger head `e94f53e` passed hosted PR run
+`37527885830` and push run `37527878923`; the downloaded PR receipts have 360
+Python, 14 native-R and 7 report tests with zero failures/errors/skips. The
+subsequent source-packet checkpoint still requires its own delivered-head gates.
 
 Tests with mocked semantic responses check orchestration and safeguards only.
 Clinical detection performance requires the separately authorized pilot. Every
@@ -73,6 +75,25 @@ targets, changed-source/symlink refusal, public-root refusal and historical-fiel
 compatibility. Real report integration checks HTML/PDF hyperlinks as well as text.
 Hosted receipts for
 the delivered revision remain a separate check from local passes.
+
+## WP5 requirement audit in progress
+
+Completed planning, ledger or packet stages are engineering artifacts, not
+completed reviewer runs or a medical performance result. This table preserves
+the remaining work beyond the 27 software scenarios; no pending item is waived
+because live permission has not been granted.
+
+| Ticket requirement | Current implementation/evidence | Remaining work or gate |
+|---|---|---|
+| 14: Three comparison conditions and common-input/full-bundle separation | Frozen plans retain the strong single reviewer, original pinned Reviewer and medical adaptation. Exact source versions, matched adapted full bundles and unmatched main-only upstream are explicit. | Actual pinned executable comparator and observed runtime/access evidence remain unestablished; retained reference templates are not the full workflow. |
+| 14: Repeated runs and study dependence | Plans bind declared families, study/report IDs, source hashes and development/held-out partitions. Source packets retain explicit repetition and reproducible ordering. | Candidate ingestion and R analysis must preserve these units; actual study relationships/novelty require human review. |
+| 14: Source issue ledger before candidate evaluation | Explicit plan-bound source-reference ledgers retain observations, evidence, disagreements, adjudication and plausible-but-wrong/unresolved criticisms. Registered artifact, semantic and source lineage tests exercise real private storage. | Independent domain-qualified human source adjudication has not occurred in synthetic acceptance fixtures. |
+| 9/14: Withhold benchmark answers and human identities from reviewer inputs | Source packets contain exact selected source bytes and public instructions; private reconstruction, evidence annotations and ledger/human metadata remain outside reviewer roots. Protected source locations and recognized private/control JSON records are rejected. | Operator corpus review is still required for arbitrary prose/unknown formats; actual backend filesystem/tool/egress enforcement remains blocked. |
+| 14: Blinded assessment and adjudication of candidate findings | Source packets use opaque IDs with separate administrative mappings. This does not establish candidate-assessor blinding. | Implement condition-blinded candidate packets, write-once assessment/adjudication, and complete proposal/synthesis accounting. |
+| 14: Predeclared thresholds before unblinding | Initial frozen plans explicitly leave thresholds unset and qualification pending. | Implement binding approved threshold adoption and an explicit unblinding gate; actual threshold values require human scientific approval. |
+| 14: All named evaluation outcomes | Plans/reference ledgers retain necessary comparison and source issue identities. | Implement R-first descriptive analysis, issue-level assessment inputs, verification-time and observed-resource accounting, failure/completion denominators, and synthesis loss/distortion reporting. Unknown measurements must stay null. |
+| 12/14/16: Qualification reporting and held-out performance | All existing stage records retain medical performance false/pending, without default enablement. | Deliver explicit software/operational/medical qualification reports and the full scope audit. Authorized held-out evaluation and an approved promotion decision remain separate scientific gates. |
+| 16: Rollback and reproducible delivery | Existing private runs and historical sources/decisions remain immutable; the feature stays opt-in. | Finish exact delivered-head required lanes and final rollback/handoff audit after all WP5 tooling is implemented. |
 
 ## WP4 requirement audit
 

@@ -5,8 +5,9 @@ independent gates. Current status: software in progress; live operational testin
 not authorized or performed; medical qualification pending.
 
 WP5 is in progress. Offline plan validation/freezing and source-reference ledger
-validation/freezing are implemented. Blinded packets, candidate adjudication,
-threshold adoption, R analysis and final qualification tooling remain unfinished.
+validation/freezing and minimum-content source packets are implemented. Blinded
+candidate packets/adjudication, threshold adoption, R analysis and final
+qualification tooling remain unfinished.
 Actual source adjudication and live evaluation have not occurred. Before candidate
 evaluation, approve the source corpus, providers/models, transmission/search
 permissions, budgets, domain assessors and performance thresholds.
@@ -149,6 +150,93 @@ An empty, explicitly reviewed reference scope is labeled
 No ledger is sensitivity to all possible scientific defects. Every ledger keeps
 `medical_performance_validated=false`, `official_assessment=null`, and records
 whether synthetic cases are present. These files do not write INSPECT-SR records.
-The forthcoming packet stage must withhold this ledger and private human metadata
-from model workspaces; that stage and actual blinded evaluation are not implemented
-by the reference-freezing command.
+The packet stage described below withholds this ledger and private human metadata
+from reviewer packet roots. Actual backend isolation and blinded evaluation are
+not established by either local preparation command.
+
+## Implemented offline source packets
+
+Stage an explicit completed reference-ledger run. The operation copies local
+sources and public instructions only; it has no live execution or search option:
+
+```bash
+uv run --offline --locked python scripts/medical_review.py evaluation-packets \
+  --reference-run data/processed/forensics_runs/private_reviews/EVALUATION_ID/REFERENCE_RUN_ID \
+  --repetitions 2
+```
+
+Replace the IDs with actual frozen paths. Repetitions must be integers in 1..64
+and default to one. Every case gets all three conditions and both tracks per
+repetition. Common-input packets contain only the exact manuscript version.
+Adapted full-bundle conditions contain the identical supplied source set. The
+main-only original comparator remains unmatched when it lacks other supplied
+documents; no undeclared upstream multi-document adapter is substituted.
+
+Opaque packet IDs and the predeclared seed determine a reproducible shuffled
+administrative order. Each fresh canonical private run registers
+`processed/medical_evaluation/source_packets.json`, the local request, code,
+and every packet file. Repetition of preparation creates a new run, preserving
+the same packet identities for unchanged dependencies/options. Each reviewer
+root is `generated/medical_evaluation/reviewer_workspaces/PACKET_ID/`. Original
+source bytes are copied to safe, bounded names; supported PDF/text/CSV/TSV/JSON
+extensions are retained and other suffixes become `.bin` without changing bytes.
+No extraction, OCR, code execution or source-fidelity assertion occurs.
+
+`source_index.json` contains the opaque ID and staged source versions, hashes,
+roles and local file names, with `source_fidelity_verified=false`. It has no
+benchmark evidence annotations, private original paths, authorization records,
+assessor identities, reference answers, or condition/partition/repetition map.
+Preparation refuses sources in protected authorization/human/numeric-review or
+evaluation stores. It also rejects recognized private review/evaluation/INSPECT-SR
+record schemas in JSON, including nested records copied to `sources/` and
+mislabelled as analysis output. JSON privacy preflight is bounded and rejects
+malformed or oversized JSON without treating that failure as a manuscript defect.
+These controls do not establish confidentiality of arbitrary prose or unknown
+record formats; operator corpus review and separate transmission approval remain
+necessary, and live execution remains blocked.
+The private administrative record retains those comparison identities, planned
+runtime declarations, and exact original/upstream-path aliases. Staged aliases
+are not inserted into old bundles and raw outputs are not rewritten. A later
+candidate-ingestion adapter must bind citations to this recorded map explicitly.
+
+The single-reviewer and medical-adaptation packets use the same public clinical
+questions and safeguards. They do not copy document-derived context fields,
+bundle check overrides/rationales, or source-reference evidence quotes. Reviewers
+must reconstruct the study and applicability from the staged sources; the
+declared routing-profile union is a hint, preserving mixed aims without copying
+source reconstruction. The single-reviewer retains its strong prompt;
+the adaptation retains its medical modules, counterevidence/editor instructions.
+Public instructions and pinned output schema/license are byte-preserved.
+
+Original-comparator packets retain only their source input/index and exact pinned
+upstream schema, license and reference prompts. Those templates are not the full
+executable Reviewer checkout, and their placeholders are not silently filled
+with an adapted workflow. Its administrative status remains
+`blocked_unmodified_workflow_not_staged_or_executed`. Actual unmodified workflow,
+runtime settings, compatibility and permissions require a separately authorized
+operational step; preparing a source packet does not reproduce that comparator.
+
+File contents are read-only and non-executable (`0444`); packet directories are
+read-only (`0555`). Reuse validates the exact file/directory inventory, modes,
+registered hashes, parent manifest, source/prompt dependencies and archived-code
+binding. Added inputs, symlinks, writable files or source changes refuse reuse.
+Source/prompt/code drift during copying retains a failed attempt and completed
+files rather than publishing `source_packets.json`. Metadata blinding does not
+prove that assessors cannot infer a workflow from style; blinded candidate-output
+packets and actual independent source adjudication remain unfinished.
+
+Limits apply to copied workspace file contents: 64 MiB per packet and 512 MiB
+total by default, explicitly adjustable with `--max-packet-bytes` and
+`--max-total-bytes`. A preparation is also bounded to 1,024 packets, 16,384 files,
+and 20 MiB per JSON artifact. Code/manifest bookkeeping is separate from workspace
+byte limits. Exceeding a limit fails explicitly before staging where knowable;
+changed source size is checked during streaming copy. No truncation, scope
+reclassification, model fallback, token budget or spend guarantee is implied.
+Split oversized corpora explicitly while preserving their declared study groups.
+
+These are minimum-content artifacts, not a process sandbox. A future approved
+backend must mount only its individual packet root and enforce filesystem/tool/
+egress restrictions; the containing private run also has administrative material
+and must not be given to a reviewer. All live backends remain blocked. Every
+source-packet record keeps execution not requested, model/search permissions
+disabled, backend isolation unqualified and medical performance unvalidated.

@@ -25,6 +25,11 @@ from research_project.medical_review.evaluation import (
     freeze_evaluation_plan,
     prepare_evaluation_plan,
 )
+from research_project.medical_review.evaluation_packets import (
+    DEFAULT_PACKET_BYTES,
+    DEFAULT_TOTAL_BYTES,
+    prepare_source_packets,
+)
 from research_project.medical_review.evaluation_reference import freeze_reference_ledger
 from research_project.medical_review.importer import import_reviewer
 from research_project.medical_review.numeric_inputs import record_input_review
@@ -134,6 +139,13 @@ def parser() -> argparse.ArgumentParser:
     )
     reference.add_argument("--plan-run", required=True, type=Path)
     reference.add_argument("--input", required=True, type=Path)
+    packets = commands.add_parser(
+        "evaluation-packets", help="Stage local read-only source packets; no live execution."
+    )
+    packets.add_argument("--reference-run", required=True, type=Path)
+    packets.add_argument("--repetitions", type=int, default=1)
+    packets.add_argument("--max-packet-bytes", type=int, default=DEFAULT_PACKET_BYTES)
+    packets.add_argument("--max-total-bytes", type=int, default=DEFAULT_TOTAL_BYTES)
     return cli
 
 
@@ -235,6 +247,16 @@ def main() -> int:
                 print(json.dumps(plan, sort_keys=True))
         elif args.operation == "evaluation-reference":
             print(freeze_reference_ledger(ROOT, args.plan_run, args.input))
+        elif args.operation == "evaluation-packets":
+            print(
+                prepare_source_packets(
+                    ROOT,
+                    args.reference_run,
+                    repetitions=args.repetitions,
+                    max_packet_bytes=args.max_packet_bytes,
+                    max_total_bytes=args.max_total_bytes,
+                )
+            )
         return 0
     except (ValueError, OSError, KeyError, TypeError) as error:
         cli.exit(2, f"medical-review: {error}\n")

@@ -18,8 +18,9 @@ counterevidence/arithmetic passes, private human dispositions, numeric source-re
 attestations, read-only qualified R-reference handoffs and Markdown/Quarto reports.
 WP4's requirement audit and required hosted Python/native/report gates passed at
 `83e6252`. WP5 evaluation tooling is in progress: paired plan validation and
-immutable freezing and operator-attested source-reference ledgers are available;
-blinded packets, candidate adjudication, threshold adoption, R analysis and final
+immutable freezing, operator-attested source-reference ledgers and offline
+minimum-content source packets are available. Blinded candidate packets and
+adjudication, threshold adoption, R analysis and final
 qualification tooling remain unfinished.
 Planning profiles encode review questions;
 they do not establish live medical detection performance.

@@ -1,5 +1,95 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 WP5 offline source-packet checkpoint
+
+The preceding response was planning-only. This turn revalidated the active goal,
+the authoritative checkout at `e94f53e` and its existing uncommitted source-packet
+work, then completed the staging privacy regressions. The full objective remains
+active: source packets are one increment, not full WP5 completion.
+
+Both hosted runs for ledger head
+`e94f53e87639ef11aa4e0149992d9f1ec1439fab` completed successfully: PR
+`37527885830`, push `37527878923`. Their actual states and all job conclusions
+were rechecked. The downloaded PR JUnit receipts were parsed and hashed: Python
+360, native-R 14, report 7, all with zero failures/errors/skips. Their respective
+SHA-256 values are `fd3f08e1f700d6609c46bd171049cea3463df341aa174a3cd0dcb8cb701ac4ef`,
+`4fae68c6244afdfed5f53dfa2ba5b11b1e5f30830528edfadda4fa5101536061`, and
+`88c0d9abd6c15e48491a34ae0d5ec40fdde32707547c5e4bfc84ae7f2e27f7d4`.
+
+```bash
+gh run view 37527885830 --json headSha,status,conclusion,jobs
+gh run view 37527878923 --json headSha,status,conclusion,jobs
+```
+
+Added `evaluation_packets.py` and the offline `evaluation-packets` CLI. It binds
+an explicit completed source-reference ledger, retains raw request/code and
+parent manifests in a new canonical private run, and copies exact selected
+source bytes plus public instructions into read-only per-reviewer roots. All
+three conditions, both tracks and repetitions remain explicit in the separate
+private administrative map. Original path aliases never rewrite bundles or raw
+outputs. Reviewer roots exclude reference answers, private human metadata,
+document-derived context and benchmark evidence annotations. Mixed aims retain
+the review plan's profile union. The original comparator receives its exact
+retained upstream reference files, not substituted medical prompts; those files
+are not the full executable Reviewer workflow.
+
+Staging/reuse validates exact inventories, modes, registered bytes and source/
+prompt/reference lineage. Explicit file/packet/JSON and streaming byte bounds
+refuse over-limit preparation without truncation. Mid-copy drift preserves a
+failed attempt and partial files without publishing a completed packet record.
+No live backend, search, transmission, model output, clinical adjudication,
+dependency addition or merge occurred. File modes and minimum-content staging
+are not proof of a backend sandbox or successful candidate-assessor blinding.
+
+Test-first privacy checks reproduced two ways a private reference record could
+be mislabelled as an analysis output (`DID NOT RAISE`, 2 failures), and an
+execution-attempt variant reproduced the missing record-family guard (1 failure,
+9.10s). Staging now rejects protected private locations and recognized private/
+control JSON schemas, including copied/nested records, before creating a run.
+Ordinary scientific analysis JSON remains admissible and byte-preserved. This is
+a bounded staging floor; arbitrary prose/unknown formats still need operator
+corpus review and source-specific transmission approval. Existing bundles and
+historical records are unchanged.
+
+The two initial privacy cases passed in 9.66s. The expanded nested-record and
+ordinary-analysis command passed 4 cases in 29.04s before the additional
+execution-attempt regression. Ruff caught one 101-character error-message line;
+it was wrapped without changing behavior, then all checks passed (99 Python
+files formatted). An earlier full Python run passed 377 cases before the final
+privacy guard; that result is not evidence for the final guarded increment.
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_packets.py -k mislabelled
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_packets.py -k 'mislabelled or ordinary_analysis' --junitxml=/tmp/fm-med-wp5-packets-privacy.xml
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_packets.py -k 'mislabelled and execution'
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+git diff --check
+UV_OFFLINE=1 uv run --offline --locked python scripts/medical_review.py evaluation-packets --help
+# Help exits 0 and has no live execution options.
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration' --junitxml=/tmp/fm-med-wp5-packets-python-final-v2.xml
+R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_R_INTEGRATION=1 FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp5-packets-native-artifacts UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m native_r --junitxml=/tmp/fm-med-wp5-packets-native-final.xml
+PATH=/Applications/quarto/bin/tools:$PATH RSTUDIO_PANDOC=/Applications/quarto/bin/tools R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_REPORT_INTEGRATION=1 FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp5-packets-report-artifacts UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m report_integration --junitxml=/tmp/fm-med-wp5-packets-report-final.xml
+```
+
+Final guarded-increment Python passed 382 tests with 21 deselected in 460.34s;
+all 22 source-packet cases passed. Its parsed JUnit has zero failures/errors/skips
+and SHA-256 `7f9a0fc186d33b63495daea3608ad6660c8790edb18f3da6b0b6e9d85351865a`.
+Native-R passed 14 tests with 389 deselected in 28.46s; actual Quarto report integration passed 7
+with 396 deselected in 68.78s. Both JUnit receipts have zero failures/errors/skips;
+their SHA-256 values are `193ea79456e7e998a482f704b88047bab95ad94ccdec7f3890fe3ebe11e5bc6d`
+and `e97f71286c9833eb1692c06722579fb7cc4b62e6dad340526fd8b39b85f28d78`.
+New delivered-head hosted gates remain required; prior-head CI is not a
+substitute.
+
+Next: source-packet-bound candidate ingestion with exact citation alias mapping;
+blinded candidate assessment/adjudication and complete finding accounting;
+pre-unblinding threshold adoption; actual R evaluation analysis; explicit
+qualification reporting; final requirement/rollback audit. These engineering
+deliverables remain required even while live execution and medical performance
+qualification await separate authorization/evidence. Draft PR12 is stacked above
+WP4; no earlier PR was merged or promoted.
+
 ## 2026-10-06 WP5 source-reference ledger checkpoint
 
 The preceding goal turn was planning-only, with no implementation progress. This
