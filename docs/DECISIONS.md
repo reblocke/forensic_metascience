@@ -1,5 +1,14 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Keep live medical execution blocked while delivering bounded replay
+
+- **Authority:** Source-scoped authorization binds exact bundle/source hashes, classifications, provider/backend/model, purpose, tools/search, time validity and a private human approver. Application offline mode wins. Authentication or registry-network permission does not authorize source transmission.
+- **Backend gate:** No live backend has a verified filesystem/tool/egress restriction implementation, so every live request is refused and retained as a blocked attempt. This implements the ticket's explicit blocked-live alternative without an insecure fallback. No prompt-only or staging-only isolation claim is made. A live smoke test and sentinel isolation require a later approved backend.
+- **Replay/recovery:** Run only the trusted offline importer in a bounded child process without inherited provider credentials. Retain exact bytes and canonical import lineage. Every requested attempt and final result is immutable; resume creates a fresh run and requires matching hashes/settings plus valid registered receipts. An interrupted import can be regenerated only as a new explicitly resumed attempt, preserving its earlier manifest/artifacts.
+- **Resources:** Enforce a source-byte cap before replay and a subprocess timeout using the remaining duration allowance. Measure local setup rather than claim it has an OS-level hard deadline. Support one local session and no automatic retries; refuse unsupported settings. Record unknown token/cost values as null and preserve failed coverage. No paid fallback or spend-ceiling claim.
+- **Verification:** Real local CLI/storage/worker tests cover offline precedence, source/runtime/search authorization, malicious instructions retained as data, actual worker timeout, incomplete-stage recovery, unsafe roots/symlinks, missing receipts and changed dependencies. These are engineering evidence, not live isolation or medical-performance evidence.
+
+
 ## 2026-10-06: Bind medical planning to evidence, comparison scope and reviewed prompts
 
 - **Reconstruction:** Reported facts, competing interpretations and preferred designs are separate. Each asserted fact/interpretation requires evidence within a reviewed study/report mapping. Comparison context is reconstructed separately and does not inherit a study-level estimand. These are proposed transcriptions/interpretations, not source-semantic verification.

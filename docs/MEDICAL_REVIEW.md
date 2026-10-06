@@ -11,8 +11,10 @@ controlled execution → verification/reporting → evaluation readiness.
 WP1–WP2 implement lossless offline upstream import, multi-document source
 validation, structural extraction preflight, evidence-linked reconstruction,
 comparison-specific medical routing and a deterministic private report model.
-Live execution, numerical handoffs, human dispositions, report rendering and
-medical evaluation remain pending. Planning profiles encode review questions;
+WP3 adds bounded local replay, source-specific authorization validation and
+immutable recovery attempts. Every live backend is explicitly blocked because
+filesystem/tool/egress restrictions are not yet qualified. Numerical handoffs,
+human dispositions, report rendering and medical evaluation remain pending. Planning profiles encode review questions;
 they do not establish live medical detection performance.
 The feature is opt-in. No medical performance qualification is claimed.
 
@@ -46,7 +48,8 @@ An existing bundle produces a deterministic context and check plan, plus
 structural extraction diagnostics. It remains incomplete because checks have
 not run. The four profiles are implemented planning scopes, not qualified
 clinical review capability. Import is always offline, even without
-the compatibility `--offline` flag. There is no live `run` operation yet.
+the compatibility `--offline` flag. `run` executes only offline replay; live
+requests produce a private blocked-attempt record and exit nonzero.
 
 An import prints its run root. Repeating identical source bundle and exact input
 bytes and unchanged adapter code reuses the same completed run only after checking its registered artifact
@@ -224,3 +227,66 @@ Rollback disables use of the new CLI and reverts its scoped code/config changes.
 Existing workflows and historical numerical, medical and human records remain
 readable. Preserve the ignored medical stores and import-origin references;
 rollback must not erase an unsuccessful pilot.
+
+
+## Controlled replay and the live gate
+
+```bash
+uv run --offline --locked python scripts/medical_review.py run \
+  --bundle data/private/medical_reviews/example/bundle.json \
+  --backend replay --input data/private/medical_reviews/example/upstream.json \
+  --offline --max-duration-seconds 120 --max-source-bytes 67108864
+# Explicit recovery creates a fresh attempt; all dependencies must still match.
+uv run --offline --locked python scripts/medical_review.py run \
+  --bundle data/private/medical_reviews/example/bundle.json \
+  --backend replay --input data/private/medical_reviews/example/upstream.json \
+  --offline --resume data/processed/forensics_runs/private_reviews/example/PRIOR_RUN
+```
+
+A replay creates a fresh canonical forensic run with immutable
+`generated/medical_review/attempt_requested.json` and `attempt_result.json`.
+The request binds bundle/context/plan/code, raw bytes, requested runtime/permissions,
+authorization and limits. The result links a validated import run rather than
+copying its proposals under a competing identity. Completed import stages can be
+reused; incomplete imports require explicit resume and get a new suffixed import
+attempt. Historical failed/interrupted output and manifests remain unchanged.
+The attempt's own completed status never establishes substantive check coverage.
+
+A trusted Python importer worker has a minimal environment, with no inherited
+provider credentials. It accepts only fixed local importer operations, never
+source-supplied commands. Immutable replay snapshots are hash-checked and local.
+The source-byte cap is checked before worker execution. The replay worker gets
+an enforced timeout using the remaining duration budget; local validation/setup
+is measured but is not an OS-level hard deadline. One local session and zero
+automatic retries are supported; other concurrency/retry settings are refused.
+No provider fallback, quota escalation or claimed hard monetary cap exists.
+Token/cost values absent from the input remain null. No model process runs.
+
+The worker is **not a live model sandbox**. No staging directory or prompt is
+claimed to enforce filesystem/tools/network isolation for a provider CLI. Every
+live backend is currently blocked, even with otherwise valid source authorization.
+This is the ticket's explicit blocked-live engineering path; operational smoke
+testing and live sentinel isolation remain pending until a qualified backend
+implementation exists. Offline replay remains usable without credentials.
+
+### Source authorization contract
+
+`medical_source_authorization_v1` contains exactly: schema_version,
+bundle_sha256, sources, provider, backend, model, purposes, tools,
+allow_web_search, valid_from, valid_until, approver and rationale. Each source
+includes its canonical source_version_id, exact sha256 and classification.
+The authorization must cover all supplied documents in the scoped bundle;
+create a reduced explicit bundle if only some documents may be transmitted.
+`purposes` must include medical_review. `tools` may name source_read/web_search;
+search additionally requires allow_web_search=true and a separate CLI allow flag.
+Provider/backend/model must match; dates require timezones and current validity.
+The private approver and rationale are required. Authentication, registry-network
+permission, publication licenses and authorization flags alone cannot enable a
+live backend. No authorization is inferred from the implementation goal.
+
+Application offline mode overrides every allow flag. `uv --offline` only controls
+package resolution. A blocked or failed `run` returns exit code 3 with a private
+run-root/status reference; validator/path errors return 2. Blocked/failed coverage
+preserves applicability, null unknown unit counts and the stopping reason.
+Public output roots, symlink references, corrupted receipts and changed resume
+dependencies are refused. Successful/failed manifests are never reopened for edits.

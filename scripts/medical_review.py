@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Optional offline medical-review planning and upstream import."""
+"""Optional medical planning/import/replay; live backends remain explicitly blocked."""
 
 # ruff: noqa: E402
 from __future__ import annotations
@@ -18,8 +18,9 @@ from research_project.medical_review.bundle import load_bundle
 from research_project.medical_review.context import build_study_context
 from research_project.medical_review.importer import import_reviewer
 from research_project.medical_review.preflight import structural_preflight
-from research_project.medical_review.records import UPSTREAM_SCHEMA_HASH
+from research_project.medical_review.records import UPSTREAM_SCHEMA_HASH, read_json
 from research_project.medical_review.routing import build_review_plan
+from research_project.medical_review.runner import DEFAULT_LIMITS, run_review
 
 
 def parser() -> argparse.ArgumentParser:
@@ -57,6 +58,29 @@ def parser() -> argparse.ArgumentParser:
     importing.add_argument("--output-root", type=Path)
     importing.add_argument("--offline", action="store_true")
     importing.add_argument("--profile", action="append")
+    running = commands.add_parser(
+        "run", help="Replay local output; record blocked requests for unqualified live backends."
+    )
+    running.add_argument("--bundle", required=True, type=Path)
+    running.add_argument("--backend", required=True, help="Only replay is supported for execution.")
+    running.add_argument(
+        "--input", type=Path, help="Already-authorized local Reviewer JSON for replay."
+    )
+    running.add_argument("--profile", action="append")
+    running.add_argument("--offline", action="store_true")
+    running.add_argument("--allow-llm", action="store_true")
+    running.add_argument("--allow-web-search", action="store_true")
+    running.add_argument("--provider")
+    running.add_argument("--model")
+    running.add_argument("--authorization", type=Path)
+    running.add_argument("--resume", type=Path, help="Prior attempt; exact dependencies required.")
+    running.add_argument("--output-root", type=Path)
+    for field, default in DEFAULT_LIMITS.items():
+        running.add_argument(
+            "--" + field.replace("_", "-"),
+            default=default,
+            type=float if field == "max_duration_seconds" else int,
+        )
     return cli
 
 
@@ -100,7 +124,7 @@ def main() -> int:
                     },
                 }
             print(json.dumps(result, sort_keys=True))
-        else:
+        elif args.operation == "import-reviewer":
             run = import_reviewer(
                 ROOT,
                 args.bundle,
@@ -111,6 +135,26 @@ def main() -> int:
                 profiles=args.profile,
             )
             print(run)
+        else:
+            run = run_review(
+                ROOT,
+                args.bundle,
+                backend=args.backend,
+                input_path=args.input,
+                offline=args.offline or not args.allow_llm,
+                allow_llm=args.allow_llm,
+                allow_web_search=args.allow_web_search,
+                authorization_path=args.authorization,
+                provider=args.provider,
+                model=args.model,
+                profiles=args.profile,
+                resume_run=args.resume,
+                output_root=args.output_root,
+                limits={field: getattr(args, field) for field in DEFAULT_LIMITS},
+            )
+            result = read_json(run / "generated/medical_review/attempt_result.json")
+            print(json.dumps({"run_root": str(run), "status": result["status"]}, sort_keys=True))
+            return 0 if result["status"] == "completed" else 3
         return 0
     except (ValueError, OSError, KeyError, TypeError) as error:
         cli.exit(2, f"medical-review: {error}\n")

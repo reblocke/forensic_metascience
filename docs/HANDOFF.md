@@ -1,5 +1,56 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 WP3 replay and execution-boundary checkpoint
+
+WP3 implements a thin `run` interface for bounded offline replay and auditable
+blocked live requests. Every attempt uses existing canonical run helpers and
+immutable request/result sidecars. Exact bundle/context/plan/code/raw/runtime/
+authorization/permission/limit dependencies gate resume. Real worker timeout,
+explicit incomplete-import recovery, changed dependencies and missing receipts
+are tested. Previous imports and stopped attempts remain historical.
+
+No live backend is qualified or started. Source-specific authorization validation
+is implemented, but it cannot activate a backend whose filesystem/tools/egress
+restrictions are unavailable. Live operational smoke/sentinel tests are pending;
+no prompt or staging directory is claimed to provide an enforced model sandbox.
+This is the ticket's blocked-live engineering alternative. All model calls/search
+counts remain zero. No packages, scientific assumptions, candidate routes, human
+judgments or main merges changed. WP4 and WP5 remain required; the goal is active.
+
+Executed local checks:
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration' --junitxml=/tmp/fm-med-wp3-python.xml
+# 220 passed, 18 deselected; no failures/errors/skips
+R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_R_INTEGRATION=1 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m native_r --junitxml=/tmp/fm-med-wp3-native.xml
+# 13 passed, 221 deselected; no failures/errors/skips
+PATH=/Applications/quarto/bin/tools:$PATH RSTUDIO_PANDOC=/Applications/quarto/bin/tools R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_REPORT_INTEGRATION=1 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m report_integration --junitxml=/tmp/fm-med-wp3-report.xml
+# 5 passed, 229 deselected; no failures/errors/skips
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+git diff --check
+# lint/format/diff pass after fixing reported formatting/import-order errors
+```
+
+Native/report counts reflect their actual executions before four final Python-only
+regressions were added; execution code did not change afterward. The final Python
+receipt includes all 23 new WP3 tests. Fixtures and private human/authorization
+identities are synthetic. The CLI returns 3 for failed/blocked attempts and 2 for
+validator/path errors; exit 0 for replay is not medical review completion.
+
+WP2 is committed as `54b94c6`, draft [PR #9](https://github.com/reblocke/forensic_metascience/pull/9)
+stacked on WP1 #8. Its hosted Python lanes passed; native/report jobs were still
+live at this checkpoint. Final hosted receipts for each delivered head remain
+required and will be recorded when available. No CI failure/skip may be waived.
+
+Next WP4: typed bounded arithmetic with verified-input status and estimand guards;
+qualified same-run numeric reference handoff; append-only counterevidence and
+write-once human disposition history; lossless grouping/report model; private
+Markdown and real Quarto HTML/PDF plus manual adoption packet. No automatic
+INSPECT-SR assessment writes. WP5 then delivers blinded evaluation tooling and
+an honest pending qualification record.
+
+
 ## 2026-10-06 WP2 study-planning checkpoint
 
 The full FM-MED-01 goal remains active. WP2 adds version/chronology validation,
