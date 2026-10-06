@@ -1,5 +1,120 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 WP5 source-bound candidate-ingestion checkpoint
+
+The previous goal turn made concrete progress in `1740206`, delivering offline
+source packets. This turn resumed from that clean source head and continued
+WP5 with `evaluation_candidates.py`, focused boundary/storage tests and the
+offline `evaluation-candidates --packets-run --input` CLI. The goal remains
+active; candidate ingestion does not finish WP5 or qualify medical performance.
+
+Candidate inputs bind an explicit completed source-packet record, retain every
+declared attempt and supplied output, and separately identify unreported packets.
+Exact staged citations resolve through existing source/evidence identities using
+only the packet's selected versions. A supplement's administrative annotation
+cannot establish evidence when that supplement was not supplied in this track.
+Original model fields and raw bytes are preserved. Reviewer and synthesis
+findings remain separate; semantic deduplication, source memberships and loss/
+distortion judgments are not inferred. Empty findings do not establish coverage.
+
+All ingestion is offline. Declared runtime, upstream revision and attempt status
+are operator-reported data, not verified execution, actual source access,
+unmodified-comparator fidelity, permission or a backend-isolation receipt.
+Unknown resource measurements remain null; explicitly reported zero and failed-
+attempt cost remain distinguishable. Candidates retain human-pending status,
+empty qualified-result IDs and null official assessment. Existing medical
+imports, method receipts, INSPECT-SR stores and human decisions are unchanged.
+
+New canonical private runs retain exact input/output snapshots, code, and parent
+manifest binding. Invalid model schemas/forged authority preserve a failed raw
+attempt without publishing candidate findings. Unsafe operator input identities,
+resource values or paths reject before creating a run. Bounded reads/serialized
+record limits refuse large inputs rather than truncate them. Mid-freeze drift
+preserves failure; loaders verify registered raw/code/parent/source semantics.
+
+Test-first collection failed as expected with
+`ModuleNotFoundError: research_project.medical_review.evaluation_candidates`
+(exit 2, 0.05s). The first nine real storage/CLI/negative tests passed in 217.19s.
+The source fixture was corrected to give distinct source-object IDs to different
+main/supplement references, preserving the pinned schema's identity contract.
+Added two input/output-drift cases and an empty/repeat-import coverage case.
+Ruff/format/diff checks passed (101 Python files formatted). Current checks use
+two nonoverlapping Python selections in independent temporary workspaces:
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_candidates.py --junitxml=/tmp/fm-med-wp5-candidates-focused-final.xml
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration' --ignore=tests/medical_review/test_evaluation_candidates.py --junitxml=/tmp/fm-med-wp5-candidates-baseline-python.xml
+R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_R_INTEGRATION=1 FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp5-candidates-native-artifacts UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m native_r --junitxml=/tmp/fm-med-wp5-candidates-native-final.xml
+PATH=/Applications/quarto/bin/tools:$PATH RSTUDIO_PANDOC=/Applications/quarto/bin/tools R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_REPORT_INTEGRATION=1 FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp5-candidates-report-artifacts UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m report_integration --junitxml=/tmp/fm-med-wp5-candidates-report-final.xml
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+git diff --check
+```
+
+Pre-guard candidate tests passed all 12 cases in 367.61s; the nonoverlapping
+baseline Python selection passed 382 with 21 deselected in 503.60s. The parsed
+JUnit SHA-256 values are `234cf9b3a2e5bb21dca3f9315297392fc65114d2c3c8cd77efedb9f550cb65cb`
+and `c186bfc4bfed03292d3e374a5321540101a73a1291ca1a865049d396b5a97306`.
+These 394 passing Python cases precede the final schema-less source privacy
+guard described below. Current native-R passed
+14 tests with 401 deselected in 29.54s, and actual Quarto report integration
+passed 7 with 408 deselected in 70.19s. Packet-head PR `37535631576` and push
+`37535626143` were monitored by their existing handles without restarting. The
+PR and push completed successfully in all three lanes at exact head
+`17402069cba1721c36e679dff4eb4b8c0e296b60`. Its downloaded receipts were parsed:
+382 Python, 14 native-R, 7 report tests, zero failures/errors/skips. JUnit SHA-256
+values respectively are `3aa748d3c69a99561484da68a009ce9bcab54f248cedca48eabfa4e489caf4d3`,
+`595976af1af09dda11c68dd1d7333483247b6ab55ec25d0560f4c822ff82b424`,
+`1405c72681b453a7af2f115be6a7cbeab134117b7f03914a627587c00c3ef6a4`.
+The eight downloaded medical handoff/report/model artifacts with companion
+hash receipts were verified against their actual bytes; no new PDF layout change
+or clinical source-fidelity claim is implied.
+Current native/report JUnit SHA-256 values are
+`f85863b051c8d8e090b5a6703e24795b2e903e7c50c0b4881839277e910fdf9e` and
+`0e4e1e5e9c3c546df851a952818eca9f80aa0318929ead795afae59d7f502924`.
+New candidate-increment delivered-head gates remain separate from this prior-head evidence.
+
+```bash
+gh run view 37535631576 --json headSha,status,conclusion,jobs
+gh run view 37535626143 --json headSha,status,conclusion,jobs
+gh run download 37535631576 --name inspect-sr-python-37535631576 --dir /tmp/fm-med-wp5-hosted-174-pr/python
+gh run download 37535631576 --name inspect-sr-native-r-37535631576 --dir /tmp/fm-med-wp5-hosted-174-pr/native-r
+gh run download 37535631576 --name inspect-sr-report-review-37535631576 --dir /tmp/fm-med-wp5-hosted-174-pr/report-review
+UV_OFFLINE=1 uv run --offline --locked python scripts/medical_review.py evaluation-candidates --help
+# Exit 0; only explicit packets-run/input arguments, no live flags.
+```
+
+Final review identified that pinned Reviewer outputs have no `schema_version`.
+A real bundle/source-packet regression reproduced accepting one as an analysis
+source (`DID NOT RAISE`, 1 failure, 9.21s). Bounded JSON source privacy preflight
+now rejects the recognizable Reviewer record vocabulary, including nested
+copies, without changing raw sources or calling it a manuscript defect. The
+source-packet and candidate-ingestion suites passed after that fix:
+23 packet cases in 292.99s and 12 candidate cases in 349.10s, both with zero
+failures/errors/skips. The packet JUnit SHA-256 is
+`64f6b34b3273e72e7c3fc06dc4dfce010c718abb81e70a77c326f4f0a83bb422`.
+The post-guard candidate JUnit SHA-256 is
+`3b7bec217fe5b9e60b879a446012a9be6691a4bf3713f409c9eeb45ed6001814`.
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_packets.py -k schema_less
+# Expected RED: 1 failed, 22 deselected, 9.21s before the guard.
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_packets.py --junitxml=/tmp/fm-med-wp5-candidates-packets-final.xml
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_candidates.py --junitxml=/tmp/fm-med-wp5-candidates-guard-final.xml
+```
+
+Only those two test modules call source-packet preparation/reuse, as checked by
+`rg -n 'load_source_packets|prepare_source_packets' tests --glob '*.py'`. Native
+engines and Quarto/report code are unchanged by the final guard; earlier native/
+report passes retain that compatibility scope. Exact new-head hosted full lanes
+remain required and cannot be replaced by prior-head results or scoped tests.
+
+Next: blinded candidate-assessor packets and write-once source assessment/
+adjudication with complete finding/synthesis accounting; pre-unblinding threshold
+adoption; actual R evaluation analysis; explicit qualification reporting; the
+full requirement/rollback audit. No live reviewer, clinical transmission/search,
+actual independent human clinical adjudication, new dependency or merge occurred.
+
 ## 2026-10-06 WP5 offline source-packet checkpoint
 
 The preceding response was planning-only. This turn revalidated the active goal,

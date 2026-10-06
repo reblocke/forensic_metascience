@@ -409,3 +409,24 @@ def test_ordinary_analysis_json_remains_an_exact_full_bundle_source(workspace):
                 included += 1
     assert included == 2
     assert record["medical_performance_validated"] is False
+
+
+def test_schema_less_reviewer_output_cannot_be_mislabelled_as_a_source(workspace):
+    repo, bundle_path, source, bundle, _ = workspace
+    doc = copy.deepcopy(bundle["documents"][0])
+    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    doc.update(
+        source_id="reviewer-output",
+        source_version_id=source_version_id("reviewer-output", digest),
+        role="analysis_output",
+        path=str(source.relative_to(repo)),
+        sha256=digest,
+        upstream_paths=["inputs/reviewer-result.json"],
+    )
+    bundle["documents"].append(doc)
+    write_json(bundle_path, bundle)
+    parent, _ = reference_run(workspace)
+    before = set(repo.rglob("run_manifest.json"))
+    with pytest.raises(ValueError, match="private|reviewer|record"):
+        prepare_source_packets(repo, parent)
+    assert set(repo.rglob("run_manifest.json")) == before

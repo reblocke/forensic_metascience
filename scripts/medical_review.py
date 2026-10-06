@@ -25,6 +25,7 @@ from research_project.medical_review.evaluation import (
     freeze_evaluation_plan,
     prepare_evaluation_plan,
 )
+from research_project.medical_review.evaluation_candidates import freeze_candidates
 from research_project.medical_review.evaluation_packets import (
     DEFAULT_PACKET_BYTES,
     DEFAULT_TOTAL_BYTES,
@@ -146,6 +147,12 @@ def parser() -> argparse.ArgumentParser:
     packets.add_argument("--repetitions", type=int, default=1)
     packets.add_argument("--max-packet-bytes", type=int, default=DEFAULT_PACKET_BYTES)
     packets.add_argument("--max-total-bytes", type=int, default=DEFAULT_TOTAL_BYTES)
+    candidates = commands.add_parser(
+        "evaluation-candidates",
+        help="Import supplied offline candidate outputs; no live execution.",
+    )
+    candidates.add_argument("--packets-run", required=True, type=Path)
+    candidates.add_argument("--input", required=True, type=Path)
     return cli
 
 
@@ -257,6 +264,8 @@ def main() -> int:
                     max_total_bytes=args.max_total_bytes,
                 )
             )
+        elif args.operation == "evaluation-candidates":
+            print(freeze_candidates(ROOT, args.packets_run, args.input))
         return 0
     except (ValueError, OSError, KeyError, TypeError) as error:
         cli.exit(2, f"medical-review: {error}\n")

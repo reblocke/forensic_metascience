@@ -80,6 +80,17 @@ def _source_path(repo: Path, case: dict[str, Any], doc: dict[str, Any]) -> Path:
             while pending:
                 item = pending.pop()
                 if isinstance(item, dict):
+                    if {
+                        "reviewer",
+                        "paper_id",
+                        "run_status",
+                        "summary",
+                        "findings",
+                        "notes",
+                    }.issubset(item):
+                        raise ValueError(
+                            "Private Reviewer output records cannot be staged as source documents."
+                        )
                     schema = item.get("schema_version")
                     if isinstance(schema, str) and schema.startswith(PRIVATE_SCHEMA_PREFIXES):
                         raise ValueError(

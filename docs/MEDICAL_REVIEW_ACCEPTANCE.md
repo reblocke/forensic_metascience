@@ -14,7 +14,11 @@ readiness. Plan head `f78fe9d` passed hosted PR run `37524362946` and push run
 tests with zero failures/errors/skips. Ledger head `e94f53e` passed hosted PR run
 `37527885830` and push run `37527878923`; the downloaded PR receipts have 360
 Python, 14 native-R and 7 report tests with zero failures/errors/skips. The
-subsequent source-packet checkpoint still requires its own delivered-head gates.
+source-packet head `1740206` passed PR run `37535631576` and push run `37535626143`
+in all lanes. Downloaded PR receipts have 382 Python, 14 native-R and 7 report
+tests with zero failures/errors/skips; the eight saved medical artifact hashes
+were verified. Candidate ingestion is the next checkpoint and requires its own
+delivered-head gates.
 
 Tests with mocked semantic responses check orchestration and safeguards only.
 Clinical detection performance requires the separately authorized pilot. Every
@@ -90,6 +94,7 @@ because live permission has not been granted.
 | 14: Source issue ledger before candidate evaluation | Explicit plan-bound source-reference ledgers retain observations, evidence, disagreements, adjudication and plausible-but-wrong/unresolved criticisms. Registered artifact, semantic and source lineage tests exercise real private storage. | Independent domain-qualified human source adjudication has not occurred in synthetic acceptance fixtures. |
 | 9/14: Withhold benchmark answers and human identities from reviewer inputs | Source packets contain exact selected source bytes and public instructions; private reconstruction, evidence annotations and ledger/human metadata remain outside reviewer roots. Protected source locations and recognized private/control JSON records are rejected. | Operator corpus review is still required for arbitrary prose/unknown formats; actual backend filesystem/tool/egress enforcement remains blocked. |
 | 14: Blinded assessment and adjudication of candidate findings | Source packets use opaque IDs with separate administrative mappings. This does not establish candidate-assessor blinding. | Implement condition-blinded candidate packets, write-once assessment/adjudication, and complete proposal/synthesis accounting. |
+| 9/14: Candidate provenance, source attribution, attempts and resources | Explicit packet-bound offline candidate imports retain raw input/output/code and parent lineage. Selected-source exact anchors use existing identities; unselected supplement citations stay unresolved. Reviewer/synthesis findings and failed-attempt usage remain separate; unknown measurements stay null. | Supplied runtime/attempt status is operator-reported, not verified execution. Blinded human assessment and R analysis remain required; no synthesis membership or independence is inferred. |
 | 14: Predeclared thresholds before unblinding | Initial frozen plans explicitly leave thresholds unset and qualification pending. | Implement binding approved threshold adoption and an explicit unblinding gate; actual threshold values require human scientific approval. |
 | 14: All named evaluation outcomes | Plans/reference ledgers retain necessary comparison and source issue identities. | Implement R-first descriptive analysis, issue-level assessment inputs, verification-time and observed-resource accounting, failure/completion denominators, and synthesis loss/distortion reporting. Unknown measurements must stay null. |
 | 12/14/16: Qualification reporting and held-out performance | All existing stage records retain medical performance false/pending, without default enablement. | Deliver explicit software/operational/medical qualification reports and the full scope audit. Authorized held-out evaluation and an approved promotion decision remain separate scientific gates. |

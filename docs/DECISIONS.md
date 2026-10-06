@@ -1,5 +1,14 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Keep supplied evaluation candidates distinct from qualified live runs
+
+- **Offline boundary:** Bind candidate inputs to an explicit completed source-packet run. Preserve exact raw outputs, operator-reported runtime/usage, every declared attempt, and unreported packets. Ingestion invokes no backend or search and establishes no source-transmission permission, live execution, upstream-workflow fidelity, or medical performance.
+- **Source resolution:** Resolve exact staged citations through existing canonical evidence identities using only selected source versions. An annotated but unselected supplement cannot become exact evidence. Original bundles and raw model fields remain unchanged; exact anchoring is still a proposed transcription.
+- **Lossless accounting:** Preserve reviewer and synthesis findings independently, including failed/partial attempts. Do not infer semantic deduplication or synthesis membership; these require the later blinded source assessment. Repeated local imports are not independent model observations. Unknown usage remains null and failed-attempt reported costs remain available.
+- **Authority and recovery:** Reject forged model human/official fields and invalid output schemas into preserved failed attempts; no eligible candidate artifact is published. Valid candidates remain human-pending with empty qualified-result IDs and null official assessment. Registered raw/code/parent/source bindings govern reuse. Existing method receipts, INSPECT-SR stores and human workflows are untouched.
+- **Schema-less source leakage:** The upstream output contract has no schema-version field. A test-first regression reproduced staging a complete Reviewer output as an analysis source; reject its recognizable record vocabulary during bounded source privacy preflight, including nested copies. This adds no source-fidelity or arbitrary-prose confidentiality claim.
+- **Remaining:** Blinded candidate assessment/adjudication, pre-unblinding threshold adoption, R analysis and explicit qualification reporting remain engineering work. Clinical qualification needs authorized held-out evaluation and an approved decision.
+
 ## 2026-10-06: Keep benchmark answers and unselected context out of source packets
 
 - **Source equivalence:** Stage all declared conditions/tracks/repetitions from a frozen reference ledger, with common manuscript-only input and identical adapted full-bundle source bytes. Preserve main-only upstream as unmatched where appropriate. Opaque packet IDs and the declared seed provide reproducible administrative ordering; execution remains not requested.

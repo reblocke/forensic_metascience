@@ -5,9 +5,9 @@ independent gates. Current status: software in progress; live operational testin
 not authorized or performed; medical qualification pending.
 
 WP5 is in progress. Offline plan validation/freezing and source-reference ledger
-validation/freezing and minimum-content source packets are implemented. Blinded
-candidate packets/adjudication, threshold adoption, R analysis and final
-qualification tooling remain unfinished.
+validation/freezing, minimum-content source packets and offline candidate
+ingestion are implemented. Blinded candidate packets/adjudication, threshold
+adoption, R analysis and final qualification tooling remain unfinished.
 Actual source adjudication and live evaluation have not occurred. Before candidate
 evaluation, approve the source corpus, providers/models, transmission/search
 permissions, budgets, domain assessors and performance thresholds.
@@ -189,7 +189,9 @@ assessor identities, reference answers, or condition/partition/repetition map.
 Preparation refuses sources in protected authorization/human/numeric-review or
 evaluation stores. It also rejects recognized private review/evaluation/INSPECT-SR
 record schemas in JSON, including nested records copied to `sources/` and
-mislabelled as analysis output. JSON privacy preflight is bounded and rejects
+mislabelled as analysis output. Recognizable Reviewer output records are also
+refused when they have no `schema_version`, as in the pinned upstream contract.
+JSON privacy preflight is bounded and rejects
 malformed or oversized JSON without treating that failure as a manuscript defect.
 These controls do not establish confidentiality of arbitrary prose or unknown
 record formats; operator corpus review and separate transmission approval remain
@@ -240,3 +242,70 @@ egress restrictions; the containing private run also has administrative material
 and must not be given to a reviewer. All live backends remain blocked. Every
 source-packet record keeps execution not requested, model/search permissions
 disabled, backend isolation unqualified and medical performance unvalidated.
+
+## Implemented offline candidate ingestion
+
+Import explicitly supplied outputs against one completed source-packet run:
+
+```bash
+uv run --offline --locked python scripts/medical_review.py evaluation-candidates \
+  --packets-run data/processed/forensics_runs/private_reviews/EVALUATION_ID/PACKETS_RUN_ID \
+  --input data/private/medical_reviews/EVALUATION_ID/evaluation/candidates.json
+```
+
+The input has exact fields `schema_version=medical_evaluation_candidate_input_v1`,
+`packets_record_id`, and `attempts`. Each attempt has `attempt_id`, `packet_id`,
+`status`, `stop_reason`, `origin=offline_supplied`, `runtime`, `upstream_revision`,
+`usage`, and `outputs`. Attempt IDs are unique within an input. Multiple explicit
+attempts may reference the same packet; unreported packets remain separately
+listed rather than being counted as successfully reviewed. Supported declared
+statuses are completed, partial, failed, blocked and not_started. Incomplete
+attempts require a reason; blocked/not-started attempts cannot contain outputs.
+
+Each output has a bounded `output_id`, `stage=reviewer|synthesis`, and a
+repo-relative `output_reference` inside this evaluation's private `evaluation/`
+store. Outputs use the pinned Reviewer JSON contract, with their paper ID mapped
+explicitly to the packet ID or the original bundle's declared upstream paper ID.
+Original fields, summaries, notes, model assessments and raw bytes are retained.
+Reviewer and synthesis findings remain separate; source memberships, deduplication,
+losses and distortions are not inferred. Synthesis-only supplied output cannot
+establish what the earlier reviewers found.
+
+`runtime` is null or an operator-reported object with provider, backend, model and
+an explicit tools list. It does not establish observed settings, source access,
+authorization or a qualified live execution. `upstream_revision` is null or the
+pinned commit for an original-comparator packet; even a declared pinned revision
+does not prove the full unmodified workflow ran. No permission is granted and no
+backend/search command is invoked. The original live comparator remains blocked.
+
+`usage` has elapsed_seconds, input_tokens, output_tokens, total_tokens,
+cost_amount and cost_currency. Unknown measurements are null, never filled with
+zero. Reported values must be nonnegative, tokens integral, and a known cost must
+include its currency. Costs/usage from failed attempts remain in the record. No
+price lookup, currency conversion, spend guarantee or invented measurement occurs.
+
+The new canonical private run retains exact input/output snapshots, code and
+the source-packet manifest binding, then publishes
+`processed/medical_evaluation/candidates.json` only after validation. Re-import
+creates a separate run; unchanged inputs preserve candidate identities and do
+not establish independent observations. An invalid model schema or forged human/
+official field preserves a failed attempt and its raw outputs, without publishing
+eligible candidates. Unsafe input identities/paths are rejected before staging.
+Input, output, parent, source or code drift during freezing preserves failure;
+reuse verifies registered artifacts and reconstructs the source-scoped record.
+
+Citation resolution uses exact staged names and existing source/evidence identity
+functions, restricted to the packet's supplied versions. No original path alias
+is written into historical bundles and no original output is rewritten. An
+unselected supplement, fuzzy quote, ambiguous anchor or wrong locator remains
+unresolved even if the administrative bundle contains a corresponding annotation.
+An exact anchor remains a proposed transcription, not proof of source fidelity
+or human verification. Findings remain human-pending, with no qualified result
+IDs or official judgment. Empty findings retain unavailable review coverage.
+
+Preparation is bounded to 1,024 attempts, 4,096 outputs, 20 MiB per JSON and
+128 MiB of retained raw outputs. The actual serialized combined record must fit
+the JSON limit; explicit splitting preserves packet/study identities rather
+than truncating evidence. These are storage/preparation bounds, not model costs.
+Blinded assessor packets, write-once candidate adjudication, approved thresholds,
+R analysis, qualification reporting and actual held-out performance remain required.
