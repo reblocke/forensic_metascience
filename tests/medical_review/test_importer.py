@@ -187,6 +187,32 @@ def test_no_issue_requires_positive_documented_coverage():
         validate_coverage(coverage)
 
 
+def test_no_issue_rejects_required_source_gaps_from_imported_plan(workspace):
+    run = imported(workspace)
+    path = run / "processed/medical_review/coverage.json"
+    original = path.read_bytes()
+    rows = json.loads(original)
+    coverage = copy.deepcopy(next(row for row in rows if row["required_source_gaps"]))
+    coverage.update(
+        applicability="applicable",
+        execution="completed",
+        assessment="no_issue_identified",
+        inspected_units=1,
+        evidence_ids=[workspace[3]["evidence"][0]["evidence_id"]],
+        missing_materials=[],
+    )
+    # Simulate a completed declaration; the actual imported source gap must still
+    # prevent reassurance even when the other positive-coverage fields are set.
+    with pytest.raises(ValueError, match="No-issue"):
+        validate_coverage(coverage)
+    coverage["required_source_gaps"] = []
+    validate_coverage(coverage)
+    coverage["unresolved_required_sources"] = ["legacy-required-source"]
+    with pytest.raises(ValueError, match="No-issue"):
+        validate_coverage(coverage)
+    assert path.read_bytes() == original
+
+
 def test_cli_plan_help_and_import_replay_are_real_boundaries(workspace):
     repo, bundle_path, incoming, *_ = workspace
     shutil.copytree(ROOT / "src/research_project", repo / "src/research_project")

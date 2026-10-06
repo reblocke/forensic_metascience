@@ -88,7 +88,8 @@ jobs:
           "$FM_TEST_ARTIFACT_DIR/r-session.txt" \
           "$FM_TEST_ARTIFACT_DIR/source-hashes.sha256" \
           "$FM_TEST_ARTIFACT_DIR/native-method-receipts.csv" \
-          "$FM_TEST_ARTIFACT_DIR/native-standardized-results.csv"
+          "$FM_TEST_ARTIFACT_DIR/native-standardized-results.csv" \
+          "$FM_TEST_ARTIFACT_DIR/medical-native-handoffs.json"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -148,6 +149,7 @@ jobs:
             tests/test_inspect_sr_reporting.py \
             tests/test_inspect_sr_cli_workflow.py \
             tests/test_pipeline.py::test_randomization_report_renders_only_current_run_inputs \
+            tests/medical_review/test_reporting.py \
             --junitxml="$FM_TEST_ARTIFACT_DIR/junit.xml"
       - name: Enforce report/review acceptance receipt
         if: always()
@@ -165,7 +167,14 @@ jobs:
           "$FM_TEST_ARTIFACT_DIR/inspect-sr-early-stop.html" \
           "$FM_TEST_ARTIFACT_DIR/inspect-sr-early-stop.pdf" \
           "$FM_TEST_ARTIFACT_DIR/private-prediction-review.html" \
-          "$FM_TEST_ARTIFACT_DIR/private-prediction-review.pdf"
+          "$FM_TEST_ARTIFACT_DIR/private-prediction-review.pdf" \
+          "$FM_TEST_ARTIFACT_DIR/medical-review.md" \
+          "$FM_TEST_ARTIFACT_DIR/medical-review.html" \
+          "$FM_TEST_ARTIFACT_DIR/medical-review.pdf" \
+          "$FM_TEST_ARTIFACT_DIR/medical-report-model.json" \
+          "$FM_TEST_ARTIFACT_DIR/medical-native-review.html" \
+          "$FM_TEST_ARTIFACT_DIR/medical-native-review.pdf" \
+          "$FM_TEST_ARTIFACT_DIR/medical-native-report-model.json"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -193,5 +193,8 @@ def _validate_prompt_sources(repo_root: Path, catalogue: dict[str, Any]) -> None
     expected = {
         Path(f"prompts/medical_review/{rule['module']}.txt") for rule in catalogue["checks"]
     }
+    expected.update(
+        Path(f"prompts/medical_review/{stage}.txt") for stage in ("counterevidence", "editor")
+    )
     if not expected <= paths:
         raise ValueError("Missing medical module prompt provenance.")

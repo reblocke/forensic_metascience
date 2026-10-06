@@ -152,6 +152,7 @@ def validate_coverage(record: dict[str, Any]) -> None:
             or not record.get("evidence_ids")
             or not record.get("inspected_units")
             or record.get("missing_materials")
+            or record.get("required_source_gaps")
             or record.get("unresolved_required_sources")
         ):
             raise ValueError("No-issue assessment requires completed, evidenced positive coverage.")

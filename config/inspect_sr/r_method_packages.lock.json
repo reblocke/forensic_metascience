@@ -16,7 +16,8 @@
       "source_url": "https://cran.rstudio.com/src/contrib/statcheck_1.5.0.tar.gz",
       "sha256": "a7d9f97adfd2409e0facd9bc569ddd3851200e2275b1d089086816179101593f",
       "fallback_source_urls": [
-        "https://cloud.r-project.org/src/contrib/statcheck_1.5.0.tar.gz"
+        "https://cloud.r-project.org/src/contrib/statcheck_1.5.0.tar.gz",
+        "https://cran.r-project.org/src/contrib/statcheck_1.5.0.tar.gz"
       ]
     },
     {
@@ -26,7 +27,8 @@
       "source_url": "https://cran.rstudio.com/src/contrib/simdistr_1.0.1.tar.gz",
       "sha256": "2868bbb369dc07070f22dec1847b36efd8086da0e2e0804f894798fc0591da99",
       "fallback_source_urls": [
-        "https://cloud.r-project.org/src/contrib/simdistr_1.0.1.tar.gz"
+        "https://cloud.r-project.org/src/contrib/simdistr_1.0.1.tar.gz",
+        "https://cran.r-project.org/src/contrib/simdistr_1.0.1.tar.gz"
       ]
     }
   ],
