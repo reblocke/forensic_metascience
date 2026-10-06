@@ -30,6 +30,7 @@ def preserve_synthetic_artifact():
         "medical-review.html",
         "medical-review.pdf",
         "medical-report-model.json",
+        "medical-native-handoffs.json",
     }
 
     def preserve(name: str, source: Path) -> Path | None:

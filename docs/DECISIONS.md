@@ -1,5 +1,13 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Link existing numerical qualifications without creating new authority
+
+- **Read-only boundary:** Explicit terminal same-study numerical runs provide registered v4 receipts and v2 results. Apply the existing candidate qualifier to the medical bundle's scoped canonical evidence; do not alter routes or write results, receipts, candidates or human judgments. Missing source bindings remain unqualified, partial/failed/blocked coverage stays visible and no handoff supplies review reassurance.
+- **Provenance:** Preserve original proposal/run, source/bundle, numerical manifest, parsed receipt/results and native output hashes. Distinguish native hashes captured at handoff from native files already registered in the original manifest. Archive the existing qualifier/identity code with the medical handoff adapter and request; later artifact/native drift fails closed.
+- **Repeated references:** New passes declare `record_references_unique=true`, keeping identical arithmetic/method identities once while preserving every raw attempt and lineage. Historical passes without that setting keep their original representation. A fresh pass can normalize a historical dossier without rewriting any prior report.
+- **Manual packet:** Include exact numerical and input-review IDs alongside proposal/evidence/human references. Archived older packet fields remain readable; the current renderer requires complete new numerical references. All automatic adoption and official assessment fields remain false/null.
+- **Evidence boundary:** Synthetic native tests execute the pinned R engines; controlled partial/zero-evaluated negative fixtures test contract behavior only. Quarto tests retain proposed-transcription and unqualified-arithmetic labels in actual HTML/PDF. Remaining scenario audit, delivered-head hosted gates and WP5 are still required; no medical performance qualification is claimed.
+
 ## 2026-10-06: Preserve verification, human and report authority separately
 
 - **Lineage:** Append counterevidence/arithmetic and report stages as fresh canonical runs bound to the exact parent manifest and original proposal. Preserve raw bytes and reviewed code, including failed attempts. Historical arithmetic is not silently recomputed under changed calculator code; its archived code/contract is checked without executing an arbitrary historical snippet.

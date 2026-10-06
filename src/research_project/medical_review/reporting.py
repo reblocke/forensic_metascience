@@ -235,6 +235,9 @@ def _markdown(model: dict[str, Any]) -> str:
             *_record_lines(model["arithmetic_results"], "Arithmetic"),
             *_record_lines(model["arithmetic_revalidation"], "Code revalidation"),
             *_record_lines(model["numeric_input_reviews"], "Numeric source review"),
+            "Existing R references preserve their own receipt coverage. Partial, zero-evaluated "
+            "or blocked execution cannot provide review reassurance.\n",
+            *_record_lines(model.get("method_handoffs", []), "Existing method references"),
             "## Coverage, unsupported checks and failures\n",
             "Review coverage remains unavailable. A completed import or render and an empty "
             "findings list cannot establish completed, reassuring review coverage.\n",
@@ -311,6 +314,7 @@ def build_report_model(repo_root: Path, dossier: dict[str, Any]) -> dict[str, An
     calculator_hash = hashlib.sha256(
         (Path(__file__).parent / "numeric.py").read_bytes()
     ).hexdigest()
+    model_input_reviews = load_input_reviews(repo, dossier)
     model = {
         "schema_version": REPORT_SCHEMA,
         "title": TITLE,
@@ -332,7 +336,8 @@ def build_report_model(repo_root: Path, dossier: dict[str, Any]) -> dict[str, An
         "upstream_metadata": copy.deepcopy(dossier.get("upstream_metadata", {})),
         "failures": copy.deepcopy(dossier.get("failures", [])),
         "human_history": history,
-        "numeric_input_reviews": load_input_reviews(repo, dossier),
+        "numeric_input_reviews": model_input_reviews,
+        "method_handoffs": copy.deepcopy(dossier.get("method_handoffs", [])),
         "proposals": proposals,
         "groups": _groups(proposals),
         "proposal_statuses": _statuses(proposals, dossier["verification"], history),
@@ -360,6 +365,9 @@ def build_report_model(repo_root: Path, dossier: dict[str, Any]) -> dict[str, An
             "proposal_ids": [p["proposal_id"] for p in proposals],
             "evidence": copy.deepcopy(dossier["bundle"]["evidence"]),
             "human_disposition_ids": [r["disposition_id"] for r in history],
+            "arithmetic_result_ids": [r["result_id"] for r in dossier["arithmetic_results"]],
+            "method_handoff_ids": [r["handoff_id"] for r in dossier.get("method_handoffs", [])],
+            "numeric_input_review_ids": [r["input_review_id"] for r in model_input_reviews],
             "required_manual_checks": [
                 "Check original source bytes and version hashes.",
                 "Check locators and the proposed observation wording.",
@@ -405,6 +413,8 @@ def validate_report_model(model: dict[str, Any], dossier: dict[str, Any]) -> Non
     ):
         if model[key] != dossier[key]:
             raise ValueError("Report source traceability changed.")
+    if model.get("method_handoffs", []) != dossier.get("method_handoffs", []):
+        raise ValueError("Report numerical handoff traceability changed.")
     if model["upstream_metadata"] != dossier.get("upstream_metadata", {}) or (
         model["failures"] != dossier.get("failures", [])
         or model["source_run"]
@@ -431,6 +441,18 @@ def validate_report_model(model: dict[str, Any], dossier: dict[str, Any]) -> Non
         if len(matching) != 1 or content_hash(matching[0]) != review["result_sha256"]:
             raise ValueError("Report numeric input review lacks its exact current result.")
     packet = model["manual_adoption_packet"]
+    current_renderer = (
+        model["renderer_source_sha256"] == hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    )
+    for key, rows, identity_field in (
+        ("arithmetic_result_ids", dossier["arithmetic_results"], "result_id"),
+        ("method_handoff_ids", dossier.get("method_handoffs", []), "handoff_id"),
+        ("numeric_input_review_ids", model["numeric_input_reviews"], "input_review_id"),
+    ):
+        if (current_renderer or key in packet) and packet.get(key) != [
+            row[identity_field] for row in rows
+        ]:
+            raise ValueError("Manual adoption packet numerical traceability changed.")
     if (
         packet.get("schema_version") != "medical_manual_adoption_packet_v1"
         or packet.get("automatic_adoption") is not False

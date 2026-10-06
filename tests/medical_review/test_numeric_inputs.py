@@ -124,3 +124,48 @@ def test_input_review_tampering_cannot_survive_report_build(workspace):
     write_json(path, record)
     with pytest.raises(ValueError, match="identity|authority"):
         build_report_model(repo, dossier)
+
+
+def test_repeated_calculation_retains_attempt_lineage_without_multiplying_identical_result(
+    workspace,
+):
+    repo, *_ = workspace
+    run, dossier, data = arithmetic_run(workspace)
+    repeated = verify_review(
+        repo, run, repo / "data/private/medical_reviews/synthetic/verification/numbers.json"
+    )
+    second = load_dossier(repo, repeated)
+    assert second["arithmetic_results"] == dossier["arithmetic_results"]
+    assert len(second["lineage"]) == len(dossier["lineage"]) + 1
+    record_input_review(repo, repeated, data)
+    assert len(build_report_model(repo, second)["numeric_input_reviews"]) == 1
+
+
+def test_old_repeated_reference_report_remains_readable_after_new_deduplicated_pass(
+    workspace, monkeypatch
+):
+    from research_project.medical_review import audit
+    from research_project.medical_review.reporting import render_review
+
+    repo, *_ = workspace
+    real_create = audit.create_run
+
+    def historical_settings(**kwargs):
+        kwargs["settings"].pop("record_references_unique", None)
+        return real_create(**kwargs)
+
+    with monkeypatch.context() as legacy:
+        legacy.setattr(audit, "create_run", historical_settings)
+        run, _, _ = arithmetic_run(workspace)
+        repeated = verify_review(
+            repo, run, repo / "data/private/medical_reviews/synthetic/verification/numbers.json"
+        )
+    old_report = render_review(repo, repeated)
+    frozen = (old_report / "processed/medical_review/report_model.json").read_bytes()
+    assert len(load_dossier(repo, old_report)["arithmetic_results"]) == 2
+    normalized = verify_review(
+        repo, repeated, repo / "data/private/medical_reviews/synthetic/verification/numbers.json"
+    )
+    assert len(load_dossier(repo, normalized)["arithmetic_results"]) == 1
+    assert len(load_dossier(repo, old_report)["arithmetic_results"]) == 2
+    assert (old_report / "processed/medical_review/report_model.json").read_bytes() == frozen

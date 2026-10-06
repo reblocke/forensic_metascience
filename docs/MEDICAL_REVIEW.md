@@ -15,8 +15,9 @@ WP3 adds bounded local replay, source-specific authorization validation and
 immutable recovery attempts. Every live backend is explicitly blocked because
 filesystem/tool/egress restrictions are not yet qualified. WP4 now adds offline
 counterevidence/arithmetic passes, private human dispositions, numeric source-review
-attestations and Markdown/Quarto reports. Qualified R-reference handoffs and WP5
-evaluation tooling remain pending. Planning profiles encode review questions;
+attestations, read-only qualified R-reference handoffs and Markdown/Quarto reports.
+The remaining acceptance-scenario audit and WP5 evaluation tooling are pending.
+Planning profiles encode review questions;
 they do not establish live medical detection performance.
 The feature is opt-in. No medical performance qualification is claimed.
 
@@ -299,7 +300,7 @@ dependencies are refused. Successful/failed manifests are never reopened for edi
 `research_project.medical_review.numeric.calculate_request` implements the pure
 `medical_numeric_check_request_v1` → `medical_arithmetic_result_v1` transform.
 CLI/storage and separate human input-review attestations are implemented below;
-qualified-reference handoff remains required. This core does not create a
+read-only qualified-reference handoffs are described below. This core does not create a
 numerical-method receipt or candidate.
 Every result remains a proposed transcription until independently verified.
 
@@ -351,8 +352,9 @@ uv run --offline --locked python scripts/medical_review.py render \
 # Add --html --pdf only after preparing the existing Quarto/R/TeX environment.
 ```
 
-`medical_verification_input_v1` contains exactly schema_version, counterevidence
-and numeric_requests. Each counterevidence row declares proposal_id, disposition,
+`medical_verification_input_v1` contains schema_version, counterevidence
+and numeric_requests, with optional method_handoffs. Other fields are rejected;
+older inputs without method_handoffs remain supported. Each counterevidence row declares proposal_id, disposition,
 the unchanged reviewed_claim, strongest_alternative, rationale,
 supporting_evidence_ids, contradicting_evidence_ids, missing_materials,
 change_summary, model, backend and prompt_sha256. Unknown identities remain null.
@@ -367,6 +369,42 @@ registered. Parent inputs/manifests remain unchanged; mid-pass source/input/code
 drift preserves a failed run. A historical arithmetic result whose code differs
 is retained after archive/contract checks and explicitly labeled not reexecuted.
 Archived arbitrary code is never executed to read historical results.
+
+### Existing qualified method references
+
+Each optional `method_handoffs` request contains exactly schema_version
+(`medical_method_handoff_request_v1`), proposal_id, numeric_run_reference,
+receipt_artifact, result_artifact, method_id, result_ids and rationale. Name an
+existing terminal same-study numerical run beneath `data/processed/forensics_runs/`,
+and its exact registered JSON/CSV receipt/result artifact paths relative to that
+run. The numerical stage must be terminal; no newest-run search occurs. At most
+64 requests per pass and 256 unique result IDs per request are supported. An
+empty result-ID list can retain a method's unavailable/blocked coverage receipt.
+
+This handoff reads the existing `method_receipt_v4` and `numeric_result_v2`
+contracts and invokes the unchanged candidate qualifier against scoped canonical
+bundle evidence. It creates a `medical_method_handoff_v1` reference, never a new
+numerical result, method receipt or INSPECT-SR candidate. Missing source IDs or
+locators remain unqualified; wrong identities, changed artifact hashes and unsafe
+paths are refused. Partial failure and zero evaluated units remain visible, and
+every reference has `review_reassurance=false`. Rounding-bias stays blocked.
+
+References bind the original proposal, bundle, numerical manifest, full parsed
+receipt/results and native-output bytes. A native output already registered in
+the original numerical manifest has `binding=existing_run_receipt`; otherwise
+its hash is explicitly `captured_at_handoff`, not claimed as an earlier receipt.
+Later source/native-byte drift refuses reuse. The verification run archives the
+existing qualifier/source-identity code as well as its medical adapter and raw
+request. Production handoff does not invoke R; native integration tests execute
+the existing pinned R engine to establish the real interoperability boundary.
+
+New verification runs set `record_references_unique=true`: identical arithmetic
+or method content identities appear once in the dossier while every attempt's
+raw output, stage and lineage remain. Older runs without that setting retain
+their historical representation; a new verification pass can normalize their
+references without rewriting the old run or report.
+
+### Consolidation and operator attestations
 
 `consolidate` links 2–16 explicit compatible review branches. Bundle, context,
 plan and parser-preflight snapshots must match exactly; differing snapshots and
@@ -426,6 +464,7 @@ wrap for PDF readability; machine-readable values remain exact.
 All formats distinguish model dispositions from operator-attested human decisions,
 retain unknown coverage and show numerical input-review status separately from
 execution. They use the title **AI-assisted manuscript audit: unverified proposals**.
-The manual packet retains proposals, evidence and human references plus required
+The manual packet retains proposals, evidence, human dispositions, arithmetic,
+method-handoff and numeric-input-review IDs plus required
 source/locator/wording/rationale checks. No INSPECT-SR store, official response,
 finalized assessment, synthesis disposition or public export is written.

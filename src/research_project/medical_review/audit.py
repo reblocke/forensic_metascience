@@ -26,7 +26,7 @@ from research_project.medical_review.records import (
     read_json,
     write_json,
 )
-from research_project.run_manifest import create_run, update_run
+from research_project.run_manifest import create_run, sha256_file, update_run
 
 VERIFICATION_FIELDS = {
     "proposal_id",
@@ -79,10 +79,23 @@ def validate_record_identity(record: dict[str, Any], field: str, prefix: str) ->
         raise ValueError("Medical record content identity mismatch.")
 
 
-def validate_run_artifacts(repo: Path, run: Path) -> dict[str, Any]:
+def _unique_records(records: list[dict[str, Any]], field: str) -> list[dict[str, Any]]:
+    """Keep identical content references once without discarding their run lineage."""
+    unique = {}
+    for record in records:
+        key = record[field]
+        if key in unique and unique[key] != record:
+            raise ValueError("Conflicting medical record content identity.")
+        unique[key] = record
+    return list(unique.values())
+
+
+def validate_run_artifacts(
+    repo: Path, run: Path, *, boundary: Path = PRIVATE_RUNS
+) -> dict[str, Any]:
     """Inspect exact registered private artifacts, never discover a newest run."""
-    run = private_path(repo, run, PRIVATE_RUNS)
-    manifest = read_json(private_path(repo, run / "run_manifest.json", PRIVATE_RUNS))
+    run = private_path(repo, run, boundary)
+    manifest = read_json(private_path(repo, run / "run_manifest.json", boundary))
     if manifest.get("schema_version") != "forensics_run_v3" or manifest.get("run_id") != run.name:
         raise ValueError("Medical run manifest identity mismatch.")
     if manifest.get("status") not in {"completed", "failed"}:
@@ -97,11 +110,8 @@ def validate_run_artifacts(repo: Path, run: Path) -> dict[str, Any]:
         relative = Path(row["path"])
         if relative.is_absolute() or ".." in relative.parts or str(relative) in paths:
             raise ValueError("Unsafe or duplicate registered artifact path.")
-        artifact = private_path(repo, run / relative, PRIVATE_RUNS)
-        if (
-            run not in artifact.parents
-            or hashlib.sha256(artifact.read_bytes()).hexdigest() != row["sha256"]
-        ):
+        artifact = private_path(repo, run / relative, boundary)
+        if run not in artifact.parents or sha256_file(artifact) != row["sha256"]:
             raise ValueError("Registered medical artifact hash mismatch.")
         paths.add(str(relative))
     if not paths:
@@ -109,10 +119,12 @@ def validate_run_artifacts(repo: Path, run: Path) -> dict[str, Any]:
     return manifest
 
 
-def recorded_artifact(repo: Path, run: Path, manifest: dict[str, Any], relative: str) -> Path:
+def recorded_artifact(
+    repo: Path, run: Path, manifest: dict[str, Any], relative: str, *, boundary: Path = PRIVATE_RUNS
+) -> Path:
     if relative not in {r["path"] for r in manifest["artifacts"]}:
         raise ValueError("Required medical artifact receipt is missing.")
-    return private_path(repo, run / relative, PRIVATE_RUNS)
+    return private_path(repo, run / relative, boundary)
 
 
 def load_dossier(repo_root: Path, run_path: Path, *, _depth: int = 0) -> dict[str, Any]:
@@ -186,12 +198,28 @@ def load_dossier(repo_root: Path, run_path: Path, *, _depth: int = 0) -> dict[st
                     or result["input_verification"] != "proposed_transcription"
                 ):
                     raise ValueError("Historical arithmetic contract/authority mismatch.")
+        handoffs = []
+        handoff_path = "processed/medical_review/method_handoffs.json"
+        if "method_handoffs_requested" in settings or handoff_path in {
+            r["path"] for r in manifest["artifacts"]
+        }:
+            from research_project.medical_review.method_handoffs import validate_method_handoff
+
+            handoffs = load("method_handoffs")
+            for handoff in handoffs:
+                validate_method_handoff(repo, dossier, handoff)
+        arithmetic_references = [*dossier["arithmetic_results"], *arithmetic]
+        method_references = [*dossier.get("method_handoffs", []), *handoffs]
+        if settings.get("record_references_unique") is True:
+            arithmetic_references = _unique_records(arithmetic_references, "result_id")
+            method_references = _unique_records(method_references, "handoff_id")
         return {
             **dossier,
             "run_root": run,
             "manifest": manifest,
             "verification": [*dossier["verification"], *records],
-            "arithmetic_results": [*dossier["arithmetic_results"], *arithmetic],
+            "arithmetic_results": arithmetic_references,
+            "method_handoffs": method_references,
             "lineage": [*dossier["lineage"], str(run.relative_to(repo))],
         }
     if settings.get("medical_report_key"):
@@ -258,6 +286,7 @@ def load_dossier(repo_root: Path, run_path: Path, *, _depth: int = 0) -> dict[st
             "proposals": [],
             "verification": [],
             "arithmetic_results": [],
+            "method_handoffs": [],
             "parser_preflight": None,
             "lineage": [str(run.relative_to(repo))],
             "repo_root": repo,
@@ -300,6 +329,7 @@ def load_dossier(repo_root: Path, run_path: Path, *, _depth: int = 0) -> dict[st
         "parser_preflight": load("parser_preflight"),
         "verification": [],
         "arithmetic_results": [],
+        "method_handoffs": [],
         "lineage": [str(run.relative_to(repo))],
         "proposal_run_root": run,
         "repo_root": repo,
@@ -345,12 +375,6 @@ def _combined_dossier(dossiers: list[dict[str, Any]], repo: Path) -> dict[str, A
                 raise ValueError("Conflicting original proposal identity in consolidation.")
             proposals[key] = proposal
             references[key] = _proposal_reference(dossier, key)
-    arithmetic = {}
-    for dossier in dossiers:
-        for result in dossier["arithmetic_results"]:
-            if result["result_id"] in arithmetic and arithmetic[result["result_id"]] != result:
-                raise ValueError("Conflicting arithmetic identity in consolidation.")
-            arithmetic[result["result_id"]] = result
     return {
         **first,
         "proposals": list(proposals.values()),
@@ -363,7 +387,12 @@ def _combined_dossier(dossiers: list[dict[str, Any]], repo: Path) -> dict[str, A
         "verification": list(
             {r["verification_id"]: r for d in dossiers for r in d["verification"]}.values()
         ),
-        "arithmetic_results": list(arithmetic.values()),
+        "arithmetic_results": _unique_records(
+            [r for d in dossiers for r in d["arithmetic_results"]], "result_id"
+        ),
+        "method_handoffs": _unique_records(
+            [r for d in dossiers for r in d.get("method_handoffs", [])], "handoff_id"
+        ),
         "failures": [r for d in dossiers for r in d.get("failures", [])],
         "lineage": list(dict.fromkeys(r for d in dossiers for r in d["lineage"])),
         "upstream_metadata": {
@@ -501,7 +530,10 @@ def verify_review(repo_root: Path, source_run: Path, input_path: Path) -> Path:
     with path.open("rb") as stream:
         raw = stream.read(MAX_JSON_BYTES + 1)
     data = parse_json(raw)
-    _exact(data, {"schema_version", "counterevidence", "numeric_requests"}, "verification input")
+    fields = {"schema_version", "counterevidence", "numeric_requests"}
+    if isinstance(data, dict) and "method_handoffs" in data:
+        fields.add("method_handoffs")
+    _exact(data, fields, "verification input")
     if data["schema_version"] != "medical_verification_input_v1":
         raise ValueError("Unsupported verification input schema.")
     if not isinstance(data["counterevidence"], list) or not isinstance(
@@ -523,9 +555,33 @@ def verify_review(repo_root: Path, source_run: Path, input_path: Path) -> Path:
         arithmetic.append(calculate_request(request, dossier["bundle"]))
     if len({r["request_sha256"] for r in arithmetic}) != len(arithmetic):
         raise ValueError("Duplicate numerical request in verification pass.")
-    code_bytes = {
-        name: (Path(__file__).parent / name).read_bytes() for name in ("audit.py", "numeric.py")
+    from research_project.medical_review.method_handoffs import build_method_handoff
+
+    requests = data.get("method_handoffs", [])
+    if not isinstance(requests, list) or len(requests) > 64:
+        raise ValueError(
+            "Verification method handoffs require a bounded list of at most 64 requests."
+        )
+    handoffs = [build_method_handoff(repo, dossier, row) for row in requests]
+    if len({r["handoff_id"] for r in handoffs}) != len(handoffs):
+        raise ValueError("Duplicate numerical handoff in verification pass.")
+    for value in (records, arithmetic, handoffs):
+        if len(json.dumps(value, ensure_ascii=False, indent=2).encode()) > MAX_JSON_BYTES:
+            raise ValueError(
+                "Verification artifacts exceed 20 MiB; explicit bounded splitting required."
+            )
+    package = Path(__file__).parent
+    code_sources = {
+        name: package / name for name in ("audit.py", "numeric.py", "method_handoffs.py")
     }
+    if handoffs:
+        code_sources.update(
+            {
+                "inspect_sr_adapters.py": package.parent / "inspect_sr/adapters.py",
+                "inspect_sr_records.py": package.parent / "inspect_sr/records.py",
+            }
+        )
+    code_bytes = {name: source.read_bytes() for name, source in code_sources.items()}
     code_hash = content_hash(
         {name: hashlib.sha256(raw_code).hexdigest() for name, raw_code in code_bytes.items()}
     )
@@ -548,6 +604,8 @@ def verify_review(repo_root: Path, source_run: Path, input_path: Path) -> Path:
             "offline": True,
             "allow_llm": False,
             "allow_web_search": False,
+            "method_handoffs_requested": len(requests),
+            "record_references_unique": True,
         },
     )
     try:
@@ -568,14 +626,18 @@ def verify_review(repo_root: Path, source_run: Path, input_path: Path) -> Path:
         ):
             raise ValueError("Verification parent changed during execution.")
         if path.read_bytes() != raw or any(
-            (Path(__file__).parent / name).read_bytes() != value
-            for name, value in code_bytes.items()
+            code_sources[name].read_bytes() != value for name, value in code_bytes.items()
         ):
             raise ValueError("Verification input or code changed during execution.")
+        from research_project.medical_review.method_handoffs import validate_method_handoff
+
+        for handoff in handoffs:
+            validate_method_handoff(repo, dossier, handoff)
         for name, value in [
             ("bundle", dossier["bundle"]),
             ("verification", records),
             ("arithmetic_results", arithmetic),
+            ("method_handoffs", handoffs),
         ]:
             artifact = run / f"processed/medical_review/{name}.json"
             write_json(artifact, value)

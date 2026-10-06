@@ -1,5 +1,65 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 WP4 qualified-reference checkpoint (milestone still incomplete)
+
+On `codex/medical-review-verification-reporting`, the optional verification input
+now links existing same-study terminal numerical runs through their registered
+v4 receipt/v2 result artifacts. It invokes the unchanged existing qualifier
+against scoped bundle evidence; original numerical files, proposals and human
+stores remain untouched. Native outputs are hash-bound, explicitly distinguishing
+an existing artifact receipt from a hash captured at handoff. Source-unbound
+results stay unqualified, partial/zero-evaluated coverage remains visible and
+rounding-bias stays blocked. Verification archives the qualifier/identity code,
+adapter and request. CI requires the allowlisted synthetic handoff artifact.
+
+New passes keep identical arithmetic/method references once and retain every raw
+attempt/lineage. An initial regression reproduced duplicate references preventing
+numeric-input review; the fix is explicit in new run settings. Historical passes
+and reports retain their original representation; compatibility is exercised.
+The manual packet now includes numerical/input-review IDs. Report tests show
+proposed-transcription and unqualified arithmetic status in actual HTML/PDF.
+
+Executed after the implementation changes (synthetic sources only):
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration' --junitxml=/tmp/fm-med-wp4-handoff-python-final.xml
+# 288 passed, 20 deselected, 113.97s; zero failures/errors/skips.
+R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_R_INTEGRATION=1 FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp4-handoff-native-artifacts-final-v3 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m native_r --junitxml=/tmp/fm-med-wp4-handoff-native-final-v3.xml
+# 14 passed, 294 deselected, 26.00s; zero failures/errors/skips.
+PATH=/Applications/quarto/bin/tools:$PATH RSTUDIO_PANDOC=/Applications/quarto/bin/tools R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_REPORT_INTEGRATION=1 FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp4-handoff-report-artifacts-final UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m report_integration --junitxml=/tmp/fm-med-wp4-handoff-report-final.xml
+# 6 passed, 302 deselected, 50.97s; zero failures/errors/skips.
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+git diff --check
+# Clean; 89 Python files formatted.
+```
+
+The native lane executes actual pinned GRIM, GRIMMER, DEBIT, duplicate and
+statcheck engines, then sends explicit handoffs through the real medical CLI.
+GRIM's positive/negative controls preserve their flags; source-unbound statcheck
+references stay unqualified and blocked rounding-bias has no results. Controlled
+partial/zero-evaluated receipts are synthetic contract-negative fixtures, not
+empirical qualification evidence. A changed native output refuses later reuse.
+The Python lane precedes the final native-only CLI test edit; that native edit
+is covered by the final native lane and focused contract rerun. Full final
+delivered-head hosted gates remain required.
+
+An initial real Quarto run had one failing assertion: it searched the machine
+key `qualified_method_result` rather than the displayed label `qualified method
+result`. Inspection confirmed the label and false value existed. The assertion
+was corrected; all six report tests passed on rerun. No failing/skipped lane is
+presented as accepted. Two guessed test/module read paths were absent; actual
+repository inventories resolved the filenames without changing implementation.
+
+Remaining WP4: paired semantic fixtures and dated supplement/amendment
+counterevidence for MED-11/12/16/17, explicit counterevidence/editor prompt
+provenance, final requirement/layout audit and draft-PR/hosted delivered-head
+receipts. Then implement WP5 blinded paired evaluation preparation/analysis,
+predeclared approval gates and pending qualification record. No WP4 milestone
+acceptance is claimed. All live backends stay blocked. No source transmission,
+search, real human adjudication, medical-performance claim, dependency change
+or main merge occurred; the full sequential goal remains active.
+
 ## 2026-10-06 WP4 verification/reporting checkpoint (milestone still incomplete)
 
 On `codex/medical-review-verification-reporting`, bounded arithmetic now connects

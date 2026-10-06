@@ -144,6 +144,11 @@ def test_report_validator_refuses_caveat_removal_and_missing_group_members(works
     tampered["groups"] = []
     with pytest.raises(ValueError, match="every|Every|group"):
         validate_report_model(tampered, dossier)
+    for field in ("arithmetic_result_ids", "method_handoff_ids", "numeric_input_review_ids"):
+        tampered = copy.deepcopy(model)
+        del tampered["manual_adoption_packet"][field]
+        with pytest.raises(ValueError, match="numerical traceability"):
+            validate_report_model(tampered, dossier)
     validate_report_model(json.loads(json.dumps(model, sort_keys=True)), dossier)
 
 
@@ -285,7 +290,7 @@ def test_medical_current_model_renders_major_concern_and_caveat_html_pdf(
         if os.environ.get("FORENSICS_REQUIRE_REPORT_INTEGRATION") == "1":
             pytest.fail("Quarto is required for the medical report acceptance lane.")
         pytest.skip("Quarto unavailable; medical report acceptance remains open.")
-    repo, bundle_path, incoming, _, upstream = workspace
+    repo, bundle_path, incoming, bundle, upstream = workspace
     (repo / "notebooks").mkdir()
     template = Path(__file__).resolve().parents[2] / "notebooks/medical_manuscript_review.qmd"
     shutil.copy(template, repo / "notebooks/medical_manuscript_review.qmd")
@@ -297,7 +302,35 @@ def test_medical_current_model_renders_major_concern_and_caveat_html_pdf(
     write_json(incoming, upstream)
     source = import_reviewer(repo, bundle_path, incoming)
     frozen_parent = (source / "run_manifest.json").read_bytes()
-    output = render_review(repo, source, html=True, pdf=True)
+    from research_project.medical_review.records import content_hash
+
+    proposal = load_dossier(repo, source)["proposals"][0]
+    arithmetic_input = write_json(
+        repo / "data/private/medical_reviews/synthetic/verification/report-numbers.json",
+        {
+            "schema_version": "medical_verification_input_v1",
+            "counterevidence": [],
+            "numeric_requests": [
+                {
+                    "schema_version": "medical_numeric_check_request_v1",
+                    "run_id": proposal["run_id"],
+                    "proposal_id": proposal["proposal_id"],
+                    "study_id": "synthetic",
+                    "comparison_id": None,
+                    "bundle_sha256": content_hash(bundle),
+                    "kind": "percentage",
+                    "evidence_ids": [bundle["evidence"][0]["evidence_id"]],
+                    "population": "synthetic-unverified-transcription",
+                    "horizon": "day-30",
+                    "orientation": "event-risk",
+                    "inputs": {"numerator": 1, "denominator": 2},
+                    "reported_comparison": None,
+                }
+            ],
+        },
+    )
+    verified = verify_review(repo, source, arithmetic_input)
+    output = render_review(repo, verified, html=True, pdf=True)
     assert (source / "run_manifest.json").read_bytes() == frozen_parent
     # Historical report reads are explicit and do not mutate the original import.
     assert load_dossier(repo, output)["proposals"] == load_dossier(repo, source)["proposals"]
@@ -310,6 +343,13 @@ def test_medical_current_model_renders_major_concern_and_caveat_html_pdf(
     )
     for text in ("Major concern", "Critical caveat", "pending", "coverage remains unavailable"):
         assert text in html and text in pdf
+    for text in ("proposed_transcription", "qualified method result", "false"):
+        assert text in html and text in pdf
+    stored = json.loads((output / "processed/medical_review/report_model.json").read_text())
+    assert stored["arithmetic_results"][0]["qualified_method_result"] is False
+    assert stored["manual_adoption_packet"]["arithmetic_result_ids"] == [
+        stored["arithmetic_results"][0]["result_id"]
+    ]
     assert "<script>synthetic_active_canary()" not in html
     assert not (repo / "data/private/inspect_sr").exists()
     for fmt in ("md", "html", "pdf"):
