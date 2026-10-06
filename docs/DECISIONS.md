@@ -1,5 +1,17 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Reject reassuring coverage with planned source gaps
+
+- **Audit finding:** Routing and imports retain missing required source groups as `required_source_gaps`, while the no-issue validator checked only `unresolved_required_sources`. A simulated completed declaration could therefore pass despite the actual plan's source gap. Existing imports remain unassessed/unverifiable; this gap did not qualify their coverage.
+- **Correction:** Check both fields before accepting `no_issue_identified`. Preserve the legacy field guard and historical artifacts. A real import-to-validator regression keeps the missing-source row, rejects a reassuring declaration, accepts a gap-free positive control and rejects the legacy-gap control without rewriting the imported coverage.
+- **Authority:** This enforces the ticket's existing coverage rule, not a new scientific assumption. Source/evidence identity, numerical qualification and human contracts are unchanged.
+
+## 2026-10-06: Add a byte-verified canonical CRAN fallback for environment preparation
+
+- **Trigger:** Both WP4 hosted runs failed their native/report setup on attempts 1 and 2 with HTTP 429 before executing those tests. Python passed; missing native/report receipts remain failed acceptance. Another unchanged retry is not treated as a solution.
+- **Correction:** Add `cran.r-project.org` as the third explicit source URL for the existing statcheck 1.5.0 and simdistr 1.0.1 archives. Independent retrieval matched the locked SHA-256 values `a7d9f97adfd2409e0facd9bc569ddd3851200e2275b1d089086816179101593f` and `2868bbb369dc07070f22dec1847b36efd8086da0e2e0804f894798fc0591da99`. Versions, hashes, runtime imports and installer behavior remain unchanged.
+- **Boundary:** Existing preparation code still tries each configured URL once, refuses hash mismatches immediately and never overwrites an archive. New regressions exercise the actual lock's URL order after two simulated rate limits, with synthetic bytes. Those regressions test recovery; actual hash verification is a separate recorded download check. Production remains offline and gains no installation or retrieval path. New-head hosted native/report receipts are still required.
+
 ## 2026-10-06: Bind original-source navigation to protected versions and report roots
 
 - **Scope:** New private report models include an additive navigation record derived only from their source bundle. Original sources are rechecked for hashes/containment before generating links; unavailable documents never receive a path. The scope/source index and exact evidence references open the original version, preserving source IDs, hashes and locators rather than replacing them with a hyperlink identity.

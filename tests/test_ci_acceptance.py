@@ -4,6 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 CHECKER = Path(__file__).resolve().parents[1] / "scripts" / "check_pytest_junit.py"
 
 
@@ -116,6 +118,44 @@ def test_pinned_source_hash_mismatch_never_triggers_fallback(tmp_path, monkeypat
         download_verified_source(package, destination)
     assert requests == [package["source_url"]]
     assert not destination.exists()
+
+
+@pytest.mark.parametrize("name", ["statcheck", "simdistr"])
+def test_pinned_cran_source_uses_canonical_fallback_after_two_rate_limits(
+    tmp_path, monkeypatch, name
+):
+    import hashlib
+    import io
+    import json
+    import urllib.error
+    import urllib.request
+
+    from research_project.method_setup import download_verified_source
+
+    lock_path = CHECKER.parent.parent / "config/inspect_sr/r_method_packages.lock.json"
+    packages = json.loads(lock_path.read_text())["packages"]
+    package = next(row for row in packages if row["name"] == name).copy()
+    canonical = f"https://cran.r-project.org/src/contrib/{name}_{package['version']}.tar.gz"
+    assert package["fallback_source_urls"][-1] == canonical
+    raw = b"synthetic pinned archive for configured-URL recovery"
+    package["sha256"] = hashlib.sha256(raw).hexdigest()
+    requests = []
+
+    def fetch(url, timeout):
+        requests.append(url)
+        assert timeout == 30
+        if url != canonical:
+            raise urllib.error.HTTPError(url, 429, "Too many requests", {}, None)
+        return io.BytesIO(raw)
+
+    monkeypatch.setattr(urllib.request, "urlopen", fetch)
+    destination = tmp_path / "source.tar.gz"
+    receipt = download_verified_source(package, destination)
+    assert requests == [package["source_url"], *package["fallback_source_urls"]]
+    assert len(requests) == 3
+    assert destination.read_bytes() == raw
+    assert receipt["source_url"] == canonical
+    assert receipt["sha256"] == package["sha256"]
 
 
 def test_pinned_source_exhaustion_and_existing_destination_fail_closed(tmp_path, monkeypatch):

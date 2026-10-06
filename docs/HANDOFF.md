@@ -1,5 +1,73 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 WP4 required-source guard and hosted preparation recovery
+
+The active full FM-MED-01 goal was revalidated after the planning-only turn.
+No new goal was created and the implementation scope was not reduced. WP4 remains
+incomplete until delivered-head hosted gates pass; WP5 tooling has not started.
+The added requirement audit in `MEDICAL_REVIEW_ACCEPTANCE.md` covers the ticket's
+verification/reporting obligations beyond its 27 scenarios.
+
+At head `0db23ea`, push run `37518399223` and PR run `37518419546` both ended
+failed on attempts 1 and 2. Their Python jobs passed, but native/report setup
+received HTTP 429 before executing the required tests. Failed jobs were retried
+once, not indefinitely; absent receipts correctly kept acceptance failed.
+Logs were inspected, including the terminal second-attempt PR log at
+`/tmp/fm-med-wp4-pr-attempt2-failed.log`. Another unchanged rerun was not launched.
+
+Two focused corrections followed:
+
+- The existing no-issue validator now checks the actual planned/imported
+  `required_source_gaps` as well as legacy `unresolved_required_sources`.
+  A real-import regression first reproduced the false reassurance, then passed
+  after the one-line correction with gap-free and legacy-gap controls. Imported
+  historical bytes are preserved and the fixture's actual coverage is not promoted.
+- Canonical CRAN URLs were appended for the same statcheck/simdistr archives.
+  The prior live retrieval session `66773` was polled to completion, not restarted;
+  both canonical archives matched the existing lock hashes. Configuration-based
+  tests first failed on the missing URLs, then passed using two simulated HTTP429
+  failures followed by identical synthetic bytes. Exact lock comparison proved
+  these two URL additions are the only manifest changes; no version, hash,
+  dependency, R engine or qualification requirement changed.
+
+Test-first command (three expected failures, then corrected):
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_importer.py::test_no_issue_rejects_required_source_gaps_from_imported_plan tests/test_ci_acceptance.py::test_pinned_cran_source_uses_canonical_fallback_after_two_rate_limits
+```
+
+Focused and final local commands, after all code/test corrections:
+
+```bash
+UV_OFFLINE=1 uv run --offline --locked ruff format tests/test_ci_acceptance.py tests/medical_review/test_importer.py src/research_project/medical_review/records.py
+# Three files unchanged.
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/test_ci_acceptance.py tests/medical_review/test_importer.py
+# 35 passed, 6.20s.
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration' --junitxml=/tmp/fm-med-wp4-gap-python-final.xml
+# 318 passed, 21 deselected, 143.59s.
+R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_R_INTEGRATION=1 FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp4-gap-native-artifacts-final UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m native_r --junitxml=/tmp/fm-med-wp4-gap-native-final.xml
+# 14 passed, 325 deselected, 28.23s.
+PATH=/Applications/quarto/bin/tools:$PATH RSTUDIO_PANDOC=/Applications/quarto/bin/tools R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_REPORT_INTEGRATION=1 FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp4-gap-report-artifacts-final UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m report_integration --junitxml=/tmp/fm-med-wp4-gap-report-final.xml
+# 7 passed, 332 deselected, 68.49s.
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+git diff --check
+# Clean; 93 Python files formatted. All three JUnit lanes have zero failures/errors/skips.
+```
+
+The local Python receipt hashes to
+`ad18cd318ccc7a3bc8a30b118f03dca9edbad9dc1a942563d1cf8ca11bc31be3`.
+The local native/report receipts hash to
+`a1d1d2eef13fcbe61ed967c23ef2836eec482dd1859fc64084ab37f2cf472c1f` and
+`4266cb99f44ee15e90c9c4f7d8a0bb01e8a8fef7da44b3be455808d121f24cc2`.
+Actual new Quarto outputs live in the corresponding temporary artifact directory;
+no renderer/layout code changed since the fully inspected navigation checkpoint.
+Visual inspection was not represented as newly rerun. Two exploratory reads
+guessed nonexistent test/verification filenames; inventory located the actual
+`test_ci_acceptance.py` and `audit.py`, which were then inspected. Those read
+errors made no changes. No clinical transmission/search, live model run,
+independent human adjudication, main merge or medical qualification occurred.
+
 ## 2026-10-06 WP4 original-source navigation checkpoint (milestone still incomplete)
 
 After safeguard checkpoint `30cbeeb`, reports now contain protected links to the

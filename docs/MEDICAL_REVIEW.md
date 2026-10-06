@@ -33,6 +33,12 @@ confidence and suggested fixes remain model proposals. They never create a
 qualified method result, an official response or a human judgment. Rounding-bias
 and sequence diagnostics remain blocked; SPRITE remains unimplemented.
 
+A `no_issue_identified` coverage declaration requires completed applicable work,
+positive inspected units, cited evidence, and no missing materials or required
+source gaps. Both planned `required_source_gaps` and legacy
+`unresolved_required_sources` prevent reassurance. A process completing or an
+empty findings list does not establish this coverage.
+
 ## Offline interface
 
 Prepare the existing locked environment separately from production execution.
