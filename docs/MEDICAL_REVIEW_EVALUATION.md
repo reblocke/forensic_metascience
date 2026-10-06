@@ -6,8 +6,10 @@ not authorized or performed; medical qualification pending.
 
 WP5 is in progress. Offline plan validation/freezing and source-reference ledger
 validation/freezing, minimum-content source packets and offline candidate
-ingestion are implemented. Blinded candidate packets/adjudication, threshold
-adoption, R analysis and final qualification tooling remain unfinished.
+ingestion, metadata-blinded candidate packets and operator-attested candidate
+assessment/adjudication are implemented. Explicit synthesis membership and
+loss/distortion accounting, threshold adoption, R analysis and final qualification
+tooling remain unfinished.
 Actual source adjudication and live evaluation have not occurred. Before candidate
 evaluation, approve the source corpus, providers/models, transmission/search
 permissions, budgets, domain assessors and performance thresholds.
@@ -224,8 +226,9 @@ registered hashes, parent manifest, source/prompt dependencies and archived-code
 binding. Added inputs, symlinks, writable files or source changes refuse reuse.
 Source/prompt/code drift during copying retains a failed attempt and completed
 files rather than publishing `source_packets.json`. Metadata blinding does not
-prove that assessors cannot infer a workflow from style; blinded candidate-output
-packets and actual independent source adjudication remain unfinished.
+prove that assessors cannot infer a workflow from style. The candidate-output
+packets below remove administrative metadata; actual independent source
+adjudication and effective assessor blinding remain unverified.
 
 Limits apply to copied workspace file contents: 64 MiB per packet and 512 MiB
 total by default, explicitly adjustable with `--max-packet-bytes` and
@@ -307,5 +310,101 @@ Preparation is bounded to 1,024 attempts, 4,096 outputs, 20 MiB per JSON and
 128 MiB of retained raw outputs. The actual serialized combined record must fit
 the JSON limit; explicit splitting preserves packet/study identities rather
 than truncating evidence. These are storage/preparation bounds, not model costs.
-Blinded assessor packets, write-once candidate adjudication, approved thresholds,
-R analysis, qualification reporting and actual held-out performance remain required.
+Explicit synthesis accounting, approved thresholds, R analysis, qualification
+reporting and actual held-out performance remain required.
+
+## Implemented candidate assessment boundary
+
+Prepare human review packets from one explicit completed candidate run, then
+record locally supplied human decisions against that exact packet run:
+
+```bash
+uv run --offline --locked python scripts/medical_review.py evaluation-blind \
+  --candidates-run data/processed/forensics_runs/private_reviews/EVALUATION_ID/CANDIDATES_RUN_ID
+uv run --offline --locked python scripts/medical_review.py evaluation-assess \
+  --packets-run data/processed/forensics_runs/private_reviews/EVALUATION_ID/ASSESSMENT_PACKETS_RUN_ID \
+  --input data/private/medical_reviews/EVALUATION_ID/evaluation/assessment.json
+```
+
+Replace every ID with a recorded path. Neither command executes models, searches,
+authenticates humans, writes INSPECT-SR decisions or enables the feature. A
+completed stage is an engineering record, not medical performance validation.
+
+Each human workspace is
+`generated/medical_evaluation/assessment_workspaces/VIEW_ID/` in a new private
+canonical run. Give an assessor only the individual workspace roots intended
+for their review. The containing run retains private administrative condition,
+case, packet, attempt, stage and candidate mappings and must remain withheld.
+Packets omit model/provider metadata, reviewer prompts, benchmark issue ledgers,
+private human identities and document-derived bundle annotations. They remove
+finding ID/category/severity/confidence fields while preserving the substantive
+claim, proposed evidence, numerical check, caveats and suggested correction.
+Original outputs remain unchanged in the parent candidate run. Source-object
+IDs are pseudonymized consistently with their claim links; known staged paths
+are normalized to local human source files. Unmapped citation paths are retained
+as evidence limitations. Text, style, source access and unmapped paths may reveal
+origin: metadata removal is not verified blinding. Review and actual blinding
+are operator attestations, not authenticated observations.
+
+Human packets include **all supplied case sources** so assessors can verify a
+claim against source truth and counterevidence. `reviewer_source_version_ids`
+separately identifies the sources available to the model in that comparison.
+This does not retroactively give a common-input reviewer supplement access.
+Source bytes remain exact; source fidelity is not established by copying them.
+All planned packets have views, including unreported packets or empty findings;
+those views retain unavailable coverage and never imply a clean paper.
+
+Source files and JSON packets are read-only (`0444`), directories `0555`. Reuse
+checks exact inventory, modes, registered hashes, candidate/source dependencies,
+parent manifest, and archived code. Preparation allows at most 64 MiB per view,
+512 MiB total, 1,024 views, 16,384 files and 20 MiB per JSON record. Streaming
+source drift/overflow fails without truncation and preserves a failed run.
+These are local artifact bounds, not assessor isolation or model resource limits.
+
+`medical_evaluation_assessment_input_v1` has exactly `schema_version`,
+`assessment_packets_id`, nullable `supersedes_run_reference`, `assessors`, and
+`adjudication`. Every person declares private `human_identity`,
+`domain_qualifications`, timezone-aware `date`, `blinded_to_condition=true`,
+`source_bytes_reviewed=true`, the full supplied `reviewed_source_version_ids`
+for their `reviewed_view_ids`, `view_timings`, and explicit `judgments`. Primary
+assessors also declare unique `assessor_id`; duplicate assessor human identities
+are refused. Qualifications and independence cannot be established by these
+strings. Every reviewed view has exactly one timing row containing `view_id`,
+`verification_seconds`, and `revision_seconds`. Times are nonnegative finite
+numbers or null; zero means reported zero, null means unavailable. No timing is
+inferred from finding counts or file timestamps.
+
+Every primary judgment has `item_id`, `disposition`, `issue_type`, boolean-or-null
+`important` and `serious_false_allegation`, `source_attribution`, `evidence`, and
+`rationale`. Dispositions are `confirmed_concern`, `unsupported_criticism`,
+`unresolved`, or `optional_improvement`; a serious false allegation can only be
+an unsupported criticism. Source attribution is correct, incorrect, unresolved,
+or not_provided. A resolved judgment requires explicit source evidence; unresolved
+judgments may lack it. Evidence rows have `source_version_id`, `locator`, and
+`raw_value` within that candidate's case sources. Existing evidence identity
+logic assigns a separate `human_source_review` sidecar identity. The operator
+attests the quote/locator; the tool does not prove physical source verification
+or mutate the bundle's annotations.
+
+Each assessor must account for every item in their reviewed views. Adjudication
+must cover every view/item, preserve the exact membership of all independent
+observations through `assessor_ids`, and provide `reference_ids` and nullable
+`assessor_shortfall_reason` for each judgment. Reference IDs are scoped within
+their predeclared case, allowing equal local labels across different cases.
+Fewer than two primary observations require an explicit shortfall reason rather
+than a claim of independent two-assessor confirmation. Disagreements, original
+input and separate primary judgments are retained. Empty views remain explicit;
+no judgment or coverage is manufactured for them. This records candidate-level
+judgments only: semantic deduplication and synthesis loss/distortion memberships
+remain pending and are never inferred from shared wording or citations.
+
+Each successful operation creates a new private `forensics_run_v3`, retaining
+raw input/code, parent binding and `processed/medical_evaluation/assessment.json`.
+Supersession requires an explicit private repo-relative prior assessment run,
+the same packet scope/adjudicator, and a later adjudication date. Old records
+remain byte-for-byte unchanged. Loaders validate every referenced predecessor,
+raw/source/code/semantic bindings and refuse cycles or chains of 100 ancestors.
+Input or dependency drift during recording retains failure without publishing
+a decision. All records keep `medical_performance_validated=false`,
+`official_assessment=null` and unavailable completed review coverage. Numerical
+proposal qualification and existing human-adjudication contracts remain intact.

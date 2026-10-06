@@ -25,6 +25,10 @@ from research_project.medical_review.evaluation import (
     freeze_evaluation_plan,
     prepare_evaluation_plan,
 )
+from research_project.medical_review.evaluation_assessment import (
+    prepare_assessment_packets,
+    record_assessment,
+)
 from research_project.medical_review.evaluation_candidates import freeze_candidates
 from research_project.medical_review.evaluation_packets import (
     DEFAULT_PACKET_BYTES,
@@ -153,6 +157,15 @@ def parser() -> argparse.ArgumentParser:
     )
     candidates.add_argument("--packets-run", required=True, type=Path)
     candidates.add_argument("--input", required=True, type=Path)
+    blind = commands.add_parser(
+        "evaluation-blind", help="Prepare private source packets for human assessment."
+    )
+    blind.add_argument("--candidates-run", required=True, type=Path)
+    assess = commands.add_parser(
+        "evaluation-assess", help="Record explicit private human candidate judgments."
+    )
+    assess.add_argument("--packets-run", required=True, type=Path)
+    assess.add_argument("--input", required=True, type=Path)
     return cli
 
 
@@ -266,6 +279,10 @@ def main() -> int:
             )
         elif args.operation == "evaluation-candidates":
             print(freeze_candidates(ROOT, args.packets_run, args.input))
+        elif args.operation == "evaluation-blind":
+            print(prepare_assessment_packets(ROOT, args.candidates_run))
+        elif args.operation == "evaluation-assess":
+            print(record_assessment(ROOT, args.packets_run, args.input))
         return 0
     except (ValueError, OSError, KeyError, TypeError) as error:
         cli.exit(2, f"medical-review: {error}\n")

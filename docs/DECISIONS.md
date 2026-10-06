@@ -1,5 +1,12 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Separate blinded candidate assessment from medical qualification
+
+- **Source truth and access:** Human assessment packets include all supplied case sources for claim verification and counterevidence, while separately listing the model's source versions. This does not change the common-input model comparison or reinterpret supplement access as better reasoning. Case-local reference labels retain their case namespace.
+- **Blinding scope:** Remove administrative condition/runtime metadata, private benchmark annotations, prompts and finding ID/category/severity/confidence. Preserve substantive claims, caveats, proposed numerical checks and original outputs. Normalize known staged citation paths and consistently pseudonymize source-object IDs. Unmapped paths and stylistic clues remain; effective blinding requires human operational review and is not certified by metadata removal.
+- **Human authority:** Record private, source-linked primary judgments and adjudication, preserving disagreement and exact observation membership. Qualifications, independence, blinding, source inspection and per-view verification/revision times are operator attestations. Unknown timings remain null. Below two primary observations, retain an explicit shortfall; never convert candidate assessments to numerical receipts or INSPECT-SR decisions.
+- **Immutable history:** Explicit same-scope, same-adjudicator, later-date supersession creates a new private canonical run with raw/code/parent/source bindings; predecessors remain unchanged. Empty views retain unavailable coverage. Explicit synthesis loss/distortion accounting, thresholds, R analysis and medical qualification remain separate unfinished deliverables. No package, scientific threshold or default enablement changes.
+
 ## 2026-10-06: Keep supplied evaluation candidates distinct from qualified live runs
 
 - **Offline boundary:** Bind candidate inputs to an explicit completed source-packet run. Preserve exact raw outputs, operator-reported runtime/usage, every declared attempt, and unreported packets. Ingestion invokes no backend or search and establishes no source-transmission permission, live execution, upstream-workflow fidelity, or medical performance.
