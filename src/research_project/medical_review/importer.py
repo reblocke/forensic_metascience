@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,10 @@ from research_project.medical_review.records import (
 )
 from research_project.medical_review.routing import build_review_plan
 from research_project.run_manifest import create_run, update_run
+
+
+class IncompleteImportError(ValueError):
+    """A preserved historical import needs an explicit new recovery attempt."""
 
 
 def validate_upstream(payload: Any, repo_root: Path, schema_sha256: str) -> None:
@@ -219,6 +224,7 @@ def import_reviewer(
     output_root: Path | None = None,
     generating_revision: str | None = None,
     profiles: list[str] | None = None,
+    attempt_suffix: str | None = None,
 ) -> Path:
     """Import exact bytes into one immutable private run; duplicate content reuses it."""
     repo = repo_root.resolve()
@@ -251,6 +257,10 @@ def import_reviewer(
         }
     )
     run_id = f"medical-import-{run_key[:32]}"
+    if attempt_suffix is not None:
+        if not re.fullmatch(r"[a-z0-9]{8}", attempt_suffix):
+            raise ValueError("Invalid explicit import recovery attempt identity.")
+        run_id += f"-{attempt_suffix}"
     output = private_path(repo, output_root or PRIVATE_RUNS, PRIVATE_RUNS)
     destination = private_path(repo, output / bundle["study_id"] / run_id, PRIVATE_RUNS)
     proposals = _proposals(payload, bundle, bundle_hash, run_id, raw_hash, generating_revision)
@@ -406,7 +416,9 @@ def _validate_replay(run: Path, key: str) -> None:
         manifest.get("schema_version") != "forensics_run_v3"
         or manifest.get("status") != "completed"
     ):
-        raise ValueError("Historical import is incomplete; preserve it for explicit recovery.")
+        raise IncompleteImportError(
+            "Historical import is incomplete; preserve it for explicit recovery."
+        )
     if manifest.get("effective_settings", {}).get("medical_import_key") != key:
         raise ValueError("Import identity conflicts with the existing run.")
     required = {

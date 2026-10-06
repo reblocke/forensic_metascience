@@ -178,8 +178,10 @@ FM-MED-01 adds a separate, opt-in reading layer alongside qualified forensic
 methods. Offline upstream import and output-free planning now include
 multi-document bundles, study/comparison reconstruction and four medical
 profiles. Imported findings remain unverified proposals; empty results do not
-imply completed review coverage. Live execution, human verification, report
-rendering and medical qualification remain pending. See
+imply completed review coverage. Bounded local replay and auditable recovery are
+available; live backends remain explicitly blocked until restrictions are
+qualified. Human verification, report rendering and medical qualification remain
+pending. See
 [MEDICAL_REVIEW.md](docs/MEDICAL_REVIEW.md) for implemented contracts and commands
 and [the acceptance map](docs/MEDICAL_REVIEW_ACCEPTANCE.md) for remaining gates.
 
