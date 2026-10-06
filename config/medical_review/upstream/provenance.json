@@ -16,6 +16,18 @@
       "local_path": "LICENSE.md",
       "sha256": "79706681ff9ea6599c6520d16143a44e5b79ed6b07e6426f04728fdba1030149",
       "modifications": "none"
+    },
+    {
+      "upstream_path": "prompts/templates/claim_evidence_audit.txt",
+      "local_path": "claim_evidence_audit.txt",
+      "sha256": "90246bd6f009bd383b5e293f4f10ad6f5c5e8a456291a0e01d98b2f633f8053e",
+      "modifications": "none; reference original for narrow medical adaptation"
+    },
+    {
+      "upstream_path": "prompts/templates/source_consistency_audit.txt",
+      "local_path": "source_consistency_audit.txt",
+      "sha256": "6040ccec15c1ed657c9bbc2d4ac0d8ed501e897cf0ded8a43b20a75902322e28",
+      "modifications": "none; reference original for narrow medical adaptation"
     }
   ],
   "reviewed_references": [

@@ -1,0 +1,13 @@
+Medical rwd responsibilities, version 1
+
+Read shared_evidence.txt and the explicit bounded plan.
+
+rwd.phenotype: Inspect codes/phenotypes, repeated codes, labs, medications, procedures and validation.
+
+rwd.capture: Inspect temporal anchoring, linkage, out-of-network capture and observation completeness.
+
+rwd.denominators: Distinguish participant/encounter units, utilization selection and denominator definitions.
+
+False-positive safeguards: Absence of a code is not absence of disease. Explain how requiring a test, lab, note or encounter changes cohort selection instead of issuing generic collider warnings.
+
+Questions identify responsibilities; they do not require a separate session for each heading. Retain source-specific uncertainty and competing interpretations.

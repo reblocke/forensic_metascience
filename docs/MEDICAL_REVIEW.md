@@ -8,10 +8,12 @@ its proposed commands are not statements of current support. The accepted
 implementation sequence is baseline → offline import → medical adaptation →
 controlled execution → verification/reporting → evaluation readiness.
 
-WP1 currently implements offline planning preflight, lossless upstream import,
-source-reference resolution, unavailable coverage records and a deterministic
-private report model. Full medical routing, live execution, numerical handoffs,
-human dispositions, report rendering and medical evaluation are pending.
+WP1–WP2 implement lossless offline upstream import, multi-document source
+validation, structural extraction preflight, evidence-linked reconstruction,
+comparison-specific medical routing and a deterministic private report model.
+Live execution, numerical handoffs, human dispositions, report rendering and
+medical evaluation remain pending. Planning profiles encode review questions;
+they do not establish live medical detection performance.
 The feature is opt-in. No medical performance qualification is claimed.
 
 Existing `forensics_run_v3`, `method_receipt_v4`, numerical routes and INSPECT-SR
@@ -40,9 +42,10 @@ uv run --offline --locked python scripts/medical_review.py import-reviewer \
 
 Help and planning write no files, including Python bytecode. An absent bundle
 produces `status=incomplete`, never an affirmative review-readiness result.
-At WP1, an existing bundle is validated but profile planning remains incomplete.
-The profile names in help identify the four planned initial profiles, not
-implemented clinical review capability. Import is always offline, even without
+An existing bundle produces a deterministic context and check plan, plus
+structural extraction diagnostics. It remains incomplete because checks have
+not run. The four profiles are implemented planning scopes, not qualified
+clinical review capability. Import is always offline, even without
 the compatibility `--offline` flag. There is no live `run` operation yet.
 
 An import prints its run root. Repeating identical source bundle and exact input
@@ -90,9 +93,55 @@ unambiguous reviewed study mapping. Wrong pages, fuzzy quotes and ambiguous
 mappings remain unresolved. Path traversal is rejected. External references
 remain unresolved; importing a URL does not fetch it.
 
-The synthetic workspace fixture in `tests/medical_review/test_importer.py`
-illustrates this initial contract. WP2 adds reconstruction, chronology and full
-routing validation; it must preserve these identities and uncertainty boundaries.
+The synthetic workspace fixture in `tests/support/medical_review_fixtures.py`
+illustrates the contract. Corrections can share a source ID but require a new
+canonical source-version ID, an optional `supersedes_source_version_id` and a
+bundle revision. Supersession references must be declared and acyclic. Dates
+use explicit year/month/day precision; overlapping date windows cannot establish
+which event occurred first. Current registry text does not establish past intent.
+
+### Reconstruction and comparison scopes
+
+Optional `context_fields` maps study IDs to reported fields. Each field separates
+`reported` (known/unknown/conflicting/not_applicable), `interpretations` and
+`preferred_design`. Known/conflicting values require scoped evidence IDs; unknown
+or inapplicable states require a reason. Interpretations require cited evidence
+and rationale, and remain proposals. Source-semantic verification is false;
+specialists may challenge every shared premise.
+
+Declare `comparisons` with comparison/study IDs, optional report IDs and
+`profile_ids`. `comparison_context_fields` supplies separate reconstruction
+per comparison; it never silently inherits a study-level estimand. A report may
+contain both a trial contrast and a prognostic model. Explicit report scope
+prevents a comparison from borrowing another report's SAP/supplement.
+
+The four initial scopes are clinical_trial, observational_rwd, diagnostic_accuracy
+and prediction_model. Unknown design uses a conservative union; systematic-review
+and specialized-methods modules remain unsupported. Protocol checks explicitly
+review the planned approach rather than demand observed results. Every planned
+check records applicability/rationale, reviewer responsibility, required source
+roles/gaps and disabled model/search permissions. Bundle check overrides outside
+the selected catalogue scope cause explicit refusal rather than disappearance.
+
+### Extraction, prompts and guidance
+
+Preflight uses existing pypdf for PDFs and UTF-8 for text. Retained page text and
+original private source references remain separate from visual inspection. Empty
+PDF pages produce extraction shortfalls, not manuscript defects. Text files have
+null page counts. Reading order/table structure are unsupported; signs, units,
+formulas and cross-references remain unverified. No OCR repair is performed.
+
+The versioned check catalogue encodes the approved ticket's review questions and
+false-positive safeguards. Shared evidence rules narrowly adapt two pinned
+Reviewer prompts; exact originals, hashes, upstream commit and MIT notice are
+retained. Every shared/module prompt hash is checked when planning; symlink,
+traversal, missing or changed prompts fail. Context/plan/preflight hashes bind
+import identities, and mid-import plan drift preserves a failed raw attempt.
+
+External CONSORT/SPIRIT, STROBE/RECORD, STARD, TRIPOD+AI and PRISMA packs remain
+unapproved and unavailable. No guideline-specific claims are enabled. Flipping
+approval flags alone is refused; activating future guidance requires verified
+source bytes, version/applicability/license review and a tested loading path.
 
 ## Upstream contract and attribution
 
@@ -141,6 +190,9 @@ data/processed/forensics_runs/private_reviews/<study-id>/<run-id>/
   run_manifest.json
   generated/medical_review/raw/reviewer.json
   processed/medical_review/bundle.json
+  processed/medical_review/study_context.json
+  processed/medical_review/review_plan.json
+  processed/medical_review/parser_preflight.json
   processed/medical_review/coverage.json
   processed/medical_review/proposals.json
   processed/medical_review/report_model.json

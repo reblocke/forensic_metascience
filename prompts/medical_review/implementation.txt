@@ -1,0 +1,11 @@
+Medical implementation responsibilities, version 1
+
+Read shared_evidence.txt and the explicit bounded plan.
+
+implementation.fidelity: Compare intended and delivered interventions, exposure, adaptations and implementation fidelity.
+
+implementation.economics: Inspect payer/system perspective, spending horizon, death/disenrollment, implementation cost and net cost.
+
+False-positive safeguards: Retain economics for health-services aims. Spending prediction, utilization reduction, savings and cost effectiveness are distinct.
+
+Questions identify responsibilities; they do not require a separate session for each heading. Retain source-specific uncertainty and competing interpretations.

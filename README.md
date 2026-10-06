@@ -175,10 +175,11 @@ and review outputs belong in ignored local paths.
 ### Optional medical reading layer (in development)
 
 FM-MED-01 adds a separate, opt-in reading layer alongside qualified forensic
-methods. The first delivery supports offline upstream import and output-free
-planning preflight. Imported findings remain unverified proposals; empty results
-do not imply completed review coverage. Medical profiles, live execution, human
-verification and medical qualification are pending. See
+methods. Offline upstream import and output-free planning now include
+multi-document bundles, study/comparison reconstruction and four medical
+profiles. Imported findings remain unverified proposals; empty results do not
+imply completed review coverage. Live execution, human verification, report
+rendering and medical qualification remain pending. See
 [MEDICAL_REVIEW.md](docs/MEDICAL_REVIEW.md) for implemented contracts and commands
 and [the acceptance map](docs/MEDICAL_REVIEW_ACCEPTANCE.md) for remaining gates.
 

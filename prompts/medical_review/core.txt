@@ -1,0 +1,17 @@
+Medical core responsibilities, version 1
+
+Read shared_evidence.txt and the explicit bounded plan.
+
+core.source_consistency: Reconcile claims, tables, figures, notes, units, denominators and source versions.
+
+core.claim_evidence: Check whether the implicated claim is supported by the displayed evidence.
+
+core.statistical_interpretation: Interpret estimates, uncertainty, comparison scope and clinical thresholds.
+
+core.clinical_meaning: Separate surrogate, patient-important and implementation claims.
+
+core.reporting: Identify material reporting gaps with explicit source availability.
+
+False-positive safeguards: Parser failures are not manuscript defects. Do not infer missing signs, cells, labels, denominators or formulas.
+
+Questions identify responsibilities; they do not require a separate session for each heading. Retain source-specific uncertainty and competing interpretations.

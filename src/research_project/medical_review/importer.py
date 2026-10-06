@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any
 
 from research_project.medical_review.bundle import load_bundle, resolve_source_object
+from research_project.medical_review.context import build_study_context
+from research_project.medical_review.preflight import structural_preflight
 from research_project.medical_review.records import (
     COVERAGE_SCHEMA,
     MAX_JSON_BYTES,
@@ -24,6 +26,7 @@ from research_project.medical_review.records import (
     validate_coverage,
     write_json,
 )
+from research_project.medical_review.routing import build_review_plan
 from research_project.run_manifest import create_run, update_run
 
 
@@ -112,19 +115,19 @@ def _validate(value: Any, rule: dict[str, Any], schema: dict[str, Any], location
             _validate(child, rule["items"], schema, f"{location}[{index}]")
 
 
-def _coverage(bundle: dict[str, Any]) -> list[dict[str, Any]]:
+def _coverage(bundle: dict[str, Any], plan: dict[str, Any]) -> list[dict[str, Any]]:
     result = []
     missing = [
         row["source_id"]
         for row in bundle["documents"]
         if row["availability"] not in {"supplied", "not_applicable"}
     ]
-    for check in bundle.get("planned_checks", []):
+    for check in plan["checks"]:
         row = {
             "schema_version": COVERAGE_SCHEMA,
             **check,
             "execution": "not_requested",
-            "assessment": "not_assessed",
+            "assessment": "cannot_verify" if check.get("required_source_gaps") else "not_assessed",
             "coverage_available": False,
             "planned_units": None,
             "inspected_units": None,
@@ -215,11 +218,15 @@ def import_reviewer(
     schema_sha256: str = UPSTREAM_SCHEMA_HASH,
     output_root: Path | None = None,
     generating_revision: str | None = None,
+    profiles: list[str] | None = None,
 ) -> Path:
     """Import exact bytes into one immutable private run; duplicate content reuses it."""
     repo = repo_root.resolve()
     bundle_path = private_path(repo, bundle_path, PRIVATE_SOURCES)
     bundle, bundle_hash = load_bundle(repo, bundle_path)
+    context = build_study_context(bundle, bundle.get("context_fields"))
+    plan = build_review_plan(bundle, context, profiles or bundle.get("profile_ids"), repo)
+    preflight = structural_preflight(repo, bundle)
     incoming = private_path(repo, input_path, PRIVATE_SOURCES / bundle["study_id"])
     with incoming.open("rb") as stream:
         raw = stream.read(MAX_JSON_BYTES + 1)
@@ -238,12 +245,18 @@ def import_reviewer(
             "raw": raw_hash,
             "generating_revision": generating_revision,
             "adapter_sha256": adapter_hash,
+            "context_sha256": content_hash(context),
+            "plan_sha256": content_hash(plan),
+            "preflight_sha256": content_hash(preflight),
         }
     )
     run_id = f"medical-import-{run_key[:32]}"
     output = private_path(repo, output_root or PRIVATE_RUNS, PRIVATE_RUNS)
     destination = private_path(repo, output / bundle["study_id"] / run_id, PRIVATE_RUNS)
     proposals = _proposals(payload, bundle, bundle_hash, run_id, raw_hash, generating_revision)
+    for proposal in proposals:
+        proposal["context_sha256"] = content_hash(context)
+        proposal["plan_sha256"] = content_hash(plan)
     origins = private_path(
         repo, PRIVATE_SOURCES / bundle["study_id"] / "import_origins", PRIVATE_SOURCES
     )
@@ -282,6 +295,9 @@ def import_reviewer(
                 if row["availability"] == "supplied"
             ],
             *[repo / row["parsed_path"] for row in bundle["evidence"]],
+            repo / "config/medical_review/check_catalogue.json",
+            repo / "config/medical_review/guidance_registry.json",
+            *[repo / row["path"] for row in plan["prompt_sources"]],
         ],
         run_id=run_id,
         settings={
@@ -293,6 +309,8 @@ def import_reviewer(
             "upstream_schema_sha256": UPSTREAM_SCHEMA_HASH,
             "raw_sha256": raw_hash,
             "adapter_sha256": adapter_hash,
+            "plan_sha256": content_hash(plan),
+            "context_sha256": content_hash(context),
         },
     )
     try:
@@ -308,13 +326,18 @@ def import_reviewer(
             raise ValueError("Source bundle changed during import; original attempt preserved.")
         if _adapter_hash() != adapter_hash:
             raise ValueError("Adapter code changed during import; original attempt preserved.")
-        coverage = _coverage(bundle)
+        if build_review_plan(bundle, context, profiles or bundle.get("profile_ids"), repo) != plan:
+            raise ValueError("Review plan changed during import; original attempt preserved.")
+        coverage = _coverage(bundle, plan)
         model = {
             "schema_version": REPORT_SCHEMA,
             "run_id": run_id,
             "bundle_sha256": bundle_hash,
             "title": "AI-assisted manuscript audit: unverified proposals",
             "scope": {"study_id": bundle["study_id"], "documents": bundle["documents"]},
+            "study_context": context,
+            "review_plan": plan,
+            "parser_preflight": preflight,
             "proposals": proposals,
             "coverage": coverage,
             "human_status": "pending",
@@ -329,6 +352,9 @@ def import_reviewer(
         }
         for name, value in (
             ("bundle.json", bundle),
+            ("study_context.json", context),
+            ("review_plan.json", plan),
+            ("parser_preflight.json", preflight),
             ("coverage.json", coverage),
             ("proposals.json", proposals),
             ("report_model.json", model),
@@ -356,7 +382,17 @@ def import_reviewer(
 
 def _adapter_hash() -> str:
     package = Path(__file__).resolve().parent
-    paths = [package / name for name in ("records.py", "bundle.py", "importer.py")]
+    paths = [
+        package / name
+        for name in (
+            "records.py",
+            "bundle.py",
+            "importer.py",
+            "context.py",
+            "routing.py",
+            "preflight.py",
+        )
+    ]
     paths += [package.parent / "run_manifest.py", package.parent / "inspect_sr/records.py"]
     return content_hash([hashlib.sha256(path.read_bytes()).hexdigest() for path in paths])
 
@@ -377,7 +413,15 @@ def _validate_replay(run: Path, key: str) -> None:
         "generated/medical_review/raw/reviewer.json",
         *(
             f"processed/medical_review/{name}.json"
-            for name in ("bundle", "coverage", "proposals", "report_model")
+            for name in (
+                "bundle",
+                "study_context",
+                "review_plan",
+                "parser_preflight",
+                "coverage",
+                "proposals",
+                "report_model",
+            )
         ),
     }
     artifacts = manifest.get("artifacts", [])

@@ -1,0 +1,11 @@
+Medical noninferiority responsibilities, version 1
+
+Read shared_evidence.txt and the explicit bounded plan.
+
+noninferiority.margin: Inspect the declared margin and rationale, efficacy loss, burdens and harms.
+
+noninferiority.estimand: Inspect estimand, adherence/crossover, uncertainty and assay sensitivity.
+
+False-positive safeguards: Do not invent a universal margin or equate declared noninferiority with clinical equivalence. Separate reporting gaps from demonstrated flaws.
+
+Questions identify responsibilities; they do not require a separate session for each heading. Retain source-specific uncertainty and competing interpretations.
