@@ -1,5 +1,13 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Freeze evaluation inputs before preparing blinded comparisons
+
+- **Sequence:** WP4 source head `83e6252` passed the required hosted PR and push lanes. Start WP5 on a stacked branch without merging any earlier PR or implying operational/medical acceptance.
+- **Comparison boundary:** Preserve all three conditions. Common-input source access is identical; full-bundle access is identical for the single-reviewer and medical adaptation. The pinned unmodified Reviewer remains explicitly unmatched when main-only access lacks supplied supplements. An unsupported multi-document adapter is refused rather than invented. Runtime equality is declared planning metadata, not an observed or isolated architecture comparison.
+- **Dependence:** Bind declared groups, canonical study/report IDs and exact source bytes across versions/aliases. Prevent development/held-out partition crossings and relabeling analyzed/synthetic cases as held-out. These checks do not establish empirical novelty or independent study relationships.
+- **Authority:** The initial plan/freezing increment preserves raw inputs, prompts/configuration, upstream attribution and code under canonical private runs. No transmission, search, live comparator, assessor decision or threshold is authorized. Threshold adoption and qualification remain unfinished; the strong single-reviewer template uses the same clinical evidence responsibilities rather than a deliberately weak baseline.
+- **Delivery:** The full WP5 still requires blinded packets, source-ledger/adjudication tooling, pre-unblinding threshold adoption, actual R analysis and qualification reporting. Do not equate the planning stage's completion with medical performance evidence.
+
 ## 2026-10-06: Reject reassuring coverage with planned source gaps
 
 - **Audit finding:** Routing and imports retain missing required source groups as `required_source_gaps`, while the no-issue validator checked only `unresolved_required_sources`. A simulated completed declaration could therefore pass despite the actual plan's source gap. Existing imports remain unassessed/unverifiable; this gap did not qualify their coverage.

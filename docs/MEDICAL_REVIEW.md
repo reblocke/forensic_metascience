@@ -16,7 +16,10 @@ immutable recovery attempts. Every live backend is explicitly blocked because
 filesystem/tool/egress restrictions are not yet qualified. WP4 now adds offline
 counterevidence/arithmetic passes, private human dispositions, numeric source-review
 attestations, read-only qualified R-reference handoffs and Markdown/Quarto reports.
-The remaining acceptance-scenario audit and WP5 evaluation tooling are pending.
+WP4's requirement audit and required hosted Python/native/report gates passed at
+`83e6252`. WP5 evaluation tooling is in progress: paired plan validation and
+immutable freezing are available; blinded packets, reference/adjudication,
+threshold adoption, R analysis and final qualification tooling remain unfinished.
 Planning profiles encode review questions;
 they do not establish live medical detection performance.
 The feature is opt-in. No medical performance qualification is claimed.
@@ -307,7 +310,7 @@ Public output roots, symlink references, corrupted receipts and changed resume
 dependencies are refused. Successful/failed manifests are never reopened for edits.
 
 
-## WP4 arithmetic and verification (milestone integration in progress)
+## WP4 arithmetic and verification
 
 `research_project.medical_review.numeric.calculate_request` implements the pure
 `medical_numeric_check_request_v1` → `medical_arithmetic_result_v1` transform.

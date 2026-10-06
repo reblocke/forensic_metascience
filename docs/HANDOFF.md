@@ -1,5 +1,91 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 WP4 gate passed; WP5 source-bound planning checkpoint
+
+Previous goal turn made concrete progress in `83e6252`. Both hosted runs for that
+exact source head subsequently completed successfully: PR `37519984240`, push
+`37519977156`. Each has 318 Python, 14 actual native-R and 7 actual Quarto report
+tests with zero failures/errors/skips. Downloaded receipts were parsed and the
+required medical report artifacts were checked against their saved hashes.
+Native package versions and the source-lock hash matched the checkout. WP4's
+requirement audit is satisfied at this head; overall software acceptance still
+requires WP5. No earlier PR was merged or promoted.
+
+Exact observation/retrieval commands used:
+
+```bash
+gh run view 37519984240 --json headSha,attempt,status,conclusion,jobs
+gh run view 37519977156 --json headSha,attempt,status,conclusion,jobs
+gh run download 37519984240 --name inspect-sr-python-37519984240 --dir /tmp/fm-med-wp4-hosted-83e6252-pr/python
+gh run download 37519984240 --name inspect-sr-native-r-37519984240 --dir /tmp/fm-med-wp4-hosted-83e6252-pr/native
+gh run download 37519984240 --name inspect-sr-report-review-37519984240 --dir /tmp/fm-med-wp4-hosted-83e6252-pr/report
+gh run download 37519977156 --name inspect-sr-python-37519977156 --dir /tmp/fm-med-wp4-hosted-83e6252-push/python
+gh run download 37519977156 --name inspect-sr-native-r-37519977156 --dir /tmp/fm-med-wp4-hosted-83e6252-push/native
+gh run download 37519977156 --name inspect-sr-report-review-37519977156 --dir /tmp/fm-med-wp4-hosted-83e6252-push/report
+gh run view 37519984240 --job 112462615787 --log > /tmp/fm-med-wp4-hosted-83e6252-pr-native.log
+```
+
+The PR Python/native/report JUnit hashes are
+`0981c45b44137a0ce60659e8c9b8f06adf9fc862de84ba4b68d3257596c400a3`,
+`7834c55fd189242817a4238df95f15a1907d87ee96684a0d1df31bb904929d0b`,
+`5d72d8bb14657a1e8902fbcf281b52a46205b2bf874bb5232a3b97c94d595885`.
+An attempted push-job log read while the overall run was still live correctly
+reported logs unavailable; it was not treated as terminal or restarted. The
+terminal PR native log shows the primary CRAN URLs succeeded. Thus fallback-
+specific evidence remains the configured-URL synthetic recovery tests and actual
+local canonical-archive byte verification, not a claimed hosted fallback use.
+
+WP5 started on `codex/medical-review-evaluation-readiness`, stacked above WP4.
+The first increment adds `medical_evaluation_plan_input_v1` and frozen plan v1,
+an output-free `evaluation-plan` CLI plus explicit `--freeze`, a strong single
+reviewer comparator template and a clearly synthetic placeholder example.
+It retains all three conditions, separates common-input/full-bundle source sets,
+labels main-only upstream access unmatched when needed, and refuses fabricated
+multi-document support. Declared runtime equality remains unobserved metadata.
+
+Study/report IDs, declared families and exact source content connect dependent
+cases. Development/held-out splits cannot cross a group, analyzed/synthetic cases
+cannot become held-out, and renamed copies do not evade the source-hash guard.
+Freezing reuses canonical private runs, retains exact raw bytes, prompts/config,
+upstream attribution and code, and preserves failed attempts on mid-freeze drift.
+Registered artifact and archived-code bindings are checked on dependent reuse.
+Planning or freezing grants no model/search permission and keeps qualification
+pending/default enablement false.
+
+Test-first collection initially failed because the module did not exist; after
+implementation 13 cases passed. Three further regressions failed on missing
+prompt archives, missing archived-code binding and absent CLI, then passed after
+correction. Ruff reported two overlong literals, which were corrected. Final
+focused tests also exercise copied-source relabeling, mid-freeze source drift
+and retained historical comparator bytes.
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_plan.py
+# 20 passed, 8.61s.
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration' --junitxml=/tmp/fm-med-wp5-plan-python-final.xml
+# 338 passed, 21 deselected, 138.66s; zero failures/errors/skips.
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+git diff --check
+# Clean; 95 Python files formatted.
+UV_OFFLINE=1 uv run --offline --locked python -m json.tool config/medical_review/evaluation_plan.example.json > /tmp/fm-med-wp5-plan-example-validated.json
+# Valid JSON; intentionally not an executable corpus without actual sources.
+```
+
+WP5's local Python JUnit SHA-256 is
+`96b726716ab5602262ee781c976ab2742aba97187f8394d3c1a0718115eba7fc`.
+
+No R engines/INSPECT-SR interfaces, old manuscript runner, dependency manifests
+or Quarto sources changed in this increment. Their actual native/report receipts
+above belong to the WP4 head; new WP5 hosted lanes must run on its delivered head.
+Threshold adoption is refused until implemented, rather than inferred from a
+flag. Full WP5 remains unfinished: blinded packet creation, source-reference
+ledger/adjudication tooling, threshold adoption, real R analysis and explicit
+qualification reporting. Real sources/assessors, live operational testing and
+held-out medical qualification still need their separate approvals and evidence.
+Keep the full goal active; this planning checkpoint is not evaluation readiness
+or medical validation.
+
 ## 2026-10-06 WP4 required-source guard and hosted preparation recovery
 
 The active full FM-MED-01 goal was revalidated after the planning-only turn.

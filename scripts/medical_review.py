@@ -21,6 +21,10 @@ from research_project.medical_review.audit import (
 )
 from research_project.medical_review.bundle import load_bundle
 from research_project.medical_review.context import build_study_context
+from research_project.medical_review.evaluation import (
+    freeze_evaluation_plan,
+    prepare_evaluation_plan,
+)
 from research_project.medical_review.importer import import_reviewer
 from research_project.medical_review.numeric_inputs import record_input_review
 from research_project.medical_review.preflight import structural_preflight
@@ -119,6 +123,11 @@ def parser() -> argparse.ArgumentParser:
     rendering.add_argument("--output-root", type=Path)
     rendering.add_argument("--html", action="store_true")
     rendering.add_argument("--pdf", action="store_true")
+    evaluation = commands.add_parser(
+        "evaluation-plan", help="Validate a private paired evaluation plan; freeze is explicit."
+    )
+    evaluation.add_argument("--input", required=True, type=Path)
+    evaluation.add_argument("--freeze", action="store_true")
     return cli
 
 
@@ -209,6 +218,15 @@ def main() -> int:
                     ROOT, args.run, output_root=args.output_root, html=args.html, pdf=args.pdf
                 )
             )
+        elif args.operation == "evaluation-plan":
+            if args.freeze:
+                print(freeze_evaluation_plan(ROOT, args.input))
+            else:
+                path = private_path(ROOT, args.input, PRIVATE_SOURCES)
+                data = read_json(path)
+                plan = prepare_evaluation_plan(ROOT, data)
+                private_path(ROOT, path, PRIVATE_SOURCES / data["evaluation_id"] / "evaluation")
+                print(json.dumps(plan, sort_keys=True))
         return 0
     except (ValueError, OSError, KeyError, TypeError) as error:
         cli.exit(2, f"medical-review: {error}\n")

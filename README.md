@@ -181,10 +181,14 @@ profiles. Imported findings remain unverified proposals; empty results do not
 imply completed review coverage. Bounded local replay and auditable recovery are
 available; live backends remain explicitly blocked until restrictions are
 qualified. Offline verification, write-once human/source-review attestations and
-private Markdown/Quarto reports are implemented. Qualified numerical-reference
-handoffs and medical evaluation remain in progress. See
+private Markdown/Quarto reports and read-only qualified numerical-reference
+handoffs are implemented. WP4 passed its required hosted gates at `83e6252`.
+Medical evaluation tooling is in progress: source-bound paired plans and immutable
+freezing are available, with live and medical qualification pending. See
 [MEDICAL_REVIEW.md](docs/MEDICAL_REVIEW.md) for implemented contracts and commands
 and [the acceptance map](docs/MEDICAL_REVIEW_ACCEPTANCE.md) for remaining gates.
+The [evaluation guide](docs/MEDICAL_REVIEW_EVALUATION.md) identifies implemented
+planning commands and unfinished evaluation deliverables.
 
 ## Quickstart Reference
 
