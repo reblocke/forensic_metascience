@@ -1,0 +1,32 @@
+{
+  "schema_version": "medical_review_upstream_provenance_v1",
+  "repository": "https://github.com/Ingar30/reviewer",
+  "commit": "c591f4a498f6dc5083153811d6f678339cfb7c78",
+  "retrieved_at": "2026-10-06T15:54:02.710099+00:00",
+  "license": "MIT",
+  "files": [
+    {
+      "upstream_path": "schemas/reviewer_output.schema.json",
+      "local_path": "reviewer_output.schema.json",
+      "sha256": "9399e39d1be1b6584bd452086bcb6f2f80a90b34826b8467658c3c88c8742641",
+      "modifications": "none"
+    },
+    {
+      "upstream_path": "LICENSE.md",
+      "local_path": "LICENSE.md",
+      "sha256": "79706681ff9ea6599c6520d16143a44e5b79ed6b07e6426f04728fdba1030149",
+      "modifications": "none"
+    }
+  ],
+  "reviewed_references": [
+    {
+      "path": "README.md",
+      "sha256": "f8859ef6c5217684ef614357eee23a27953fb58622ad810b2e5230722ca2316b"
+    },
+    {
+      "path": "docs/extension_guide.md",
+      "sha256": "60ed57deb78f5829020f5c3e2ceea3c4e3b41c5ceaca4c32ec24300277790cf3"
+    }
+  ],
+  "note": "Pins the adapter contract; does not establish the generating revision of an imported output."
+}

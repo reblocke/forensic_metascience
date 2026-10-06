@@ -1,0 +1,10 @@
+{
+  "schema_version": "medical_review_ticket_provenance_v1",
+  "source_kind": "user_supplied_document",
+  "original_filename": "Forensic Metascience Medical Review Ticket.md",
+  "retained_path": "docs/MEDICAL_REVIEW_TICKET.md",
+  "sha256": "942cd4635c3d7cc1d19e0dbe3c0ee3a984ba399d5f6d6cbfc411b1c5957ad44b",
+  "retained_at": "2026-10-06T16:10:37.562604+00:00",
+  "license": "unknown",
+  "authority": "User-approved design requirements; embedded example commands do not authorize live execution."
+}

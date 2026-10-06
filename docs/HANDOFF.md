@@ -1,5 +1,95 @@
 # Handoff (for multi-session work)
 
+## Medical review goal — 2026-10-06 WP1 checkpoint
+
+The approved FM-MED-01 goal remains active. Baseline verification and the first
+offline work package are implemented on `codex/medical-review-offline-boundary`.
+WP2–WP5 remain required. No live model calls, source transmission, web search or
+source-paper analysis were performed. Live operational and medical performance
+qualification remain pending; the feature remains opt-in.
+
+### Delivered
+
+- Retained the supplied ticket verbatim as `MEDICAL_REVIEW_TICKET.md`; SHA-256
+  `942cd4635c3d7cc1d19e0dbe3c0ee3a984ba399d5f6d6cbfc411b1c5957ad44b`.
+  Baseline checkout matched its inspected target revision `b629cab`.
+- Added the MED-01–27 acceptance map and separate evaluation-status document.
+- Pinned the upstream Reviewer schema and MIT notice with verified provenance.
+  No upstream runtime, parser, model defaults or new dependency was imported.
+- Added output-free planning preflight and a real offline import CLI. Exact raw
+  bytes and every original finding field are retained. Exact anchor mappings
+  reuse source/evidence identities but remain proposed transcriptions.
+- Added private, run-scoped coverage/proposals/report-model artifacts using
+  existing manifest helpers. Completed import never implies substantive review
+  coverage. No qualified numerical result or official/human judgment is created.
+- Added immutable replay/conflict references and source/input/code/hash/path
+  checks. Failed attempts retain raw bytes; recovery beyond explicit refusal is
+  pending WP3. No existing runner, R engine or INSPECT-SR adapter was edited.
+
+### Executed verification
+
+The initial locked offline commands failed because dependencies were absent
+from the local cache. `uv sync --locked` prepared the existing lock without
+manifest/lock edits. Existing native dependencies were prepared with
+`R_LIBS_USER=/tmp/fm-med-r-library bash scripts/install_inspect_sr_r_methods.sh`.
+The pinned methods loaded at scrutiny 0.6.2, statcheck 1.5.0 and simdistr 1.0.1.
+
+The baseline Python suite passed before implementation. New importer tests first
+failed because the package did not exist. Further regressions reproduced input
+changes during import, stale adapter reuse, manifest/directory symlink traversal,
+tracked private inputs and tampered import origins before their fixes. The final
+Python lane passes 172 tests, including 25 medical import/CLI tests.
+
+The first report run failed all five tests because R discovered a wrong-CPU
+Anaconda Pandoc binary. Selecting Quarto's working bundled Pandoc through the
+test process PATH and RSTUDIO_PANDOC resolved this; no report code was changed.
+
+Final executed commands and results:
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration' --junitxml=/tmp/fm-med-python.xml
+# 172 passed, 18 deselected
+
+FORENSICS_REQUIRE_R_INTEGRATION=1 R_LIBS_USER=/tmp/fm-med-r-library FM_TEST_ARTIFACT_DIR=/tmp/fm-med-baseline-artifacts/native UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m native_r --junitxml=/tmp/fm-med-native.xml
+# 13 passed, 177 deselected
+
+PATH=/Applications/quarto/bin/tools:$PATH RSTUDIO_PANDOC=/Applications/quarto/bin/tools FORENSICS_REQUIRE_R_INTEGRATION=1 FORENSICS_REQUIRE_REPORT_INTEGRATION=1 R_LIBS_USER=/tmp/fm-med-r-library FM_TEST_ARTIFACT_DIR=/tmp/fm-med-baseline-artifacts/report UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m report_integration --junitxml=/tmp/fm-med-report.xml
+# 5 passed, 185 deselected; synthetic native/report artifacts retained
+
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+bash -n scripts/run_pipeline.sh scripts/run_manuscript_review.sh
+bash scripts/run_pipeline.sh --forensics all --dry-run --offline
+bash scripts/run_manuscript_review.sh --study-id private_x --report missing.pdf --review-type prediction_validation --dry-run --offline
+git diff --check
+# All passed; dry-runs created no analysis run
+```
+
+The runtime paths above describe this local test environment; use configured
+isolated library/Pandoc/artifact paths on another host. They are not production
+configuration. All three executed lanes had zero failures, errors or skips.
+Marker deselection assigns tests to their correct lane and is not skipped
+required coverage. Hosted checks on the delivered head remain pending.
+
+### Next steps and remaining gates
+
+1. Review the WP1 diff and hosted checks; preserve the sequential delivery history.
+2. Implement WP2 chronology/source versions, structural extraction preflight,
+   study reconstruction, mixed-aim routing, approved guidance and four profiles.
+3. Implement WP3 permission enforcement, staging/isolation, limits and immutable
+   recovery attempts. An approved live backend and source-specific authorization
+   remain external decisions; offline work continues independently.
+4. Implement WP4 numerical handoffs, counterevidence, write-once human decisions,
+   conservative synthesis and current-run Markdown/Quarto reports.
+5. Implement WP5 blinded common-input/full-bundle evaluation tooling and a frozen
+   protocol/ledger. Actual live tests, human adjudication and held-out medical
+   qualification require their separate approvals and evidence.
+
+Rollback preserves private medical runs/import origins and all existing human
+records; revert only scoped code/config/docs. WP1 tests alone do not satisfy
+all MED-01–27 scenarios or establish clinical detection performance.
+
+
 ## Current status — 2026-09-29
 
 ### Post-merge verification of PR #7

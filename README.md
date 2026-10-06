@@ -172,6 +172,16 @@ The private route writes into a fresh run beneath
 locked `uv` Python environment. Source PDFs, transcriptions,
 and review outputs belong in ignored local paths.
 
+### Optional medical reading layer (in development)
+
+FM-MED-01 adds a separate, opt-in reading layer alongside qualified forensic
+methods. The first delivery supports offline upstream import and output-free
+planning preflight. Imported findings remain unverified proposals; empty results
+do not imply completed review coverage. Medical profiles, live execution, human
+verification and medical qualification are pending. See
+[MEDICAL_REVIEW.md](docs/MEDICAL_REVIEW.md) for implemented contracts and commands
+and [the acceptance map](docs/MEDICAL_REVIEW_ACCEPTANCE.md) for remaining gates.
+
 ## Quickstart Reference
 
 ### 1) Preview selected deterministic stages without writing outputs

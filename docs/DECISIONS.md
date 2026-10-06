@@ -1,5 +1,15 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Keep medical reading imports separate from qualified evidence
+
+- **Scope:** Implement FM-MED-01 inside this repository as an optional feature. The accepted sequence starts with offline import, then adds bundles/profiles, controlled execution, verification/reporting and evaluation readiness. Existing numerical engines, method qualification and INSPECT-SR routes remain unchanged.
+- **Offline boundary:** Preserve exact imported bytes and all finding fields. Pin the inspected upstream schema by SHA-256 because it has no version field. Preserve the upstream MIT notice. Adapter provenance does not establish an imported output's generating revision; absent model/backend/prompt data remains unknown. Unsupported shapes and identity conflicts fail closed.
+- **Identity/storage:** Reuse existing source/evidence and `forensics_run_v3` helpers. Deterministic import identities bind the bundle, exact output bytes, adapter/reused-helper hashes and declared origin. Ignore-protected private roots are mandatory. Sources, completed artifacts and duplicate findings are never overwritten. An explicit 20 MiB JSON limit fails instead of truncating inputs.
+- **Scientific boundary:** Upstream assessments and proposed numeric checks are retained original data. Imported coverage is unavailable, even for `ok` or empty findings. Declared exact-anchor resolution is separate from source transcription/visual verification. No new threshold, scientific method, official judgment or candidate route is introduced.
+- **Delivery gates:** Software acceptance, authorized live operational testing and held-out medical performance qualification are tracked independently. WP1 does not authorize transmission/search or establish medical review performance. Live/human/report features remain pending until their sequential work packages are delivered and checked.
+- **Verification:** Test-first importer cases failed because the new package was absent, then passed after implementation. Exact baseline and final receipts are recorded in `HANDOFF.md`; the acceptance map retains remaining scenario coverage explicitly.
+
+
 ## 2026-09-29: Use the locked Python runtime and record the completed FM-12 gate
 
 - **Runtime decision:** Both shell entrypoints now invoke Python through `uv run --offline --locked python` for manifest operations and category stages. This removes their prior dependence on whichever system `python3` happened to be first on `PATH`. Registry network opt-in remains separate from dependency preparation; package resolution stays offline during execution.
