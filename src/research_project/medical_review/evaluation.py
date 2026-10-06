@@ -302,9 +302,10 @@ def prepare_evaluation_plan(repo_root: Path, data: dict[str, Any]) -> dict[str, 
             ],
         },
     }
-    if len(json.dumps(plan, ensure_ascii=False, indent=2).encode()) > MAX_JSON_BYTES:
+    plan = {**plan, "plan_id": identity("medicalevaluationplan", plan)}
+    if len(json.dumps(plan, ensure_ascii=False, indent=2).encode()) + 1 > MAX_JSON_BYTES:
         raise ValueError("Evaluation plan exceeds 20 MiB; explicit bounded splitting required.")
-    return {**plan, "plan_id": identity("medicalevaluationplan", plan)}
+    return plan
 
 
 def freeze_evaluation_plan(repo_root: Path, input_path: Path) -> Path:

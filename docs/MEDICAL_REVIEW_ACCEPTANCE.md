@@ -6,9 +6,13 @@ in progress. Live operational acceptance and medical qualification are pending.
 
 WP4's requirement audit and required hosted lanes passed at source head
 `83e6252` in PR run `37519984240` and push run `37519977156` (318 Python,
-14 native-R, 7 report tests, no skips/failures). WP5 plan/freezing is now under
-development on a stacked branch; its checkpoints do not complete full software
-acceptance or medical evaluation readiness.
+14 native-R, 7 report tests, no skips/failures). WP5 plan/freezing and the private
+source-reference ledger are under development on a stacked branch; these
+checkpoints do not complete full software acceptance or medical evaluation
+readiness. Plan head `f78fe9d` passed hosted PR run `37524362946` and push run
+`37524320291`; the downloaded PR receipts have 338 Python, 14 native-R and 7 report
+tests with zero failures/errors/skips. The subsequent ledger checkpoint needs
+its own delivered-head evidence.
 
 Tests with mocked semantic responses check orchestration and safeguards only.
 Clinical detection performance requires the separately authorized pilot. Every

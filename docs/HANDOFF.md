@@ -1,5 +1,102 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 WP5 source-reference ledger checkpoint
+
+The preceding goal turn was planning-only, with no implementation progress. This
+turn resumed from the authoritative worktree at `f78fe9d`, using the existing
+untracked reference tests as test-first work. The goal remains active and its
+full scope is unchanged.
+
+Both hosted runs for plan head `f78fe9d9eb0ed2c9c4ea8d0ce9771121a7ad07db` completed
+successfully: PR `37524362946`, push `37524320291`. The PR artifacts were retrieved
+and their actual JUnit receipts parsed: 338 Python, 14 native-R and 7 Quarto report
+tests with zero failures/errors/skips. Their respective SHA-256 values are
+`ba26a71682f4181d8532ee84475799f4034c583691a441aa2c3f800d54fce897`,
+`307bb62ffd5ba04ce732aba253f02b0e48aaabf97adc8b6378d78a91f1429b53`,
+`29e88a53c3363eb9fe21b85a8dd14b553e201be38ed9f38c36ed98307491bebb`.
+
+```bash
+gh run view 37524362946 --json headSha,status,conclusion,jobs
+gh run view 37524320291 --json headSha,status,conclusion,jobs
+gh run download 37524362946 --name inspect-sr-python-37524362946 --dir /tmp/fm-med-wp5-hosted-f78-pr/python
+gh run download 37524362946 --name inspect-sr-native-r-37524362946 --dir /tmp/fm-med-wp5-hosted-f78-pr/native-r
+gh run download 37524362946 --name inspect-sr-report-review-37524362946 --dir /tmp/fm-med-wp5-hosted-f78-pr/report-review
+```
+
+Added `evaluation_reference.py`, an explicit `evaluation-reference --plan-run
+--input` CLI, focused integration/negative tests and reference contract docs.
+The ledger retains exact original observations and source evidence, disagreement,
+wrong/unresolved criticisms, study analysis units and required-source gaps. All
+assessor observations must be accounted for exactly once in adjudication. An
+empty ledger is only a bounded reviewed-source statement, never universal
+reassurance or medical qualification. Identities, credentials, independence,
+source-byte review and blinding are operator attestations, not authenticated
+facts. Single-assessor shortfalls remain explicit.
+
+Freezing uses a new canonical private run, retains raw input and code, binds the
+parent plan manifest, and registers the ledger. Repetition creates a separate
+attempt. Input/parent/source/code drift preserves failure rather than overwriting
+the plan or earlier ledger. Loader tests exercise actual registered artifact
+checks. Neither source-reference input nor its CLI writes INSPECT-SR records,
+invokes a model, retrieves a source, or authorizes transmission/search.
+
+The initial focused command failed collection with
+`ModuleNotFoundError: research_project.medical_review.evaluation_reference`.
+After implementation its initial 13 cases passed in 21.51s; the expanded plan
+and reference suite passed 40 cases in 54.18s. Ruff then found an import-order
+issue and two overlong synthetic literals; these were corrected without ignores.
+Code review identified serialized-size guards that omitted indented output or
+the final record identity/newline. Both new regressions failed with `DID NOT
+RAISE`, then passed after correcting the plan and ledger guards. No ordinary
+plan identity or scientific content changed.
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_reference.py tests/medical_review/test_evaluation_plan.py --junitxml=/tmp/fm-med-wp5-reference-focused-final.xml
+# 42 passed, 60.97s, zero failures/errors/skips after both size fixes.
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+git diff --check
+# Clean; 97 Python files formatted at this checkpoint.
+UV_OFFLINE=1 uv run --offline --locked python scripts/medical_review.py evaluation-reference --help
+# Exit 0; only explicit plan-run/input arguments, no live operation.
+R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_R_INTEGRATION=1 FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp5-reference-native-artifacts UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m native_r --junitxml=/tmp/fm-med-wp5-reference-native-final.xml
+# 14 passed, 365 deselected, 29.99s; zero failures/errors/skips.
+PATH=/Applications/quarto/bin/tools:$PATH RSTUDIO_PANDOC=/Applications/quarto/bin/tools R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_REPORT_INTEGRATION=1 FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp5-reference-report-artifacts UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m report_integration --junitxml=/tmp/fm-med-wp5-reference-report-final.xml
+# 7 passed, 372 deselected, 70.40s; zero failures/errors/skips.
+```
+
+The native/report commands ran before the final two Python serialization guards;
+no R engines or Quarto/report code changed afterward. Their JUnit SHA-256 values
+are `4c625b8b203eecc68342e6d8c8953ec8ddc7813d0ce78305007acc80ed64e7ab` and
+`57a58eb5207ab8522cf7639b0a46505ac5959d3d3595c7ff44abf409fc557563`.
+The pre-guard full Python suite passed 358 cases in 213.72s with 21 deselected.
+The final Python regression passed after both guard corrections:
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration' --junitxml=/tmp/fm-med-wp5-reference-python-final.xml
+# 360 passed, 21 deselected, 210.57s; zero failures/errors/skips.
+```
+
+The four original runtime/qualification assertions were restored to their
+original common/full-input test after inserting the size regression, then both
+affected plan tests were rerun: 2 passed in 0.30s. No production change followed
+the final Python suite. The focused JUnit SHA-256 is
+`6acd90c36e0ae494d18c173c9d789da980f4439df516d2332507c0b79764b8ce`.
+The final Python JUnit SHA-256 is
+`ae9499c34fe8be9403e0040fdd732431ab5add264d30d1227c3768f78d9f5c4a`.
+An initial handoff hash insertion missed the current line context and made no
+change; the insertion was reapplied against the inspected text.
+Delivered-head hosted evidence remains outstanding; do not substitute the
+prior-head hosted results for the new increment.
+
+Next WP5 work: minimum-access model source packets that exclude the ledger,
+private human metadata and unselected supplemental/context material; blinded
+candidate-output adjudication; pre-unblinding threshold adoption; actual R
+analysis; explicit qualification reporting and the final scope audit. Source
+packets alone will not prove actual backend restrictions or successful assessor
+blinding. No live reviewer run, actual human source adjudication, clinical
+transmission, dependency change, or merge occurred in this checkpoint.
+
 ## 2026-10-06 WP4 gate passed; WP5 source-bound planning checkpoint
 
 Previous goal turn made concrete progress in `83e6252`. Both hosted runs for that

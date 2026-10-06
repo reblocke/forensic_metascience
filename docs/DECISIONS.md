@@ -1,5 +1,14 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Preserve source-reference adjudication before candidate evaluation
+
+- **Reference boundary:** Add private, operator-attested source-reference inputs and frozen ledgers bound to an explicit completed evaluation plan. Preserve independent observations, disagreements, plausible-but-wrong concerns, unresolved issues and exact canonical evidence. Every assessor observation must have one explicit adjudication disposition; shared quotes do not cause automatic deduplication.
+- **Human limits:** Distinct private identities, domain qualifications, source-byte review and condition blinding are attestations, not authenticated credentials or proof of independence. A single-assessor shortfall requires an explicit reason and remains visible. Existing INSPECT-SR human contracts and stores are unchanged.
+- **Coverage:** Empty reviewed reference scopes retain missing required source groups and never claim universal cleanliness. The ledger bounds the reference universe; it does not establish sensitivity to every possible scientific defect, medical performance or an official assessment.
+- **Storage:** Canonical private runs preserve exact raw input, code and parent-plan manifest binding. Mid-freeze drift retains failed attempts; repeated freezing creates a new attempt. Registered artifact and semantic/source bindings govern reuse. Source/prompt changes require new dependent planning.
+- **Bounded artifacts:** Plan and ledger size guards cover the actual indented JSON, generated record identity and trailing newline. Test-first regressions reproduced both omissions. Refuse oversized output before publishing a completed stage; ordinary plan identities and scientific content remain unchanged.
+- **Remaining:** Model source packets and blinded candidate-adjudication packets, pre-unblinding threshold adoption, R analysis and explicit qualification reporting remain unfinished. No live evaluation or actual human reference adjudication was performed by synthetic acceptance tests.
+
 ## 2026-10-06: Freeze evaluation inputs before preparing blinded comparisons
 
 - **Sequence:** WP4 source head `83e6252` passed the required hosted PR and push lanes. Start WP5 on a stacked branch without merging any earlier PR or implying operational/medical acceptance.

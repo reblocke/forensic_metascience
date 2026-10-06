@@ -4,8 +4,8 @@ Software acceptance, live operational acceptance and medical qualification are
 independent gates. Current status: software in progress; live operational testing
 not authorized or performed; medical qualification pending.
 
-WP5 is in progress. Its first increment implements offline plan validation and
-immutable plan freezing; blinded packets, reference-ledger/adjudication workflows,
+WP5 is in progress. Offline plan validation/freezing and source-reference ledger
+validation/freezing are implemented. Blinded packets, candidate adjudication,
 threshold adoption, R analysis and final qualification tooling remain unfinished.
 Actual source adjudication and live evaluation have not occurred. Before candidate
 evaluation, approve the source corpus, providers/models, transmission/search
@@ -95,3 +95,60 @@ only to this planning stage. Threshold approval/adoption is intentionally refuse
 in this first increment; no automatic threshold or medical acceptance decision
 is supplied. The full WP5 exit gate remains open until the remaining tooling and
 its actual acceptance evidence are delivered.
+
+## Implemented source-reference ledger boundary
+
+Create the reference ledger from source review before candidate evaluation. The
+new command consumes an explicit completed frozen plan and a local input; it does
+not discover a latest run, retrieve sources, call models or authenticate assessors:
+
+```bash
+uv run --offline --locked python scripts/medical_review.py evaluation-reference \
+  --plan-run data/processed/forensics_runs/private_reviews/EVALUATION_ID/PLAN_RUN_ID \
+  --input data/private/medical_reviews/EVALUATION_ID/evaluation/reference.json
+```
+
+Replace both IDs with actual recorded paths. `medical_evaluation_reference_input_v1`
+has exactly `schema_version`, the frozen `plan_id`, and `case_reviews`. Every
+planned case requires one record with `case_id`, `assessors`,
+`assessor_shortfall_reason`, and `adjudication`.
+
+Each assessor declares an `assessor_id`, private `human_identity`,
+`domain_qualifications`, timezone-aware `date`, `blinded_to_condition=true`,
+`source_bytes_reviewed=true`, all supplied `reviewed_source_version_ids`, and an
+explicit `issues` array. Assessor identities must be distinct. Two assessors are
+the normal reference design; one requires a nonblank shortfall reason, retained
+as an evaluation limitation. Neither identity uniqueness nor a credentials
+string proves independence or domain qualification. All such declarations are
+operator attestations, including blinding and source-byte inspection.
+
+Each observation contains `issue_id`, `study_id`, nullable `comparison_id`,
+`issue_type`, boolean-or-null `important`, `description`, and nonempty canonical
+`evidence_ids` in its reviewed study/comparison/report scope. The adjudicator
+declares the same human/source attestations, a rationale and explicit issues.
+Each adjudicated issue contains the observation's scope/content fields plus
+`reference_id`, `disposition`, `rationale`, and `assessor_issue_refs`. Membership
+records have `assessor_id` and `issue_id`. Every assessor observation must be
+accounted for exactly once; distinct issues sharing a quote are not automatically
+merged. Adjudicator-discovered issues may have empty observation membership and
+still require source evidence. Dispositions are `reference_issue`,
+`plausible_but_wrong`, or `unresolved`; disagreements and original descriptions
+remain in the raw input and ledger. No official assessment fields are accepted.
+
+The frozen ledger retains exact raw bytes, code snapshots, parent-plan manifest
+binding, canonical evidence/locators, study analysis units, all observations and
+adjudication rationales under a fresh private `forensics_run_v3`. Repeating the
+operation creates a new attempt rather than replacing the old record or plan.
+Input/parent/source/code drift during freezing preserves a failed attempt.
+Dependent reuse validates registered artifact hashes and the raw/code/semantic
+bindings; changed source or prompt dependencies require a new plan and ledger.
+
+An empty, explicitly reviewed reference scope is labeled
+`no_reference_issue_in_reviewed_sources`, retains required-source gaps, and has
+`universal_clean_claim=false`. Unresolved observations retain an unresolved scope.
+No ledger is sensitivity to all possible scientific defects. Every ledger keeps
+`medical_performance_validated=false`, `official_assessment=null`, and records
+whether synthetic cases are present. These files do not write INSPECT-SR records.
+The forthcoming packet stage must withhold this ledger and private human metadata
+from model workspaces; that stage and actual blinded evaluation are not implemented
+by the reference-freezing command.

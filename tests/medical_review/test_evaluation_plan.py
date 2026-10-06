@@ -100,6 +100,18 @@ def test_plan_distinguishes_equivalent_inputs_from_unmatched_upstream_access(wor
     assert plan["execution_permissions"] == {"allow_llm": False, "allow_web_search": False}
 
 
+def test_plan_limit_includes_saved_identity_and_newline(workspace, monkeypatch):
+    from research_project.medical_review import evaluation as module
+
+    repo, *_ = workspace
+    data = plan_input(workspace)
+    plan = prepare_evaluation_plan(repo, data)
+    saved_size = len(json.dumps(plan, sort_keys=True, ensure_ascii=False, indent=2).encode()) + 1
+    monkeypatch.setattr(module, "MAX_JSON_BYTES", saved_size - 1)
+    with pytest.raises(ValueError, match="exceeds"):
+        prepare_evaluation_plan(repo, data)
+
+
 @pytest.mark.parametrize("change", ["previous", "synthetic", "shared_study", "shared_group"])
 def test_heldout_cannot_relabel_development_or_dependent_sources(workspace, change):
     repo, *_ = workspace

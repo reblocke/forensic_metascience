@@ -25,6 +25,7 @@ from research_project.medical_review.evaluation import (
     freeze_evaluation_plan,
     prepare_evaluation_plan,
 )
+from research_project.medical_review.evaluation_reference import freeze_reference_ledger
 from research_project.medical_review.importer import import_reviewer
 from research_project.medical_review.numeric_inputs import record_input_review
 from research_project.medical_review.preflight import structural_preflight
@@ -128,6 +129,11 @@ def parser() -> argparse.ArgumentParser:
     )
     evaluation.add_argument("--input", required=True, type=Path)
     evaluation.add_argument("--freeze", action="store_true")
+    reference = commands.add_parser(
+        "evaluation-reference", help="Freeze a private operator-attested source reference ledger."
+    )
+    reference.add_argument("--plan-run", required=True, type=Path)
+    reference.add_argument("--input", required=True, type=Path)
     return cli
 
 
@@ -227,6 +233,8 @@ def main() -> int:
                 plan = prepare_evaluation_plan(ROOT, data)
                 private_path(ROOT, path, PRIVATE_SOURCES / data["evaluation_id"] / "evaluation")
                 print(json.dumps(plan, sort_keys=True))
+        elif args.operation == "evaluation-reference":
+            print(freeze_reference_ledger(ROOT, args.plan_run, args.input))
         return 0
     except (ValueError, OSError, KeyError, TypeError) as error:
         cli.exit(2, f"medical-review: {error}\n")
