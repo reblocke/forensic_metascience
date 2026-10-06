@@ -1,5 +1,13 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Keep bounded arithmetic separate from qualified R evidence
+
+- **Scope:** WP4 begins with counts/percentages, mutually exclusive same-population/timepoint flow, unadjusted binary contrasts and diagnostic 2×2 arithmetic. Existing R engines, method receipts and INSPECT-SR mappings are untouched. Source transcriptions and semantic assumptions remain proposed, regardless of arithmetic correctness.
+- **Contracts:** Exact typed requests bind study/comparison, bundle/evidence, population, horizon, orientation, raw inputs, reported precision/tolerance and calculator code. Results preserve raw requests and explicit 34-digit Decimal precision; qualified-result/candidate eligibility is false. Unknown authority fields and generated-code requests are rejected.
+- **Guards:** Incompatible estimation/population/horizon/orientation/denominators are not comparable. Case-control/unknown-sampling PPV/NPV requires an explicit sourced target-prevalence assumption. Zero cells retain infinite/undefined states without continuity correction. Flow exclusivity remains an evidence-dependent assumption. No inferential-method or clinical threshold is invented.
+- **Partial milestone:** Pure arithmetic tests pass; CLI/storage, verified-input records, qualified-reference handoff, counterevidence, human decisions and Markdown/Quarto reports remain required before WP4 acceptance.
+
+
 ## 2026-10-06: Keep live medical execution blocked while delivering bounded replay
 
 - **Authority:** Source-scoped authorization binds exact bundle/source hashes, classifications, provider/backend/model, purpose, tools/search, time validity and a private human approver. Application offline mode wins. Authentication or registry-network permission does not authorize source transmission.

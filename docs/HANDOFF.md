@@ -1,5 +1,46 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 WP4 arithmetic-core progress (not milestone acceptance)
+
+Current branch: `codex/medical-review-verification-reporting`, based on WP3
+`8602714` / draft [PR #10](https://github.com/reblocke/forensic_metascience/pull/10).
+The pure bounded arithmetic transform and 22 tests are implemented. No new CLI
+operation, arithmetic storage integration or human input-verification authority
+is advertised. WP4 remains incomplete: qualified same-run reference handoffs,
+counterevidence, write-once human dispositions, lossless grouping/report model,
+private Markdown/Quarto HTML/PDF and manual adoption packets are still required.
+WP5 evaluation tooling remains required. Goal stays active; do not mark complete.
+
+Executed:
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_numeric.py
+# Initial core: 15 passed; seven additional controls included in the full lane below.
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration' --junitxml=/tmp/fm-med-wp4-numeric-python.xml
+# 242 passed, 18 deselected, no failures/errors/skips
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+# Pass after fixing reported long-line errors.
+```
+
+WP2 head `54b94c6` passed all six hosted PR/push checks. Downloaded PR
+[run 37499304244](https://github.com/reblocke/forensic_metascience/actions/runs/37499304244)
+JUnit receipts confirm Python197/native13/report5, zero failures/errors/skips.
+This supersedes earlier WP2 pending notes. WP3 Python passed, but PR/push native
+and report setup failed before tests with HTTP429 from configured CRAN sources;
+missing receipts correctly failed acceptance. One rerun of failed PR jobs in
+[run 37500860476](https://github.com/reblocke/forensic_metascience/actions/runs/37500860476)
+was requested. No package versions/hashes changed, no gate was waived. Attempt 2 was confirmed
+in_progress with native/report job handles 112399955878/112399955616. Canonical
+cran.r-project.org statcheck/simdistr archives were also independently retrieved
+and matched existing pins; no additional mirror/config changes were made. Inspect
+that exact run before retrying; a queued/in-progress handle is not a stopped job.
+
+No live medical model calls, source transmission/search, real human adjudication
+or main merges occurred. Operational and held-out medical qualification remain
+pending; all live backends stay blocked for unqualified restrictions. Preserve
+all three stacked draft PRs (#8/#9/#10) and historical attempts.
+
+
 ## 2026-10-06 WP3 replay and execution-boundary checkpoint
 
 WP3 implements a thin `run` interface for bounded offline replay and auditable

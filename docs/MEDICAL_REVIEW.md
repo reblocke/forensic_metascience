@@ -290,3 +290,40 @@ run-root/status reference; validator/path errors return 2. Blocked/failed covera
 preserves applicability, null unknown unit counts and the stopping reason.
 Public output roots, symlink references, corrupted receipts and changed resume
 dependencies are refused. Successful/failed manifests are never reopened for edits.
+
+
+## WP4 arithmetic core (integration in progress)
+
+`research_project.medical_review.numeric.calculate_request` implements the pure
+`medical_numeric_check_request_v1` → `medical_arithmetic_result_v1` transform.
+The CLI/storage/human input-verification and qualified-reference handoff are not
+yet delivered. This core does not create a numerical-method receipt or candidate.
+Every result remains a proposed transcription until independently verified.
+
+Requests declare run/proposal/study/comparison IDs, bundle hash, scoped evidence,
+population, horizon, orientation, kind, typed inputs and optional reported comparison.
+Supported kinds are percentage, participant_flow, binary_risk_contrast and
+diagnostic_2x2. Unknown fields (including human/official/receipt fields) are refused.
+Counts are nonnegative integers; reported values, tolerances and target prevalence
+are bounded decimal strings. Results retain the exact request, calculator code
+hash/version, explicit Decimal precision (34 digits), denominators and assumptions.
+Participant accounting uses exact integer sums/differences even beyond the
+decimal precision used for ratios. No source data is mutated and no supplied
+code is executed.
+
+Flow sums require explicitly mutually exclusive categories with the same population
+and timepoint. Binary contrasts use unadjusted raw risks, exposed minus control;
+adjusted/weighted/survival reconstructions are unsupported. Diagnostic sensitivity,
+specificity and LRs use declared TP/FN/FP/TN counts. PPV/NPV from case-control or
+unknown sampling requires a sourced target-prevalence assumption; cohort PPV/NPV
+retains the declared representativeness assumption. Infinite/undefined ratios are
+separate statuses with null values, never continuity-corrected or converted to
+finite numbers. Joint marginal LR multiplication and inferential CI/P-value
+reconstruction are unsupported here.
+
+A reported comparison must match population, horizon, orientation, denominator
+and unadjusted estimation. Incompatible estimates yield not_comparable, never a
+false arithmetic contradiction. Finite comparisons use the supplied absolute
+tolerance plus half a unit at the declared reported decimal precision (0–24).
+Undefined/infinite values remain unassessed. Arithmetic agreement/disagreement
+is not verification of extraction, estimand mapping or clinical interpretation.
