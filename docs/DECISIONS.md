@@ -1,5 +1,14 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Bind medical planning to evidence, comparison scope and reviewed prompts
+
+- **Reconstruction:** Reported facts, competing interpretations and preferred designs are separate. Each asserted fact/interpretation requires evidence within a reviewed study/report mapping. Comparison context is reconstructed separately and does not inherit a study-level estimand. These are proposed transcriptions/interpretations, not source-semantic verification.
+- **Routing:** Implement four initial profiles and an explicit conservative union for unknown design. Recognized systematic-review/methods scope remains unsupported. Protocol checks state their planned-stage remit. Every scoped check records required source gaps; a comparison cannot borrow a source assigned only to another report. Planned overrides that disappear outside selected catalogue scope fail explicitly.
+- **History/extraction:** Source IDs can have multiple immutable canonical versions with acyclic supersession. Compare dates only at declared precision. Existing pypdf/UTF-8 extraction retains text and original private source references while marking table/reading-order/sign fidelity unsupported or unverified. Text files have no invented page counts; empty PDF pages are extraction limitations.
+- **Prompts/guidance:** Narrowly adapt two pinned Reviewer prompts with exact originals and MIT attribution. Validate every shared/module prompt hash and reject unsafe paths. The plan/context/preflight bind import identity; mid-import code/source/plan drift preserves a failed raw attempt. External reporting packs remain unapproved/unavailable, with no guideline-specific assertions or model-memory reconstruction.
+- **Limits:** No model calls or new dependencies. Planning profiles are implemented, but detection performance, authorized execution, counterevidence/human records and rendered reports require later work packages.
+
+
 ## 2026-10-06: Preserve native source pins when a CRAN mirror is rate-limited
 
 - **Trigger:** WP1 hosted native-R and report jobs failed before tests because the existing CRAN source server returned HTTP 429. Their missing receipts correctly failed acceptance; local passes did not waive hosted gates.

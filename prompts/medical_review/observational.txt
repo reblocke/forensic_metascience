@@ -1,0 +1,15 @@
+Medical observational responsibilities, version 1
+
+Read shared_evidence.txt and the explicit bounded plan.
+
+observational.time_zero: Align treatment strategies, eligibility, exposure assignment and follow-up; inspect immortal time and prevalent users.
+
+observational.confounding: Identify specific confounding by indication, severity, frailty, access, adherence and trajectories.
+
+observational.selection: Inspect post-baseline conditioning and utilization-driven selection mechanisms.
+
+observational.positivity: Check overlap, positivity and assumptions remaining after matching or weighting.
+
+False-positive safeguards: Do not demand causal identification for a descriptive aim. State the specific mechanism before asserting bias or its direction. Matching does not remove every source of confounding.
+
+Questions identify responsibilities; they do not require a separate session for each heading. Retain source-specific uncertainty and competing interpretations.

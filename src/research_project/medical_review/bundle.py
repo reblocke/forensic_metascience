@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import calendar
 import hashlib
 import re
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -57,18 +59,30 @@ def load_bundle(repo_root: Path, path: Path) -> tuple[dict[str, Any], str]:
         raise ValueError("Bundle studies, reports, documents and evidence must be record lists.")
     _unique(studies, "study_id")
     _unique(reports, "report_id")
-    _unique(documents, "source_id")
+    document_keys = [(doc.get("source_id"), doc.get("source_version_id")) for doc in documents]
+    if any(not key[0] for key in document_keys) or len(set(document_keys)) != len(document_keys):
+        raise ValueError("Duplicate or missing document source/version identity.")
     _unique(evidence, "evidence_id")
     study_ids = {row["study_id"] for row in studies}
     if study not in study_ids:
         raise ValueError("Bundle primary study must be declared.")
     report_ids = {row["report_id"] for row in reports}
+    comparisons = bundle.get("comparisons", [])
+    if not isinstance(comparisons, list) or any(not isinstance(row, dict) for row in comparisons):
+        raise ValueError("Comparisons must be explicit scope records.")
+    _unique(comparisons, "comparison_id")
+    for comparison in comparisons:
+        if comparison.get("study_id") not in study_ids:
+            raise ValueError("Comparison refers to an unknown study.")
+        if comparison.get("report_ids") and not set(comparison["report_ids"]) <= report_ids:
+            raise ValueError("Comparison refers to an unknown report.")
     for report in reports:
         mapping = report.get("study_ids")
         if not isinstance(mapping, list) or not mapping or not set(mapping) <= study_ids:
             raise ValueError("Report relationships require known, explicit study identities.")
     versions = {}
     for doc in documents:
+        _date_range(doc)
         if doc.get("role") not in ROLES or doc.get("availability") not in AVAILABILITY:
             raise ValueError("Invalid source role or availability.")
         if not set(doc.get("report_ids", [])) <= report_ids or not doc.get("report_ids"):
@@ -84,6 +98,23 @@ def load_bundle(repo_root: Path, path: Path) -> tuple[dict[str, Any], str]:
         if doc.get("source_version_id") != version:
             raise ValueError("Source version identity does not match the exact source hash.")
         versions[version] = doc
+    declared_versions = {
+        doc.get("source_version_id") for doc in documents if doc.get("source_version_id")
+    }
+    supersessions = {
+        doc["source_version_id"]: doc["supersedes_source_version_id"]
+        for doc in documents
+        if doc.get("supersedes_source_version_id")
+    }
+    for current, previous in supersessions.items():
+        if previous not in declared_versions or previous == current:
+            raise ValueError("Source supersession requires a declared historical version.")
+        seen = {current}
+        while previous in supersessions:
+            if previous in seen:
+                raise ValueError("Source supersession cycle.")
+            seen.add(previous)
+            previous = supersessions[previous]
     for ev in evidence:
         if ev.get("source_version_id") not in versions:
             raise ValueError("Evidence requires a supplied, verified source version.")
@@ -111,12 +142,50 @@ def load_bundle(repo_root: Path, path: Path) -> tuple[dict[str, Any], str]:
         key = (check.get("check_id"), check.get("study_id"), check.get("comparison_id"))
         if not key[0] or key[1] not in study_ids or key in keys:
             raise ValueError("Planned checks require unique known study/comparison scopes.")
+        if key[2] is not None and not any(
+            c["comparison_id"] == key[2] and c["study_id"] == key[1] for c in comparisons
+        ):
+            raise ValueError("Planned check refers to an unknown comparison scope.")
         if check.get("applicability") not in {"applicable", "not_applicable", "unknown"}:
             raise ValueError("Planned check applicability must remain explicit.")
         if not check.get("rationale"):
             raise ValueError("Planned check scope requires a rationale.")
         keys.add(key)
     return bundle, content_hash(bundle)
+
+
+def _date_range(record: dict[str, Any]) -> tuple[date, date] | None:
+    value, precision = record.get("date"), record.get("date_precision", "unknown")
+    if precision == "unknown":
+        if value is not None:
+            raise ValueError("Unknown date precision requires a null date.")
+        return None
+    patterns = {"year": r"\d{4}", "month": r"\d{4}-\d{2}", "day": r"\d{4}-\d{2}-\d{2}"}
+    if (
+        precision not in patterns
+        or not isinstance(value, str)
+        or not re.fullmatch(patterns[precision], value)
+    ):
+        raise ValueError("Document date does not match its declared precision.")
+    if precision == "year":
+        return date(int(value), 1, 1), date(int(value), 12, 31)
+    if precision == "month":
+        year, month = map(int, value.split("-"))
+        return date(year, month, 1), date(year, month, calendar.monthrange(year, month)[1])
+    exact = date.fromisoformat(value)
+    return exact, exact
+
+
+def chronology_relation(first: dict[str, Any], second: dict[str, Any]) -> str:
+    """Compare bounded date windows without inventing precision or prespecification."""
+    left, right = _date_range(first), _date_range(second)
+    if left is None or right is None:
+        return "unknown"
+    if left[1] < right[0]:
+        return "before"
+    if left[0] > right[1]:
+        return "after"
+    return "same_window" if left == right else "overlapping_precision"
 
 
 def _unique(rows: list[dict[str, Any]], key: str) -> None:

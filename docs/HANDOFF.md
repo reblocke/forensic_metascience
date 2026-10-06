@@ -1,5 +1,55 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 WP2 study-planning checkpoint
+
+The full FM-MED-01 goal remains active. WP2 adds version/chronology validation,
+local structural extraction, evidence-linked study and independent comparison
+reconstruction, four medical planning profiles, a versioned check catalogue and
+hash-checked narrow prompt adaptation. Shared reported facts, interpretation and
+preferred design remain separate. Unknown/unsupported scope and missing sources
+are explicit; all model/search permissions remain disabled.
+
+No manuscript source analysis, live model calls, transmission, searches, new
+packages, official INSPECT-SR writes or main-branch merges occurred. Medical
+performance and live operational qualification remain pending. WP3–WP5 remain
+required, including counterevidence, human dispositions and medical report renders.
+
+Focused tests added during WP2 reproduced changed prompts/catalogues, unresolved
+comparison routing, sources borrowed across report scope, disappearing planned
+checks, invented text-page counts and interpretations from another study before
+fixes. Final local checks (same code state):
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration' --junitxml=/tmp/fm-med-wp2-python.xml
+# 197 passed, 18 deselected, no failures/errors/skips
+R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_R_INTEGRATION=1 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m native_r --junitxml=/tmp/fm-med-wp2-native.xml
+# 13 passed, 202 deselected, no failures/errors/skips
+PATH=/Applications/quarto/bin/tools:$PATH RSTUDIO_PANDOC=/Applications/quarto/bin/tools R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_REPORT_INTEGRATION=1 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m report_integration --junitxml=/tmp/fm-med-wp2-report.xml
+# 5 passed, 210 deselected, no failures/errors/skips
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+git diff --check
+# lint/format/diff checks pass
+```
+
+These temporary paths describe executed local verification only; committed
+production code uses repository-relative paths/configuration. Local R uses the
+existing pinned method library; the Quarto tool path avoids an incompatible
+system Pandoc. No environment workaround changes production results.
+
+WP1 corrective head `632ebe0` passed all three hosted lanes in PR
+[run 37494662155](https://github.com/reblocke/forensic_metascience/actions/runs/37494662155):
+Python 175, native R 13, report/review 5, all zero failures/errors/skips. Downloaded
+JUnit receipts were inspected locally. This supersedes the earlier pending
+hosted note below, and does not establish WP2 hosted acceptance or medical quality.
+Draft PR #8 remains separate from unmerged main. WP2 is delivered as the next
+stacked draft, retaining that history. Do not merge without user authorization.
+
+Next: enforce source-specific execution/replay permissions, immutable attempt
+recovery and fail-closed backend restrictions (WP3). A backend lacking verifiable
+isolation must remain explicitly blocked while offline functionality stays usable.
+
+
 ### WP1 hosted follow-up: pinned-source server rate limiting
 
 Draft PR #8 is open against `main`; initial head `7e77e4b` passed hosted Python

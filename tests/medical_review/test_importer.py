@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-import hashlib
 import json
 import shutil
 import subprocess
@@ -9,144 +8,13 @@ import sys
 from pathlib import Path
 
 import pytest
+from support.medical_review_fixtures import write_json
 
-from research_project.inspect_sr.records import evidence_id, source_version_id, stable_report_id
 from research_project.medical_review.importer import import_reviewer, validate_upstream
 from research_project.medical_review.records import validate_coverage
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_HASH = "9399e39d1be1b6584bd452086bcb6f2f80a90b34826b8467658c3c88c8742641"
-
-
-def write_json(path: Path, value: object) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
-    return path
-
-
-@pytest.fixture
-def workspace(tmp_path: Path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    subprocess.run(["git", "init", "-q", str(repo)], check=True)
-    shutil.copy(ROOT / ".gitignore", repo / ".gitignore")
-    shutil.copytree(ROOT / "config/medical_review", repo / "config/medical_review")
-    private = repo / "data/private/medical_reviews/synthetic"
-    private.mkdir(parents=True)
-    source = private / "sources/main.txt"
-    source.parent.mkdir()
-    source.write_text("Random assignment used medical record number parity.\n", encoding="utf-8")
-    digest = hashlib.sha256(source.read_bytes()).hexdigest()
-    version = source_version_id("main", digest)
-    report = stable_report_id("", local_key="synthetic-report")
-    quote = "Random assignment used medical record number parity."
-    parser = {"id": "synthetic_text", "version": "1"}
-    ev = {
-        "evidence_id": evidence_id(version, "page=1;paragraph=1", quote, parser["id"], "1"),
-        "source_version_id": version,
-        "locator": "page=1;paragraph=1",
-        "raw_value": quote,
-        "parser": parser,
-        "parsed_path": str(source.relative_to(repo)),
-        "parsed_sha256": digest,
-        "page_index": 0,
-        "upstream_page": 1,
-        "page_label": "1",
-        "section": "Methods",
-        "visual_inspected": False,
-    }
-    bundle = {
-        "schema_version": "medical_review_bundle_v1",
-        "study_id": "synthetic",
-        "revision": 1,
-        "studies": [{"study_id": "synthetic", "trial_id": None}],
-        "reports": [{"report_id": report, "study_ids": ["synthetic"], "mapping_reviewed": True}],
-        "upstream_paper_id": "paper-1",
-        "documents": [
-            {
-                "source_id": "main",
-                "source_version_id": version,
-                "role": "manuscript",
-                "availability": "supplied",
-                "path": str(source.relative_to(repo)),
-                "sha256": digest,
-                "report_ids": [report],
-                "upstream_paths": ["inputs/main.txt"],
-                "parser": parser,
-                "date": None,
-                "date_precision": "unknown",
-                "permissions": {"classification": "private", "local_processing": True},
-            }
-        ],
-        "evidence": [ev],
-        "planned_checks": [
-            {
-                "check_id": "trial.assignment",
-                "study_id": "synthetic",
-                "comparison_id": None,
-                "applicability": "applicable",
-                "rationale": "Operator-selected trial assignment check.",
-            }
-        ],
-    }
-    bundle_path = write_json(private / "bundle.json", bundle)
-    obj = {
-        "id": "source-1",
-        "type": "text",
-        "label": "Methods",
-        "path": "inputs/main.txt",
-        "page": 1,
-        "page_label": "1",
-        "section": "Methods",
-        "text_quote": quote,
-        "url": None,
-    }
-    finding = {
-        "id": "finding-1",
-        "category": "methods",
-        "finding_summary": "Assignment unclear.",
-        "issue_type": "manuscript_issue",
-        "severity": "high",
-        "confidence": "medium",
-        "location": {
-            "page": 1,
-            "page_label": "1",
-            "section": "Methods",
-            "text_quote": quote,
-            "precision": "exact",
-        },
-        "claim_text": "Participants were randomized.",
-        "assessment": "partially",
-        "cannot_verify_reason": None,
-        "evidence_summary": quote,
-        "source_objects": [obj],
-        "claim_evidence_links": [
-            {
-                "claim_text": "Participants were randomized.",
-                "source_object_ids": ["source-1"],
-                "relation": "contradicts",
-                "note": "Check allocation mechanism.",
-            }
-        ],
-        "numeric_check": {
-            "reported_value": 10,
-            "expected_value": None,
-            "method": "proposal",
-            "inputs": ["unverified count"],
-            "recomputation_notes": "Not executed.",
-        },
-        "suggested_fix": "Clarify allocation mechanism.",
-    }
-    upstream = {
-        "reviewer": "methods",
-        "paper_id": "paper-1",
-        "run_status": "ok",
-        "summary": "Synthetic unverified review.",
-        "findings": [finding],
-        "notes": [],
-    }
-    incoming = write_json(private / "upstream.json", upstream)
-    return repo, bundle_path, incoming, bundle, upstream
 
 
 def imported(workspace):
@@ -329,12 +197,18 @@ def test_cli_plan_help_and_import_replay_are_real_boundaries(workspace):
     commands = [
         ("--help",),
         ("plan", "--bundle", "missing.json", "--profile", "clinical_trial", "--dry-run"),
+        ("plan", "--bundle", str(bundle_path), "--profile", "clinical_trial", "--dry-run"),
     ]
     for arguments in commands:
         result = subprocess.run(
             [sys.executable, str(script), *arguments], cwd=repo, capture_output=True, text=True
         )
         assert result.returncode == 0, result.stderr
+        if arguments[0] == "plan" and arguments[2] == str(bundle_path):
+            planned = json.loads(result.stdout)
+            assert planned["status"] == "incomplete"
+            assert planned["review_plan"]["checks"]
+            assert planned["model_calls"] == planned["files_written"] == 0
     after = sorted(str(p.relative_to(repo)) for p in repo.rglob("*") if p.is_file())
     # Python bytecode creation is disabled by the thin CLI before importing its modules.
     assert before == after
@@ -384,6 +258,30 @@ def test_adapter_change_creates_new_attempt_instead_of_reusing(workspace, monkey
     old_proposal = json.loads((original / "processed/medical_review/proposals.json").read_text())[0]
     new_proposal = json.loads((new_run / "processed/medical_review/proposals.json").read_text())[0]
     assert old_proposal["proposal_id"] == new_proposal["proposal_id"]
+
+
+def test_changed_catalogue_during_import_preserves_failed_attempt(workspace, monkeypatch):
+    from research_project.medical_review import importer
+
+    repo, bundle_path, incoming, *_ = workspace
+    original_create = importer.create_run
+
+    def changed_catalogue(**kwargs):
+        result = original_create(**kwargs)
+        path = repo / "config/medical_review/check_catalogue.json"
+        catalogue = json.loads(path.read_text())
+        catalogue["checks"][0]["question"] = "Changed during import."
+        write_json(path, catalogue)
+        return result
+
+    monkeypatch.setattr(importer, "create_run", changed_catalogue)
+    with pytest.raises(ValueError, match="plan.*changed|changed.*plan"):
+        importer.import_reviewer(repo, bundle_path, incoming)
+    run = next((repo / "data/processed/forensics_runs/private_reviews/synthetic").iterdir())
+    assert json.loads((run / "run_manifest.json").read_text())["status"] == "failed"
+    assert (
+        run / "generated/medical_review/raw/reviewer.json"
+    ).read_bytes() == incoming.read_bytes()
 
 
 def test_replay_refuses_symlinked_manifest(workspace, tmp_path):

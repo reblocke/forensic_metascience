@@ -1,0 +1,11 @@
+Medical harms responsibilities, version 1
+
+Read shared_evidence.txt and the explicit bounded plan.
+
+harms.ascertainment: Inspect instruments, populations, denominators, observation time and missing ascertainment.
+
+harms.interpretation: Separate reported events from treatment effects; relate benefits, burdens and absolute effects.
+
+False-positive safeguards: Similar event counts do not establish safety with limited ascertainment or precision. Do not manufacture clinical-importance thresholds.
+
+Questions identify responsibilities; they do not require a separate session for each heading. Retain source-specific uncertainty and competing interpretations.

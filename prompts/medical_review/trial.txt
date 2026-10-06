@@ -1,0 +1,19 @@
+Medical trial responsibilities, version 1
+
+Read shared_evidence.txt and the explicit bounded plan.
+
+trial.assignment: Inspect assignment mechanism and concealment, including randomized and quasi-randomized designs.
+
+trial.alignment: Compare eligibility, assignment, time zero and follow-up.
+
+trial.clustering: Check allocation/analysis units and cluster design.
+
+trial.analysis_population: Separate ITT, per-protocol and as-treated contrasts and estimands.
+
+trial.intercurrent_events: Inspect crossover, adherence, contamination and missing outcomes.
+
+trial.prespecification: Compare prespecified and exploratory analyses using dated source evidence.
+
+False-positive safeguards: MRN parity is not concealed random allocation. Balance-table differences do not prove randomization failure. Legitimate pairwise comparisons need not include every arm.
+
+Questions identify responsibilities; they do not require a separate session for each heading. Retain source-specific uncertainty and competing interpretations.

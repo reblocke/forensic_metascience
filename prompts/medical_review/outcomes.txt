@@ -1,0 +1,13 @@
+Medical outcomes responsibilities, version 1
+
+Read shared_evidence.txt and the explicit bounded plan.
+
+outcomes.competing_events: Match death/discharge/disenrollment handling and risk/hazard measures to the estimand.
+
+outcomes.missingness: Inspect missingness mechanisms, observation window and completeness.
+
+outcomes.recurrent_events: Separate recurrent/first events and days-alive/free definitions.
+
+False-positive safeguards: Do not automatically impute after death, treat competing events as ordinary loss, or demand Fine-Gray for every question.
+
+Questions identify responsibilities; they do not require a separate session for each heading. Retain source-specific uncertainty and competing interpretations.

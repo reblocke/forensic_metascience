@@ -11,18 +11,18 @@ in the handoff. A skipped or absent required runtime is not a passing gate.
 
 | ID | Scenario | Required result | Work package / lane | Current evidence |
 |---|---|---|---|---|
-| MED-01 | Existing private/public commands with the feature unused | Same offline defaults, current output contracts, and no backend requirement | baseline | Existing regression lanes; compatibility evidence pending |
-| MED-02 | Help and dry-run/plan-only | No model calls, searches, output files, or installs; planning with absent sources is explicitly incomplete | WP1/WP2 | WP1 real CLI help/absent-source plan tested; full plan pending |
+| MED-01 | Existing private/public commands with the feature unused | Same offline defaults, current output contracts, and no backend requirement | baseline | WP1 hosted Python/native/report passed at 632ebe0; WP2 final-head gates tracked separately |
+| MED-02 | Help and dry-run/plan-only | No model calls, searches, output files, or installs; planning with absent sources is explicitly incomplete | WP1/WP2 | Real CLI help, absent/present-source planning and no-write boundary tested |
 | MED-03 | Valid upstream result imported twice | Exact raw bytes retained; stable identity; no duplicate proposal or false evidence multiplication | WP1 | Lossless byte retention and identical real CLI replay tested |
 | MED-04 | Unknown upstream schema or duplicate ID with changed payload | Explicit rejection/conflict; no silent field loss or overwrite | WP1 | Pinned schema and changed duplicate payload rejection tested |
 | MED-05 | Wrong source hash, fuzzy-only quote, wrong page, ambiguous study map | Evidence unresolved or rejected; no exact-source claim | WP1/WP2 | Wrong quote/page/path, hashes and unreviewed mapping tested; full extraction pending |
-| MED-06 | Source/SAP/registry corrected after review | New version and invalidated dependent reuse; old review remains historical | WP2/WP3 | Pending chronology and dependent-reuse tests |
-| MED-07 | Supplement missing or table unreadable | Relevant check is unverifiable; report states the missing evidence | WP2/WP4 | Pending full missing-source and report tests |
+| MED-06 | Source/SAP/registry corrected after review | New version and invalidated dependent reuse; old review remains historical | WP2/WP3 | Date-precision and preserved correction versions tested; live dependent reuse pending WP3 |
+| MED-07 | Supplement missing or table unreadable | Relevant check is unverifiable; report states the missing evidence | WP2/WP4 | Missing SAP constrains verification; blank-PDF extraction remains partial; rendered reports pending WP4 |
 | MED-08 | Upstream `ok` with empty findings and no coverage records | Import succeeds; substantive coverage remains unavailable | WP1 | Empty ok import retains unavailable coverage tested |
-| MED-09 | Mixed trial and prediction aims; unsupported meta-analysis component | Relevant union selected; unsupported scope explicit; no full-coverage claim | WP2 | Pending mixed-profile and unsupported-scope tests |
-| MED-10 | MRN-parity assignment described as randomization | Design discrepancy proposed with evidence; no assertion of concealed random allocation | WP2/pilot | Pending orchestration fixture; live capability requires pilot |
+| MED-09 | Mixed trial and prediction aims; unsupported meta-analysis component | Relevant union selected; unsupported scope explicit; no full-coverage claim | WP2 | Mixed and comparison-specific profiles, unknown union and unsupported scope tested |
+| MED-10 | MRN-parity assignment described as randomization | Design discrepancy proposed with evidence; no assertion of concealed random allocation | WP2/pilot | Evidence-linked MRN reconstruction preserves reported claim versus interpretation; live detection requires pilot |
 | MED-11 | Post-baseline exposure creates guaranteed survival time | Specific time-zero concern; properly aligned repaired control does not trigger it | WP2/pilot | Pending paired semantic fixture; live capability requires pilot |
-| MED-12 | Apparent endpoint switch explained by a dated amendment | Both versions and chronology retained; no unsupported allegation of selective reporting | WP2/WP4/pilot | Pending chronology/counterevidence fixture |
+| MED-12 | Apparent endpoint switch explained by a dated amendment | Both versions and chronology retained; no unsupported allegation of selective reporting | WP2/WP4/pilot | Chronology precision/history tested; supplement/amendment counterevidence pending WP4 |
 | MED-13 | Crude/adjusted effects, differing denominators, or different time horizons | No false arithmetic contradiction across incompatible estimands | WP4 | Pending incompatible-estimand negative controls |
 | MED-14 | Verified 2×2 discrepancy versus case-control PPV and zero-cell controls | Correct bounded calculation; invalid prevalence use and undefined quantities not silently repaired | WP4 | Pending verified diagnostic arithmetic and controls |
 | MED-15 | Partial method failure, zero evaluated units, blocked rounding-bias | Never a no-finding result; no new INSPECT-SR candidate route | WP4/native R | Existing blocked-method regressions; connected medical handoff pending |
@@ -37,12 +37,12 @@ in the handoff. A skipped or absent required runtime is not a passing gate.
 | MED-24 | Unsafe output override, symlink escape, public export attempt | Rejected; private logs, excerpts and identities remain inside protected roots | WP1/WP3 | Unsafe output, symlink/manifest escape and tracked-private input rejection tested; live/report boundaries pending |
 | MED-25 | Human confirms/dismisses then revises a proposal | Write-once history, supersession link, evidence and original model provenance retained | WP4 | Pending write-once human supersession/history |
 | MED-26 | New medical report exists without finalized INSPECT-SR review | No official judgment or synthesis disposition appears or becomes exportable | WP4/report integration | WP1 official assessment remains null; final reports/adoption pending |
-| MED-27 | Real R/Quarto dependencies absent in required acceptance lane | Blocked/failed acceptance, never a passing mock substitute | baseline/native/report | Local native R (13) and report (5) lanes passed after environment preparation; hosted receipts pending |
+| MED-27 | Real R/Quarto dependencies absent in required acceptance lane | Blocked/failed acceptance, never a passing mock substitute | baseline/native/report | WP1 local and hosted native (13) and report (5) passed; later-head gates remain required |
 
-WP1 reproductions:
+Offline reproductions:
 
 ```bash
-UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_importer.py
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review
 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration'
 UV_OFFLINE=1 uv run --offline --locked ruff check .
 UV_OFFLINE=1 uv run --offline --locked ruff format . --check

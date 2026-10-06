@@ -15,8 +15,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from research_project.medical_review.bundle import load_bundle
+from research_project.medical_review.context import build_study_context
 from research_project.medical_review.importer import import_reviewer
+from research_project.medical_review.preflight import structural_preflight
 from research_project.medical_review.records import UPSTREAM_SCHEMA_HASH
+from research_project.medical_review.routing import build_review_plan
 
 
 def parser() -> argparse.ArgumentParser:
@@ -29,7 +32,16 @@ def parser() -> argparse.ArgumentParser:
     plan.add_argument(
         "--profile",
         action="append",
-        choices=["clinical_trial", "observational_rwd", "diagnostic_accuracy", "prediction_model"],
+        choices=[
+            "clinical_trial",
+            "observational_rwd",
+            "diagnostic_accuracy",
+            "prediction_model",
+            "systematic_review_meta_analysis",
+            "protocol",
+            "methods",
+            "other",
+        ],
     )
     plan.add_argument("--dry-run", action="store_true")
     plan.add_argument("--offline", action="store_true")
@@ -44,6 +56,7 @@ def parser() -> argparse.ArgumentParser:
     )
     importing.add_argument("--output-root", type=Path)
     importing.add_argument("--offline", action="store_true")
+    importing.add_argument("--profile", action="append")
     return cli
 
 
@@ -63,14 +76,28 @@ def main() -> int:
                 }
             else:
                 bundle, digest = load_bundle(ROOT, path)
+                context = build_study_context(bundle, bundle.get("context_fields"))
+                review_plan = build_review_plan(
+                    bundle, context, args.profile or bundle.get("profile_ids"), ROOT
+                )
+                preflight = structural_preflight(ROOT, bundle)
                 result = {
                     "status": "incomplete",
-                    "reason": "Medical profile planning awaits WP2.",
+                    "reason": "Scope planned; gaps and unexecuted checks remain explicit.",
                     "study_id": bundle["study_id"],
                     "bundle_sha256": digest,
                     "profiles": args.profile or [],
                     "model_calls": 0,
                     "files_written": 0,
+                    "review_plan": review_plan,
+                    "study_context": context,
+                    "parser_preflight": {
+                        **preflight,
+                        "sources": [
+                            {key: value for key, value in source.items() if key != "pages"}
+                            for source in preflight["sources"]
+                        ],
+                    },
                 }
             print(json.dumps(result, sort_keys=True))
         else:
@@ -81,6 +108,7 @@ def main() -> int:
                 schema_sha256=args.upstream_schema_sha256,
                 output_root=args.output_root,
                 generating_revision=args.upstream_commit,
+                profiles=args.profile,
             )
             print(run)
         return 0

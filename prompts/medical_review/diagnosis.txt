@@ -1,0 +1,15 @@
+Medical diagnosis responsibilities, version 1
+
+Read shared_evidence.txt and the explicit bounded plan.
+
+diagnosis.reference_standard: Inspect reference-standard validity, incorporation/verification concerns and index/reference timing.
+
+diagnosis.sampling: Check sampling scheme, thresholds and indeterminate results.
+
+diagnosis.counts: Assess source-reconstructable 2x2 counts, sensitivity, specificity and likelihood ratios.
+
+diagnosis.intended_use: Evaluate intended-use applicability and prevalence assumptions.
+
+False-positive safeguards: Case-control sampling fractions are not clinical prevalence. Joint likelihood ratios require an explicit dependence assumption. Bias direction needs supporting design evidence.
+
+Questions identify responsibilities; they do not require a separate session for each heading. Retain source-specific uncertainty and competing interpretations.
