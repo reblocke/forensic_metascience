@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import copy
-import hashlib
 import json
 import os
 import shutil
@@ -11,10 +9,9 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from support.inspect_sr_fixtures import write_numeric_method_fixture
 from support.medical_review_fixtures import write_json
+from support.medical_review_native import prepare_native_review
 
-from research_project.inspect_sr.records import source_version_id
 from research_project.medical_review.audit import load_dossier, verify_review
 from research_project.medical_review.importer import import_reviewer
 from research_project.medical_review.method_handoffs import build_method_handoff
@@ -56,95 +53,8 @@ def test_actual_r_results_bind_medical_handoff_without_rewriting_proposal_or_hum
         if os.environ.get("FORENSICS_REQUIRE_R_INTEGRATION") == "1":
             pytest.fail("Rscript is required for medical numerical handoff acceptance.")
         pytest.skip("Rscript unavailable; native medical handoff remains unverified.")
-    repo, bundle_path, incoming, bundle, upstream = workspace
-    source = repo / "data/private/medical_reviews/synthetic/sources/numeric.txt"
-    source.write_text(
-        "Unweighted Bernoulli observations, n=4: 0.25 (SD 0.50)\n"
-        "Unweighted Bernoulli observations, n=4: 0.26 (SD 0.51)\n"
-    )
-    digest = hashlib.sha256(source.read_bytes()).hexdigest()
-    version = {
-        "source_id": "synthetic-report",
-        "source_name": "synthetic.pdf",
-        "source_version_id": source_version_id("synthetic-report", digest),
-        "content_sha256": digest,
-    }
-    inputs = repo / "data/private/medical_reviews/synthetic/verification/native-inputs"
-    evidence = write_numeric_method_fixture(inputs, source_version=version)
-    doc = copy.deepcopy(bundle["documents"][0])
-    doc.update(
-        source_id=version["source_id"],
-        source_version_id=version["source_version_id"],
-        role="analysis_output",
-        path=str(source.relative_to(repo)),
-        sha256=digest,
-        upstream_paths=["inputs/numeric.txt"],
-    )
-    bundle["documents"].append(doc)
-    for row in evidence:
-        bundle["evidence"].append(
-            {
-                "evidence_id": row["evidence_id"],
-                "source_version_id": row["source_version_id"],
-                "locator": row["locator"],
-                "raw_value": row["raw_value"],
-                "parser": {"id": row["extraction_method"], "version": row["extraction_version"]},
-                "parsed_path": str(source.relative_to(repo)),
-                "parsed_sha256": digest,
-                "page_index": None,
-                "upstream_page": None,
-                "page_label": None,
-                "section": "Synthetic table",
-                "visual_inspected": False,
-            }
-        )
-    write_json(bundle_path, bundle)
-    finding = upstream["findings"][0]
-    finding.update(
-        finding_summary="Reported binary mean may be incompatible.",
-        claim_text="Mean 0.26 for four unweighted Bernoulli observations.",
-        suggested_fix="Check the original cell and declared scale/count.",
-    )
-    finding["source_objects"][0].update(
-        path="inputs/numeric.txt",
-        page=None,
-        page_label=None,
-        section="Synthetic table",
-        text_quote="0.26 (SD 0.51)",
-    )
-    finding["claim_evidence_links"][0]["claim_text"] = finding["claim_text"]
-    write_json(incoming, upstream)
-    numeric, manifest = numerical_run(repo, bundle_path, [source, *inputs.glob("*")])
-    shutil.copytree(inputs, numeric / "processed/numeric/inputs")
-    output = numeric / "reports/numeric"
-    output.mkdir()
-    root = Path(__file__).resolve().parents[2]
-    result = subprocess.run(
-        [
-            rscript,
-            str(root / "scripts/run_numeric_forensics.R"),
-            "--in",
-            str(numeric / "processed/numeric"),
-            "--out",
-            str(output),
-            "--run-id",
-            numeric.name,
-        ],
-        cwd=root,
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, result.stderr
-    receipts = pd.read_csv(output / "numeric_method_receipts.csv")
-    assert set(receipts.loc[receipts["package_name"] == "scrutiny", "package_version"]) == {"0.6.2"}
-    for path in (
-        output / "numeric_method_receipts.csv",
-        output / "numeric_standardized_results_v2.csv",
-    ):
-        update_run(manifest, artifact=str(path))
-    update_run(manifest, stage="numeric_methods", status="completed")
-    update_run(manifest, status="completed")
-    imported = import_reviewer(repo, bundle_path, incoming)
+    repo, *_ = workspace
+    imported, numeric, output, root = prepare_native_review(workspace, rscript)
     dossier = load_dossier(repo, imported)
     frozen = (imported / "processed/medical_review/proposals.json").read_bytes()
     original_receipt = (output / "numeric_method_receipts.csv").read_bytes()

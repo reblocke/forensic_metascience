@@ -21,6 +21,12 @@ Planning profiles encode review questions;
 they do not establish live medical detection performance.
 The feature is opt-in. No medical performance qualification is claimed.
 
+The shared/module prompt catalogue also pins counterevidence and bounded-editor
+templates. Hash changes or missing stage provenance refuse new planning/replay;
+historical plans retain their recorded hashes. These templates authorize no model
+execution or search. Counterevidence is supplied offline, and report assembly is
+deterministic; the editor template has no enabled execution/adoption interface.
+
 Existing `forensics_run_v3`, `method_receipt_v4`, numerical routes and INSPECT-SR
 human contracts retain their semantics. Imported `assessment`, `numeric_check`,
 confidence and suggested fixes remain model proposals. They never create a
@@ -460,6 +466,16 @@ Imported active Markdown, HTML, inline R and Quarto directives are escaped. Sour
 text cannot request commands, files or search. Large reports fail at the explicit
 20 MiB JSON boundary instead of truncating evidence. Long display identifiers
 wrap for PDF readability; machine-readable values remain exact.
+Explicit upstream `category=reporting_gap` groups have a separate Reporting
+omissions section. Optional improvements remain separate; mixed-category groups
+stay among material proposals with their original categories displayed. This is
+presentation of supplied labels, not automatic source-semantic classification.
+Long display values include 64-character hashes; wrapping preserves every
+character and never changes the JSON identity or original source bytes.
+Long field labels or unbroken values use separate paragraphs so the label does
+not consume the value's available PDF width. Original-source navigation is still
+part of the remaining WP4 acceptance audit; retained IDs/locators alone are not
+claimed as completed clickable-source access.
 
 All formats distinguish model dispositions from operator-attested human decisions,
 retain unknown coverage and show numerical input-review status separately from

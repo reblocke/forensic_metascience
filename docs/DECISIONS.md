@@ -1,5 +1,12 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Pin verification/editor templates and exercise paired medical safeguards
+
+- **Prompt scope:** Require reviewed counterevidence/editor template hashes alongside the existing module prompts. New plans/replays bind their bytes; tampering or omitted stage provenance fails closed. Templates grant no execution or search permission. Counterevidence remains supplied offline and reports remain deterministic; no editor backend is enabled.
+- **Semantic evidence:** Paired synthetic supplied-response replays cover time-zero alignment, null-crossing/subgroup claims, precise nonsignificance, development versus deployment scope and missing harms ascertainment. A dated SAP amendment/supplement demotes a supplied criticism while the missing-amendment control stays unresolved. These prove routing, identity/history and report behavior, not model detection or medical reasoning.
+- **Presentation:** Display explicit supplied `reporting_gap` groups separately from material concerns and optional improvements, preserving all original categories/proposals and group identities. This is not inferred semantic reclassification. Preserve exact JSON values while wrapping long displayed hashes and separating long field labels/values onto their own paragraphs; actual native-result HTML/PDF retains qualified/unqualified/blocked status and proposed input authority.
+- **Verification boundary:** Real R producers are shared by native and report integration, avoiding fabricated positive receipts. Synthetic CI artifacts are explicitly allowlisted and required. Visual PDF inspection found clipped 64-character hashes despite successful text extraction; a failing regression preceded the display fix. Software checkpoint evidence remains separate from live and medical qualification, and final WP4 acceptance still needs its full audit/hosted gates.
+
 ## 2026-10-06: Link existing numerical qualifications without creating new authority
 
 - **Read-only boundary:** Explicit terminal same-study numerical runs provide registered v4 receipts and v2 results. Apply the existing candidate qualifier to the medical bundle's scoped canonical evidence; do not alter routes or write results, receipts, candidates or human judgments. Missing source bindings remain unqualified, partial/failed/blocked coverage stays visible and no handoff supplies review reassurance.

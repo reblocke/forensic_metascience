@@ -114,7 +114,7 @@ def _escaped(value: Any) -> str:
     )
     # Break unusually long identifiers for PDF wrapping; exact values remain in the model.
     text = re.sub(
-        r"\S{65,}", lambda m: " ".join(m[0][i : i + 32] for i in range(0, len(m[0]), 32)), text
+        r"\S{49,}", lambda m: " ".join(m[0][i : i + 32] for i in range(0, len(m[0]), 32)), text
     )
     active = set("&<>`{}$\\[]*_!#|~")
     return "".join(f"&#{ord(c)};" if c in active else c for c in text)
@@ -135,6 +135,11 @@ def _record_lines(value: Any, prefix: str = "") -> list[str]:
             for line in _record_lines(child, f"{prefix}[{index}]")
         ] or [f"**{_escaped(prefix)}:** empty list\n"]
     label = prefix.replace("_", " ").replace(".", " / ")
+    display_value = (
+        value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, sort_keys=True)
+    )
+    if len(label) > 60 or any(len(token) > 48 for token in display_value.split()):
+        return [f"**{_escaped(label)}:**\n\n{_escaped(value)}\n"]
     return [f"**{_escaped(label)}:** {_escaped(value)}\n"]
 
 
@@ -192,21 +197,32 @@ def _markdown(model: dict[str, Any]) -> str:
         )
     lines.extend(["## Upstream qualifications\n", *_record_lines(model["upstream_metadata"])])
     status_by_id = {r["proposal_id"]: r for r in model["proposal_statuses"]}
-    for heading, optional in [
-        ("Material proposed concerns", False),
-        ("Optional improvements", True),
+    for heading, section in [
+        ("Material proposed concerns", "material"),
+        ("Reporting omissions", "reporting"),
+        ("Optional improvements", "optional"),
     ]:
         lines.append(f"## {heading}\n")
         for group in model["groups"]:
             members = [p for p in model["proposals"] if p["proposal_id"] in group["proposal_ids"]]
             statuses = [status_by_id[p["proposal_id"]] for p in members]
-            if all(s["presentation"] == "optional_improvement" for s in statuses) != optional:
+            group_section = (
+                "optional"
+                if all(s["presentation"] == "optional_improvement" for s in statuses)
+                else "reporting"
+                if all(p["original"]["category"] == "reporting_gap" for p in members)
+                else "material"
+            )
+            if group_section != section:
                 continue
             lines.extend([f"### {_escaped(members[0]['normalized_concern'])}\n"])
             for proposal, status in zip(members, statuses, strict=True):
                 lines.extend(
                     [
                         *_record_lines(status),
+                        *_record_lines(
+                            {"source_reported_category": proposal["original"]["category"]}
+                        ),
                         *_record_lines(
                             {
                                 k: proposal[k]

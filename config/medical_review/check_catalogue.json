@@ -827,6 +827,16 @@
         "path": "prompts/medical_review/trial.txt",
         "sha256": "0f4a7b112f3700bc222bbeed3f844ed641d4097747454037e7004dfc085abbe9",
         "origin": "Repository-authored implementation of approved ticket Section 6"
+      },
+      {
+        "path": "prompts/medical_review/counterevidence.txt",
+        "sha256": "405f78d2b041d174353fa79479196504f5ba5a7dc3f1db6cd12b70f9eb97b0d3",
+        "origin": "Repository-authored implementation of approved ticket Sections 7.3 and 10; template only, no live execution enabled"
+      },
+      {
+        "path": "prompts/medical_review/editor.txt",
+        "sha256": "550faad470c396160c47a32d4956f5ad230094f6a4d91245647d043e8836c559",
+        "origin": "Repository-authored implementation of approved ticket Sections 7.3 and 10; template only, no live execution enabled"
       }
     ]
   }

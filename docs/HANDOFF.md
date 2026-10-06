@@ -1,5 +1,77 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 WP4 safeguard/report checkpoint (milestone still incomplete)
+
+The active goal and `codex/medical-review-verification-reporting` checkout were
+revalidated before continuing. This checkpoint pins counterevidence/editor
+templates in new plans and tests changed hashes/missing provenance. No stage
+backend is enabled: counterevidence remains supplied offline and report assembly
+remains deterministic. Historical plans retain their recorded prompt hashes.
+
+Ten paired problem/control supplied-response replays exercise time-zero,
+subgroup, precise-nonsignificance, development/deployment and harms safeguards.
+Two dated-amendment/missing-amendment cases retain original SAP versions,
+chronology and footnotes, demoting explained criticism without erasure while
+missing evidence stays unresolved. These are real replay/import/storage/report
+boundary tests, not model reasoning or medical-performance evidence. Source
+locations and generating identities are synthetic and no human adjudication is
+claimed. All proposals retain pending human status and unknown review coverage.
+
+Actual pinned R numerical production is shared between the existing native
+handoff test and a new Quarto integration test. Qualified GRIM, source-unbound
+unqualified statcheck and blocked rounding-bias references survive actual
+HTML/PDF without changing the original numerical outputs or qualification
+rules. The synthetic native report artifacts are allowlisted and mandatory in
+CI. Explicit supplied reporting gaps and optional improvements have separate
+report sections; original proposal/category/group values remain unchanged.
+
+Executed after all current code/test changes, using synthetic sources only:
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration' --junitxml=/tmp/fm-med-wp4-safeguards-python-final.xml
+# 306 passed, 21 deselected, 154.94s; zero failures/errors/skips.
+R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_R_INTEGRATION=1 FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp4-safeguards-native-artifacts-final UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m native_r --junitxml=/tmp/fm-med-wp4-safeguards-native-final.xml
+# 14 passed, 313 deselected, 32.20s; zero failures/errors/skips.
+PATH=/Applications/quarto/bin/tools:$PATH RSTUDIO_PANDOC=/Applications/quarto/bin/tools R_LIBS_USER=/tmp/fm-med-r-library FORENSICS_REQUIRE_REPORT_INTEGRATION=1 FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp4-safeguards-report-artifacts-final UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m report_integration --junitxml=/tmp/fm-med-wp4-safeguards-report-final.xml
+# 7 passed, 320 deselected, 80.24s; zero failures/errors/skips.
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+git diff --check
+# Clean; 92 Python files formatted.
+```
+
+Visual QA used the PDF skill and existing Poppler/Pillow; no dependency was
+installed. A prior passing text-extraction assertion concealed clipped hashes.
+A red regression preceded hash wrapping, and a second red regression reproduced
+long field labels consuming value width. Long labels/values now use separate
+paragraphs while every machine-readable identity remains exact. The focused
+regression passed, then all three lanes above passed. Both actual medical PDFs
+were rendered and every page inspected: generic 13 pages, native-reference 23
+pages, including full-size source-version/qualification inspection. No remaining
+clipped values were observed in these fixtures; future changes need fresh QA.
+
+```bash
+pdftoppm -scale-to 1200 -png /tmp/fm-med-wp4-safeguards-report-artifacts-final/medical-review.pdf /tmp/fm-med-wp4-safeguards-report-qc-final/page
+pdftoppm -scale-to 1200 -png /tmp/fm-med-wp4-safeguards-report-artifacts-final/medical-native-review.pdf /tmp/fm-med-wp4-safeguards-native-qc-final/page
+# Existing task-owned output directories were created first; both commands succeeded.
+```
+
+These are local checkpoint receipts, not final delivered-head hosted acceptance.
+MED-11/12/16/17 now map to their supplied-response fixtures; MED-20 retains the
+actual native/report evidence and explicit remaining gate. Current reports retain
+source/evidence IDs and locators, but original-source clickable navigation remains
+a WP4 requirement gap. Next implement and test protected source links, including
+nondefault private output depth, encoded filenames, missing sources and historical
+report compatibility; then finish the requirement/coverage/layout audit and WP4
+draft PR with exact-head hosted receipts. WP5 still requires blinded paired
+packet preparation/analysis, predeclared approval gates and honest pending
+qualification artifacts. Do not mark WP4 or the full goal complete.
+
+No live reviewer run, source transmission, web search, real human adjudication,
+dependency change, INSPECT-SR assessment write or main merge occurred. All live
+backends remain blocked. Operational and medical qualification remain pending;
+the full sequential engineering goal remains active.
+
 ## 2026-10-06 WP4 qualified-reference checkpoint (milestone still incomplete)
 
 On `codex/medical-review-verification-reporting`, the optional verification input

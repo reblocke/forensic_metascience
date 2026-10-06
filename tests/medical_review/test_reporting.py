@@ -152,6 +152,51 @@ def test_report_validator_refuses_caveat_removal_and_missing_group_members(works
     validate_report_model(json.loads(json.dumps(model, sort_keys=True)), dossier)
 
 
+def test_explicit_reporting_omission_and_optional_improvement_have_separate_sections(workspace):
+    repo, bundle_path, incoming, _, upstream = workspace
+    omission = upstream["findings"][0]
+    omission["category"] = "reporting_gap"
+    omission["finding_summary"] = "Synthetic reporting omission: allocation details unavailable."
+    optional = copy.deepcopy(omission)
+    optional.update(
+        id="optional-2",
+        issue_type="copyedit_issue",
+        category="copyediting",
+        finding_summary="Synthetic optional improvement: shorten a sentence.",
+    )
+    upstream["findings"].append(optional)
+    write_json(incoming, upstream)
+    dossier = load_dossier(repo, import_reviewer(repo, bundle_path, incoming))
+    model = build_report_model(repo, dossier)
+    markdown = model["rendered_markdown"]
+    omissions = markdown.split("## Reporting omissions\n")[1].split("## Optional improvements\n")[0]
+    optional_section = markdown.split("## Optional improvements\n")[1].split(
+        "## Numerical checks\n"
+    )[0]
+    assert "allocation details unavailable" in omissions
+    assert "shorten a sentence" not in omissions
+    assert "shorten a sentence" in optional_section
+    assert model["proposals"][0]["original"] == omission
+    assert all(s["human_status"] == "pending" for s in model["proposal_statuses"])
+    assert model["official_assessment"] is None
+
+
+def test_source_and_proposal_hashes_wrap_for_display_without_changing_machine_values(workspace):
+    repo, bundle_path, incoming, bundle, _ = workspace
+    dossier = load_dossier(repo, import_reviewer(repo, bundle_path, incoming))
+    model = build_report_model(repo, dossier)
+    original_hash = model["proposals"][0]["original_sha256"]
+    assert len(original_hash) == 64
+    assert original_hash not in model["rendered_markdown"]
+    assert (original_hash[:32] + " " + original_hash[32:]) in model["rendered_markdown"]
+    assert model["proposals"] == dossier["proposals"]
+    assert model["bundle"] == bundle
+    source_label_lines = [
+        line for line in model["rendered_markdown"].splitlines() if "/ source version id:**" in line
+    ]
+    assert source_label_lines and all(line.endswith(":**") for line in source_label_lines)
+
+
 def test_real_cli_verification_decision_and_private_markdown_lineage(workspace):
     import subprocess
     import sys
@@ -358,4 +403,83 @@ def test_medical_current_model_renders_major_concern_and_caveat_html_pdf(
         )
     preserve_synthetic_artifact(
         "medical-report-model.json", output / "processed/medical_review/report_model.json"
+    )
+
+
+@pytest.mark.report_integration
+def test_actual_native_qualifications_and_blocked_coverage_survive_html_pdf(
+    workspace, preserve_synthetic_artifact
+):
+    import csv
+    import re
+
+    from pypdf import PdfReader
+    from support.medical_review_native import prepare_native_review
+
+    rscript = shutil.which("Rscript")
+    if not rscript or not shutil.which("quarto"):
+        if os.environ.get("FORENSICS_REQUIRE_REPORT_INTEGRATION") == "1":
+            pytest.fail("Actual R and Quarto are required for numerical handoff report acceptance.")
+        pytest.skip("R/Quarto unavailable; native handoff rendering remains unverified.")
+    repo, *_ = workspace
+    source, numeric, output, root = prepare_native_review(workspace, rscript)
+    (repo / "notebooks").mkdir()
+    shutil.copy(root / "notebooks/medical_manuscript_review.qmd", repo / "notebooks")
+    dossier = load_dossier(repo, source)
+    with (output / "numeric_standardized_results_v2.csv").open() as stream:
+        results = list(csv.DictReader(stream))
+    requests = [
+        {
+            "schema_version": "medical_method_handoff_request_v1",
+            "proposal_id": dossier["proposals"][0]["proposal_id"],
+            "numeric_run_reference": str(numeric.relative_to(repo)),
+            "receipt_artifact": "reports/numeric/numeric_method_receipts.csv",
+            "result_artifact": "reports/numeric/numeric_standardized_results_v2.csv",
+            "method_id": method,
+            "result_ids": [r["result_id"] for r in results if r["method_id"] == method],
+            "rationale": "Synthetic actual-R qualification rendering check.",
+        }
+        for method in ("scrutiny_grim_map", "statcheck", "scrutiny_rounding_bias")
+    ]
+    frozen = (output / "numeric_method_receipts.csv").read_bytes()
+    input_path = write_json(
+        repo / "data/private/medical_reviews/synthetic/verification/report-methods.json",
+        {
+            "schema_version": "medical_verification_input_v1",
+            "counterevidence": [],
+            "numeric_requests": [],
+            "method_handoffs": requests,
+        },
+    )
+    verified = verify_review(repo, source, input_path)
+    report = render_review(repo, verified, html=True, pdf=True)
+    assert (output / "numeric_method_receipts.csv").read_bytes() == frozen
+    model = json.loads((report / "processed/medical_review/report_model.json").read_text())
+    assert load_dossier(repo, report)["method_handoffs"] == model["method_handoffs"]
+    html = (report / "reports/medical_review/review.html").read_text()
+    raw_pdf = "\n".join(
+        page.extract_text() or ""
+        for page in PdfReader(report / "reports/medical_review/review.pdf").pages
+    )
+    # TeX may hyphenate long status values at a line boundary; exact JSON stays unchanged.
+    pdf = " ".join(re.sub(r"(?<=\w)-\n(?=\w)", "", raw_pdf).split())
+    for status in (
+        "qualified_existing_result_reference",
+        "unqualified_existing_result_reference",
+        "captured_at_handoff",
+        "blocked",
+        "review reassurance",
+        "pending",
+    ):
+        assert status in html and status in pdf
+    assert model["method_handoffs"][-1]["receipt"]["n_evaluated"] == 0
+    assert model["method_handoffs"][-1]["results"] == []
+    assert all(h["review_reassurance"] is False for h in model["method_handoffs"])
+    assert not (repo / "data/private/inspect_sr").exists()
+    for fmt in ("html", "pdf"):
+        preserve_synthetic_artifact(
+            f"medical-native-review.{fmt}", report / f"reports/medical_review/review.{fmt}"
+        )
+    preserve_synthetic_artifact(
+        "medical-native-report-model.json", report / "processed/medical_review/report_model.json"
     )
