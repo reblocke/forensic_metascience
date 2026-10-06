@@ -1,5 +1,13 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Preserve verification, human and report authority separately
+
+- **Lineage:** Append counterevidence/arithmetic and report stages as fresh canonical runs bound to the exact parent manifest and original proposal. Preserve raw bytes and reviewed code, including failed attempts. Historical arithmetic is not silently recomputed under changed calculator code; its archived code/contract is checked without executing an arbitrary historical snippet.
+- **Human boundary:** Explicit private operator attestations bind source bytes, locators, rationale and the full original proposal hash. Same-reviewer revisions supersede immutable prior records. Conflicting reviewers are displayed without automatic adjudication. Software validates declarations, not the independence or correctness of human reading.
+- **Numerical inputs:** Keep source-semantic attestation separate from concern disposition and arithmetic execution. Every typed numerical input/semantic assumption needs an exact source binding. Original results retain proposed-transcription status; no arithmetic/input-review sidecar qualifies a method or INSPECT-SR candidate.
+- **Reporting:** Deterministic conservative grouping accounts for every proposal and retains all originals, members, severity/confidence, alternatives and caveats. Source text is escaped before trusted current-run Quarto consumption. Markdown is default; real HTML/PDF are opt-in and retain runtime/log receipts. Compact source/context/coverage summaries coexist with exact JSON and full finding/provenance history. No editor model, new dependency, official judgment or automatic adoption is added.
+- **Partial milestone:** Python, native-R and real report lanes pass locally at this checkpoint. Qualified existing R-result handoffs, remaining scenario audit and WP5 tooling are still required; no full WP4 or medical-performance acceptance is claimed.
+
 ## 2026-10-06: Keep bounded arithmetic separate from qualified R evidence
 
 - **Scope:** WP4 begins with counts/percentages, mutually exclusive same-population/timepoint flow, unadjusted binary contrasts and diagnostic 2×2 arithmetic. Existing R engines, method receipts and INSPECT-SR mappings are untouched. Source transcriptions and semantic assumptions remain proposed, regardless of arithmetic correctness.

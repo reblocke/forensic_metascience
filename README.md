@@ -180,8 +180,9 @@ multi-document bundles, study/comparison reconstruction and four medical
 profiles. Imported findings remain unverified proposals; empty results do not
 imply completed review coverage. Bounded local replay and auditable recovery are
 available; live backends remain explicitly blocked until restrictions are
-qualified. Human verification, report rendering and medical qualification remain
-pending. See
+qualified. Offline verification, write-once human/source-review attestations and
+private Markdown/Quarto reports are implemented. Qualified numerical-reference
+handoffs and medical evaluation remain in progress. See
 [MEDICAL_REVIEW.md](docs/MEDICAL_REVIEW.md) for implemented contracts and commands
 and [the acceptance map](docs/MEDICAL_REVIEW_ACCEPTANCE.md) for remaining gates.
 

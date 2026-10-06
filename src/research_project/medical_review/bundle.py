@@ -40,13 +40,24 @@ ROLES = {
 def load_bundle(repo_root: Path, path: Path) -> tuple[dict[str, Any], str]:
     bundle_path = private_path(repo_root, path, PRIVATE_SOURCES)
     bundle = read_json(bundle_path)
+    private_path(repo_root, bundle_path, _study_scope(bundle))
+    digest = validate_bundle(repo_root, bundle)
+    return bundle, digest
+
+
+def _study_scope(bundle: dict[str, Any]) -> Path:
     if not isinstance(bundle, dict) or bundle.get("schema_version") != BUNDLE_SCHEMA:
         raise ValueError("Unsupported medical source bundle schema.")
     study = bundle.get("study_id", "")
     if not isinstance(study, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", study):
         raise ValueError("Bundle study_id must be a valid local study identity.")
-    scope = PRIVATE_SOURCES / study
-    private_path(repo_root, bundle_path, scope)
+    return PRIVATE_SOURCES / study
+
+
+def validate_bundle(repo_root: Path, bundle: dict[str, Any]) -> str:
+    """Recheck a retained run snapshot against its immutable private source artifacts."""
+    scope = _study_scope(bundle)
+    study = bundle["study_id"]
     if type(bundle.get("revision")) is not int or bundle["revision"] < 1:
         raise ValueError("Bundle revision must be a positive integer.")
     studies, reports, documents, evidence = [
@@ -151,7 +162,7 @@ def load_bundle(repo_root: Path, path: Path) -> tuple[dict[str, Any], str]:
         if not check.get("rationale"):
             raise ValueError("Planned check scope requires a rationale.")
         keys.add(key)
-    return bundle, content_hash(bundle)
+    return content_hash(bundle)
 
 
 def _date_range(record: dict[str, Any]) -> tuple[date, date] | None:

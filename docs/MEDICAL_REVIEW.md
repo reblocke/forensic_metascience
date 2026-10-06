@@ -13,8 +13,10 @@ validation, structural extraction preflight, evidence-linked reconstruction,
 comparison-specific medical routing and a deterministic private report model.
 WP3 adds bounded local replay, source-specific authorization validation and
 immutable recovery attempts. Every live backend is explicitly blocked because
-filesystem/tool/egress restrictions are not yet qualified. Numerical handoffs,
-human dispositions, report rendering and medical evaluation remain pending. Planning profiles encode review questions;
+filesystem/tool/egress restrictions are not yet qualified. WP4 now adds offline
+counterevidence/arithmetic passes, private human dispositions, numeric source-review
+attestations and Markdown/Quarto reports. Qualified R-reference handoffs and WP5
+evaluation tooling remain pending. Planning profiles encode review questions;
 they do not establish live medical detection performance.
 The feature is opt-in. No medical performance qualification is claimed.
 
@@ -292,12 +294,13 @@ Public output roots, symlink references, corrupted receipts and changed resume
 dependencies are refused. Successful/failed manifests are never reopened for edits.
 
 
-## WP4 arithmetic core (integration in progress)
+## WP4 arithmetic and verification (milestone integration in progress)
 
 `research_project.medical_review.numeric.calculate_request` implements the pure
 `medical_numeric_check_request_v1` → `medical_arithmetic_result_v1` transform.
-The CLI/storage/human input-verification and qualified-reference handoff are not
-yet delivered. This core does not create a numerical-method receipt or candidate.
+CLI/storage and separate human input-review attestations are implemented below;
+qualified-reference handoff remains required. This core does not create a
+numerical-method receipt or candidate.
 Every result remains a proposed transcription until independently verified.
 
 Requests declare run/proposal/study/comparison IDs, bundle hash, scoped evidence,
@@ -327,3 +330,102 @@ false arithmetic contradiction. Finite comparisons use the supplied absolute
 tolerance plus half a unit at the declared reported decimal precision (0–24).
 Undefined/infinite values remain unassessed. Arithmetic agreement/disagreement
 is not verification of extraction, estimand mapping or clinical interpretation.
+
+### Offline verification and human boundaries
+
+```bash
+uv run --offline --locked python scripts/medical_review.py verify \
+  --run data/processed/forensics_runs/private_reviews/example/IMPORT_RUN \
+  --input data/private/medical_reviews/example/verification/pass.json
+uv run --offline --locked python scripts/medical_review.py consolidate \
+  --run data/processed/forensics_runs/private_reviews/example/METHODS_RUN \
+  --run data/processed/forensics_runs/private_reviews/example/CLINICAL_RUN
+uv run --offline --locked python scripts/medical_review.py decide \
+  --run data/processed/forensics_runs/private_reviews/example/VERIFICATION_RUN \
+  --input data/private/medical_reviews/example/verification/human.json
+uv run --offline --locked python scripts/medical_review.py verify-inputs \
+  --run data/processed/forensics_runs/private_reviews/example/VERIFICATION_RUN \
+  --input data/private/medical_reviews/example/verification/numeric-review.json
+uv run --offline --locked python scripts/medical_review.py render \
+  --run data/processed/forensics_runs/private_reviews/example/VERIFICATION_RUN
+# Add --html --pdf only after preparing the existing Quarto/R/TeX environment.
+```
+
+`medical_verification_input_v1` contains exactly schema_version, counterevidence
+and numeric_requests. Each counterevidence row declares proposal_id, disposition,
+the unchanged reviewed_claim, strongest_alternative, rationale,
+supporting_evidence_ids, contradicting_evidence_ids, missing_materials,
+change_summary, model, backend and prompt_sha256. Unknown identities remain null.
+Supported candidates require cited support; contradicted/already-addressed
+dispositions require cited counterevidence. All five model dispositions remain
+unverified by a human. Tests use supplied synthetic semantic responses; they do
+not demonstrate clinical detection or counterevidence reasoning capability.
+
+Each pass creates a fresh forensic run linked to its exact parent manifest and
+original proposal snapshot. Raw input and calculator/audit code are archived and
+registered. Parent inputs/manifests remain unchanged; mid-pass source/input/code
+drift preserves a failed run. A historical arithmetic result whose code differs
+is retained after archive/contract checks and explicitly labeled not reexecuted.
+Archived arbitrary code is never executed to read historical results.
+
+`consolidate` links 2–16 explicit compatible review branches. Bundle, context,
+plan and parser-preflight snapshots must match exactly; differing snapshots and
+duplicate/conflicting run/proposal identities are refused. Every original run
+remains immutable. Repeated identical proposal/arithmetic identities do not
+multiply evidence, and agent agreement remains non-independent. Human and
+counterevidence records keep each proposal's original import reference, even when
+reviewed from a consolidated dossier. Nested consolidation is unsupported; choose
+explicit original review branches instead. No newest-run discovery is used.
+
+`medical_human_disposition_input_v1` contains exactly schema_version, proposal_id,
+disposition, human_identity, date, rationale, reviewed_evidence,
+source_bytes_reviewed, locators_reviewed and supersedes. Each reviewed-evidence
+row binds evidence_id, source_sha256, locator and raw_value. Require an explicit
+timezone-qualified human date, identity, rationale and source/locator attestations.
+Private write-once records live in the study's human_dispositions directory.
+Revisions explicitly supersede the current same-reviewer/proposal record; old
+bytes and original model provenance remain. Different reviewers' conflicting
+decisions are shown as conflicts, never automatically adjudicated. A new context
+does not inherit a decision bound to an older full proposal hash.
+
+Software validates the declarations, identities and source hashes; it cannot
+prove that the operator independently read or correctly interpreted the source.
+Model verification cannot write these records or name a human reviewer. The
+separate `decide` entrypoint is for an explicit human operator decision.
+
+`medical_numeric_input_review_input_v1` separately binds an exact executed
+result_id, human_identity, date, rationale, source_bytes_reviewed,
+source_semantics_reviewed and field_bindings. Enumerate every non-null typed input
+and population/horizon/orientation/kind/reported-comparison assumption. Each
+binding supplies field, exact typed value, evidence_id, source_sha256, locator,
+raw_value and interpretation. Every field must match the original request and
+declared source. This creates a write-once `operator_attested_source_review`
+sidecar; it never rewrites the original proposed-transcription result or creates
+method/candidate eligibility. Corrected inputs require a new request. Confirming
+a manuscript concern alone does not verify numerical extraction.
+
+### Private reports and manual adoption
+
+`render` creates a fresh report run with an explicit parent-manifest binding,
+registered renderer code, deterministic report model, Markdown and manual
+adoption packet. HTML/PDF are opt-in and record real Quarto/R versions and private
+render logs; missing runtimes or failed renders preserve a failed run. Nothing is
+installed during production execution. Quarto reads only its explicit current-run
+JSON path and the trusted notebook template; it never discovers a newest report.
+
+Every original proposal is displayed in exactly one conservative group. Exact
+concern, claim, classification, scope, repair and resolved evidence identity must
+match for grouping; a quote alone is insufficient. All member provenance,
+conflicting severity/confidence and complete original finding fields remain in
+the appendix/model. Summary notes and caveats cannot be dropped by validation.
+Imported active Markdown, HTML, inline R and Quarto directives are escaped. Source
+text cannot request commands, files or search. Large reports fail at the explicit
+20 MiB JSON boundary instead of truncating evidence. Long display identifiers
+wrap for PDF readability; machine-readable values remain exact.
+
+All formats distinguish model dispositions from operator-attested human decisions,
+retain unknown coverage and show numerical input-review status separately from
+execution. They use the title **AI-assisted manuscript audit: unverified proposals**.
+The manual packet retains proposals, evidence and human references plus required
+source/locator/wording/rationale checks. No INSPECT-SR store, official response,
+finalized assessment, synthesis disposition or public export is written.

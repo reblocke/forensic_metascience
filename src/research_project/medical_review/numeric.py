@@ -73,7 +73,8 @@ def _difference(left: Decimal | None, right: Decimal | None) -> Decimal | None:
     return None if left is None or right is None else left - right
 
 
-def _evidence_scope(request: dict[str, Any], bundle: dict[str, Any]) -> set[str]:
+def scoped_evidence_ids(request: dict[str, Any], bundle: dict[str, Any]) -> set[str]:
+    """Evidence in an explicit, reviewed study/comparison/report scope."""
     if request["study_id"] not in {s["study_id"] for s in bundle["studies"]}:
         raise ValueError("Numeric request references an unknown study scope.")
     reports = {
@@ -121,7 +122,7 @@ def calculate_request(request: dict[str, Any], bundle: dict[str, Any]) -> dict[s
     for field in ("run_id", "proposal_id", "population", "horizon", "orientation"):
         if not isinstance(request[field], str) or not request[field].strip():
             raise ValueError("Numeric scope/population/horizon/orientation must be explicit.")
-    known = _evidence_scope(request, bundle)
+    known = scoped_evidence_ids(request, bundle)
     _check_evidence(request["evidence_ids"], known)
     inputs = request["inputs"]
     assumptions = ["Source transcriptions and semantic assumptions require independent review."]

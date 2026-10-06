@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Optional medical planning/import/replay; live backends remain explicitly blocked."""
+"""Optional offline medical review, verification and reporting; live backends stay blocked."""
 
 # ruff: noqa: E402
 from __future__ import annotations
@@ -14,11 +14,23 @@ sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from research_project.medical_review.audit import (
+    consolidate_reviews,
+    record_human_disposition,
+    verify_review,
+)
 from research_project.medical_review.bundle import load_bundle
 from research_project.medical_review.context import build_study_context
 from research_project.medical_review.importer import import_reviewer
+from research_project.medical_review.numeric_inputs import record_input_review
 from research_project.medical_review.preflight import structural_preflight
-from research_project.medical_review.records import UPSTREAM_SCHEMA_HASH, read_json
+from research_project.medical_review.records import (
+    PRIVATE_SOURCES,
+    UPSTREAM_SCHEMA_HASH,
+    private_path,
+    read_json,
+)
+from research_project.medical_review.reporting import render_review
 from research_project.medical_review.routing import build_review_plan
 from research_project.medical_review.runner import DEFAULT_LIMITS, run_review
 
@@ -81,6 +93,32 @@ def parser() -> argparse.ArgumentParser:
             default=default,
             type=float if field == "max_duration_seconds" else int,
         )
+    verifying = commands.add_parser(
+        "verify", help="Append an offline counterevidence/arithmetic pass."
+    )
+    verifying.add_argument("--run", required=True, type=Path)
+    verifying.add_argument("--input", required=True, type=Path)
+    deciding = commands.add_parser(
+        "decide", help="Record an explicit operator-attested human decision."
+    )
+    deciding.add_argument("--run", required=True, type=Path)
+    deciding.add_argument("--input", required=True, type=Path)
+    combining = commands.add_parser(
+        "consolidate", help="Link compatible explicit review runs, retaining every original."
+    )
+    combining.add_argument("--run", required=True, action="append", type=Path)
+    inputs = commands.add_parser(
+        "verify-inputs", help="Record explicit numeric source-semantic review."
+    )
+    inputs.add_argument("--run", required=True, type=Path)
+    inputs.add_argument("--input", required=True, type=Path)
+    rendering = commands.add_parser(
+        "render", help="Write a private Markdown report; Quarto is opt-in."
+    )
+    rendering.add_argument("--run", required=True, type=Path)
+    rendering.add_argument("--output-root", type=Path)
+    rendering.add_argument("--html", action="store_true")
+    rendering.add_argument("--pdf", action="store_true")
     return cli
 
 
@@ -135,7 +173,7 @@ def main() -> int:
                 profiles=args.profile,
             )
             print(run)
-        else:
+        elif args.operation == "run":
             run = run_review(
                 ROOT,
                 args.bundle,
@@ -155,6 +193,22 @@ def main() -> int:
             result = read_json(run / "generated/medical_review/attempt_result.json")
             print(json.dumps({"run_root": str(run), "status": result["status"]}, sort_keys=True))
             return 0 if result["status"] == "completed" else 3
+        elif args.operation == "verify":
+            print(verify_review(ROOT, args.run, args.input))
+        elif args.operation == "consolidate":
+            print(consolidate_reviews(ROOT, args.run))
+        elif args.operation == "decide":
+            path = private_path(ROOT, args.input, PRIVATE_SOURCES)
+            print(record_human_disposition(ROOT, args.run, read_json(path)))
+        elif args.operation == "verify-inputs":
+            path = private_path(ROOT, args.input, PRIVATE_SOURCES)
+            print(record_input_review(ROOT, args.run, read_json(path)))
+        elif args.operation == "render":
+            print(
+                render_review(
+                    ROOT, args.run, output_root=args.output_root, html=args.html, pdf=args.pdf
+                )
+            )
         return 0
     except (ValueError, OSError, KeyError, TypeError) as error:
         cli.exit(2, f"medical-review: {error}\n")
