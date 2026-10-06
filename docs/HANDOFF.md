@@ -1,5 +1,96 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 WP5 explicit synthesis-accounting checkpoint
+
+The preceding goal turn made concrete progress in `618aec8eb9da242841cd732156479baec7c29227`,
+adding immutable candidate assessment. This turn revalidated its live hosted
+handles, then continued the approved scope with `evaluation_synthesis.py`,
+focused tests and explicit offline stage-packet/assessment CLI commands.
+Threshold adoption, R analysis, qualification reports and the full ticket audit
+remain engineering work. No actual clinical adjudication, live source transmission,
+reviewer execution, search, new package or main merge occurred.
+
+Synthesis packets preserve original stage roles, summaries/notes, global numerical
+caveats, full case source bytes and model access separately, while withholding
+condition/runtime metadata, original output names, benchmark answers and human
+identities. Their stage structure/source access/style may reveal origin; no
+blinding proof is claimed. Existing candidate packets/records remain unchanged.
+Humans supply every group membership and item disposition, with source evidence,
+critical caveat quotes, error-stage labels, timing, disagreement, shortfalls and
+immutable explicit supersession. Group members cannot cross packet/attempt
+scopes. Unknown distortion remains null. A missing stage is unavailable; a
+supplied empty synthesis may have explicitly judged losses but cannot establish
+clean coverage. Declared completed pairs are operator reports, not runtime or
+qualified numerical receipts. Medical qualification stays false; official
+assessment stays null and INSPECT-SR stores remain separate.
+
+Test-first collection failed as expected with missing
+`research_project.medical_review.evaluation_synthesis` (exit 2, 0.07s).
+Ruff's first check encountered long generated lines and blocked its chained
+formatter; formatting first left three overlong literals, then wrapping them
+passed. Initial five real storage/CLI/pure-contract cases passed in 246.27s.
+Added an empty-synthesis distinction, exact workspace drift/restoration and
+raw-input drift recovery; all eight passed in 388.17s.
+Review then found that an unresolved item could report a lost caveat without
+any supplied synthesis. A direct assertion over the actual completed synthetic
+packet fixture reproduced this (`Missing synthesis stage was accepted as
+observed critical-caveat loss`, exit 1). Initial fixture location inspection
+encountered two symlink aliases; resolving/deduplicating the physical root fixed
+the diagnostic, without changing production selection rules. The validator now
+requires a declared completed pair for caveat loss as well as whole-finding
+loss. A focused ninth regression was added; the final nine-case selection
+passed in 374.10s, with zero failures/errors/skips. Existing importer/replay CLI
+compatibility passed both cases in 1.74s, also without failures/errors/skips.
+The final nine-case JUnit SHA-256 is
+`bbedfad08d54e3f9334d094a8a9a609c3100f22209ad0b3c22fac80cba20777c`;
+the existing CLI receipt is
+`c6126cde0315d8041e5315f6804dd90aaa02824ffb6cef8590edbf5a2102f000`.
+Earlier five/eight-case receipt hashes are
+`55f4bd34e71673d99c4b298d0da3feebb9ed955a7de4494c276ddd96eaa8b926` and
+`c51d63ab55ab2fea27eb4c722e8da108c4ed20ce532a82c4fbf0696b0a9f4575`.
+Ruff/format/diff checks passed with 105 formatted Python files.
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_synthesis.py
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_synthesis.py --junitxml=/tmp/fm-med-wp5-synthesis-initial.xml
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_synthesis.py --junitxml=/tmp/fm-med-wp5-synthesis-final.xml
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_synthesis.py --junitxml=/tmp/fm-med-wp5-synthesis-final-guard.xml
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_importer.py::test_cli_plan_help_and_import_replay_are_real_boundaries tests/medical_review/test_execution.py::test_replay_cli_is_offline_and_blocked_live_returns_nonzero --junitxml=/tmp/fm-med-wp5-synthesis-existing-cli.xml
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+git diff --check
+UV_OFFLINE=1 uv run --offline --locked python scripts/medical_review.py evaluation-synthesis-packets --help
+UV_OFFLINE=1 uv run --offline --locked python scripts/medical_review.py evaluation-synthesis --help
+```
+
+Source head `618aec8` passed PR run `37543357162` and push `37543351417` in all
+three lanes. The same handles were resumed without restarting jobs after waits.
+Downloaded PR JUnit receipts under `/tmp/fm-med-wp5-hosted-618-pr` contain
+405 Python, 14 native-R and 7 Quarto tests, zero failures/errors/skips. SHA-256
+values respectively are
+`5f0c1d19be1f48840f935610407454721869136f71e5d36da3d6649c29426f64`,
+`f93f2cddf8ce6d005c9eecb51aa9a2851d46992f6d91afc17299da8195d719b3`,
+`eb7d81bdf2b1a052279eceb26fc887a05c57061f991f3015abfc71cccb497daf`.
+Eight downloaded medical artifacts with companion hashes matched actual bytes.
+These are prior-head required-lane evidence, not this new synthesis head's
+acceptance or medical performance proof. New delivered-head full Python/native-R/
+report checks remain required. No R or Quarto source was changed here.
+
+```bash
+gh run view 37543357162 --json headSha,status,conclusion,jobs
+gh run view 37543351417 --json headSha,status,conclusion,jobs
+gh run download 37543357162 --name inspect-sr-python-37543357162 --dir /tmp/fm-med-wp5-hosted-618-pr/python
+gh run download 37543357162 --name inspect-sr-native-r-37543357162 --dir /tmp/fm-med-wp5-hosted-618-pr/native-r
+gh run download 37543357162 --name inspect-sr-report-review-37543357162 --dir /tmp/fm-med-wp5-hosted-618-pr/report-review
+```
+
+Next: freeze human-approved threshold adoption and an explicit pre-unblinding
+gate without inventing threshold values; then R-first descriptive paired outcome
+analysis retaining study/repetition units, unknown resources and failure
+denominators; then qualification reports, full requirement audit and rollback
+verification. Actual corpus/assessor approval, source-specific live permissions,
+held-out evaluation and promotion remain separate gates. The goal remains active.
+
 ## 2026-10-06 WP5 candidate-assessment checkpoint
 
 Resumed the active approved goal from `ebd64b4d61858ab99f6a13fe5ab16f52f85603d4`.

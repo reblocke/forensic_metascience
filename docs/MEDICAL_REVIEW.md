@@ -21,8 +21,9 @@ WP4's requirement audit and required hosted Python/native/report gates passed at
 immutable freezing, operator-attested source-reference ledgers and offline
 minimum-content source packets, offline candidate ingestion, metadata-blinded
 human packets and operator-attested candidate assessment/adjudication are available.
-Explicit synthesis accounting, threshold adoption, R analysis and final
-qualification tooling remain unfinished.
+Explicit synthesis memberships, caveat/error annotations and loss accounting are
+implemented. Threshold adoption, R analysis and final qualification tooling
+remain unfinished.
 Planning profiles encode review questions;
 they do not establish live medical detection performance.
 The feature is opt-in. No medical performance qualification is claimed.

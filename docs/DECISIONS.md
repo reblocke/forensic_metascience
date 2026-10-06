@@ -1,5 +1,12 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Require explicit synthesis membership and distinguish missing from empty stages
+
+- **Traceability:** Stage-paired human packets retain original finding content, summary/notes and global numerical caveats, with opaque input/output/attempt scopes. Existing candidate assessments remain unchanged. Group membership is supplied explicitly within one packet/attempt; every input/output item is accounted for and conflicting interpretations are preserved. The program does not infer semantic duplicates or independent evidence from agent agreement.
+- **Availability:** Missing synthesis cannot be treated as observed loss or zero loss. Whole-finding and caveat losses require a supplied, operator-declared completed pair, including when an item's general disposition is unresolved. A supplied empty synthesis can support an explicit human loss judgment, but never reassuring completed review coverage. Reported stage completeness is not an execution or qualified method receipt.
+- **Human judgments:** Record separate primary grouping decisions and adjudication, literal caveat quote anchors, source evidence, error-stage labels, unknown distortion, timing and assessor shortfalls. Literal occurrence is traceability rather than proof of semantic preservation; qualifications, source inspection and blinding remain operator attestations. Stage structure or style can reveal origin.
+- **Recovery and authority:** New private canonical records retain raw/code/parent/source bindings and same-scope immutable supersession. Failed preparation/input drift publishes no completed decision. All numerical/INSPECT-SR authority boundaries remain unchanged; no dependency, scientific threshold or default enablement changes. Threshold adoption, R analysis and medical qualification remain pending.
+
 ## 2026-10-06: Separate blinded candidate assessment from medical qualification
 
 - **Source truth and access:** Human assessment packets include all supplied case sources for claim verification and counterevidence, while separately listing the model's source versions. This does not change the common-input model comparison or reinterpret supplement access as better reasoning. Case-local reference labels retain their case namespace.

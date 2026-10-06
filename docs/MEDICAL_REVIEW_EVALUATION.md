@@ -8,8 +8,8 @@ WP5 is in progress. Offline plan validation/freezing and source-reference ledger
 validation/freezing, minimum-content source packets and offline candidate
 ingestion, metadata-blinded candidate packets and operator-attested candidate
 assessment/adjudication are implemented. Explicit synthesis membership and
-loss/distortion accounting, threshold adoption, R analysis and final qualification
-tooling remain unfinished.
+loss/distortion accounting are implemented. Threshold adoption, R analysis
+and final qualification tooling remain unfinished.
 Actual source adjudication and live evaluation have not occurred. Before candidate
 evaluation, approve the source corpus, providers/models, transmission/search
 permissions, budgets, domain assessors and performance thresholds.
@@ -310,8 +310,8 @@ Preparation is bounded to 1,024 attempts, 4,096 outputs, 20 MiB per JSON and
 128 MiB of retained raw outputs. The actual serialized combined record must fit
 the JSON limit; explicit splitting preserves packet/study identities rather
 than truncating evidence. These are storage/preparation bounds, not model costs.
-Explicit synthesis accounting, approved thresholds, R analysis, qualification
-reporting and actual held-out performance remain required.
+The synthesis stage below supplies explicit accounting. Approved thresholds, R analysis,
+qualification reporting and actual held-out performance remain required.
 
 ## Implemented candidate assessment boundary
 
@@ -396,7 +396,8 @@ than a claim of independent two-assessor confirmation. Disagreements, original
 input and separate primary judgments are retained. Empty views remain explicit;
 no judgment or coverage is manufactured for them. This records candidate-level
 judgments only: semantic deduplication and synthesis loss/distortion memberships
-remain pending and are never inferred from shared wording or citations.
+use the separate synthesis stage below and are never inferred from shared
+wording or citations.
 
 Each successful operation creates a new private `forensics_run_v3`, retaining
 raw input/code, parent binding and `processed/medical_evaluation/assessment.json`.
@@ -408,3 +409,84 @@ Input or dependency drift during recording retains failure without publishing
 a decision. All records keep `medical_performance_validated=false`,
 `official_assessment=null` and unavailable completed review coverage. Numerical
 proposal qualification and existing human-adjudication contracts remain intact.
+
+## Implemented explicit synthesis accounting boundary
+
+Prepare stage-paired packets from one completed candidate assessment, then record
+explicit local human memberships and judgments:
+
+```bash
+uv run --offline --locked python scripts/medical_review.py evaluation-synthesis-packets \
+  --assessment-run data/processed/forensics_runs/private_reviews/EVALUATION_ID/ASSESSMENT_RUN_ID
+uv run --offline --locked python scripts/medical_review.py evaluation-synthesis \
+  --packets-run data/processed/forensics_runs/private_reviews/EVALUATION_ID/SYNTHESIS_PACKETS_RUN_ID \
+  --input data/private/medical_reviews/EVALUATION_ID/evaluation/synthesis.json
+```
+
+Each new private run retains its parent binding and code. Human roots remain
+`generated/medical_evaluation/assessment_workspaces/VIEW_ID/`, within the **new**
+run, with `synthesis_packet.json` and exact copied full-case sources. They label
+`reviewer_input` and `synthesis_output` roles using opaque attempt/output scopes.
+Original summary, notes, finding caveats and proposed numerical checks remain
+visible; provider/model, original output names, conditions, benchmark ledger and
+private human records remain outside the roots. Prior candidate-assessment
+packets/decisions are unchanged. Stage structure, source access and textual style
+can reveal origin; metadata removal does not authenticate blinding.
+
+`declared_pair_complete` requires supplied outputs in both stages, a reported
+completed attempt, and all reported output statuses `ok`. It is **operator
+reported**, not verified execution, exhaustive reviewer coverage or a qualified
+method receipt. A supplied empty synthesis output differs from an absent output.
+No stage, zero loss, source agreement or clean review is inferred from empty
+finding arrays. Partial/failed attempts and unreported packets remain traceable.
+
+Input schema `medical_evaluation_synthesis_input_v1` has exactly
+`schema_version`, `synthesis_packets_id`, nullable `supersedes_run_reference`,
+`assessors`, and `adjudication`. Human/source/date/blinding/view/timing fields
+match candidate assessment. Every person adds `groups` and explicit per-item
+`judgments`; primary assessors have unique `assessor_id` and human identity.
+Every reviewed view/item is accounted for. Independent grouping decisions,
+disagreements, source evidence and operator attestations remain separate.
+
+Groups have `group_id`, nonempty `reviewer_item_ids` and `synthesis_item_ids`,
+`conflicting_interpretations`, and `rationale`. IDs are unique within a person's
+input. Members must belong to the same packet and attempt, have the declared
+roles and occur in at most one group. Item judgments must agree exactly with
+these memberships. The program does not discover semantic duplicates or equate
+agent agreement with independent evidence.
+
+Item judgments have `item_id`, nullable `group_id`, `disposition`, boolean-or-null
+`distorted`, `error_stage`, `evidence`, `critical_caveats`, and `rationale`.
+Reviewer dispositions are displayed, grouped, dismissed, optional, unresolved,
+deferred, lost or unavailable. Synthesis dispositions are mapped, new_in_synthesis,
+unresolved or unavailable. Displayed/grouped/mapped items require explicit groups;
+displayed versus grouped distinguishes one versus multiple original members.
+Lost/new claims require a declared complete stage pair. Missing stages remain
+unavailable; they cannot become observed losses, including caveat loss inside
+an otherwise unresolved item. Unknown distortion remains
+null, and an unavailable item cannot claim assessed distortion/caveats.
+
+Each critical caveat has `input_quote`, nullable `output_quote`, status
+preserved/lost/distorted/unresolved, and `rationale`. Input quotes must occur
+literally in the associated finding or its supplied summary/notes; retained or
+distorted output quotes must occur in an explicitly linked synthesis artifact.
+Literal occurrence checks establish traceability, not semantic preservation.
+Humans attest the interpretation. Lost caveats have no retained output quote;
+distorted caveats require an explicit distortion flag. Resolved accounting also
+requires case-scoped source evidence using the existing evidence-ID function;
+physical source verification is not authenticated.
+
+`error_stage` is source_extraction, study_reconstruction, reasoning, retrieval,
+numerical_execution, report_synthesis, unknown or not_applicable. No error cause
+is inferred from a model's confidence or a missing output. Adjudicated item rows
+add exact `assessor_ids` and an explicit shortfall reason below two observations.
+Every primary observation is retained even if final grouping changes.
+
+Immutable same-scope/same-adjudicator supersession and bounded ancestry preserve
+old bytes. Registered raw/code/parent/source/semantic bindings govern reuse;
+source/input/code drift retains a failed attempt without publishing a decision.
+Workspace and JSON limits match candidate assessment, with streaming copy checks
+and exact read-only inventory validation. All records keep unavailable completed
+review coverage, `medical_performance_validated=false` and
+`official_assessment=null`. Existing INSPECT-SR and numerical contracts remain
+unchanged. Qualification thresholds and R outcome analysis are separate work.

@@ -36,6 +36,10 @@ from research_project.medical_review.evaluation_packets import (
     prepare_source_packets,
 )
 from research_project.medical_review.evaluation_reference import freeze_reference_ledger
+from research_project.medical_review.evaluation_synthesis import (
+    prepare_synthesis_packets,
+    record_synthesis,
+)
 from research_project.medical_review.importer import import_reviewer
 from research_project.medical_review.numeric_inputs import record_input_review
 from research_project.medical_review.preflight import structural_preflight
@@ -166,6 +170,15 @@ def parser() -> argparse.ArgumentParser:
     )
     assess.add_argument("--packets-run", required=True, type=Path)
     assess.add_argument("--input", required=True, type=Path)
+    synthesis_packets = commands.add_parser(
+        "evaluation-synthesis-packets", help="Prepare private stage-paired human packets."
+    )
+    synthesis_packets.add_argument("--assessment-run", required=True, type=Path)
+    synthesis = commands.add_parser(
+        "evaluation-synthesis", help="Record explicit private synthesis memberships and judgments."
+    )
+    synthesis.add_argument("--packets-run", required=True, type=Path)
+    synthesis.add_argument("--input", required=True, type=Path)
     return cli
 
 
@@ -283,6 +296,10 @@ def main() -> int:
             print(prepare_assessment_packets(ROOT, args.candidates_run))
         elif args.operation == "evaluation-assess":
             print(record_assessment(ROOT, args.packets_run, args.input))
+        elif args.operation == "evaluation-synthesis-packets":
+            print(prepare_synthesis_packets(ROOT, args.assessment_run))
+        elif args.operation == "evaluation-synthesis":
+            print(record_synthesis(ROOT, args.packets_run, args.input))
         return 0
     except (ValueError, OSError, KeyError, TypeError) as error:
         cli.exit(2, f"medical-review: {error}\n")
