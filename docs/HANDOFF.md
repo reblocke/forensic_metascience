@@ -1,5 +1,34 @@
 # Handoff (for multi-session work)
 
+### WP1 hosted follow-up: pinned-source server rate limiting
+
+Draft PR #8 is open against `main`; initial head `7e77e4b` passed hosted Python
+but both required native/report setup jobs failed with HTTP 429 before any tests
+ran. The gate remained failed. Official CRAN cloud mirrors were verified to
+return exactly the existing pinned statcheck/simdistr archive hashes.
+
+A focused setup-only helper now tries each locked URL once, preserves the exact
+expected hashes, aborts on content mismatch, and refuses output overwrite. No
+package version, dependency list, native method or production behavior changed.
+Three new download regressions failed before the fix, then all six CI acceptance
+tests passed. Real source downloads also passed all three existing package pins.
+
+Executed follow-up checks:
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/test_ci_acceptance.py
+# 6 passed
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' -m 'not native_r and not report_integration'
+# 175 passed, 18 deselected
+bash -n scripts/install_inspect_sr_r_methods.sh
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+```
+
+The corrective head requires fresh hosted native/report receipts. WP2 starts
+after this gate is resolved or with the external blocker explicitly retained.
+
+
 ## Medical review goal — 2026-10-06 WP1 checkpoint
 
 The approved FM-MED-01 goal remains active. Baseline verification and the first

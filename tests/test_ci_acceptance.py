@@ -52,3 +52,96 @@ def test_required_lane_junit_gate_rejects_missing_acceptance_artifact(tmp_path: 
     )
     assert result.returncode != 0
     assert "missing_artifacts" in result.stderr
+
+
+def test_pinned_source_download_falls_back_only_to_configured_identical_bytes(
+    tmp_path, monkeypatch
+):
+    import hashlib
+    import io
+    import urllib.error
+    import urllib.request
+
+    from research_project.method_setup import download_verified_source
+
+    raw = b"pinned synthetic archive"
+    package = {
+        "name": "synthetic",
+        "version": "1",
+        "source_url": "https://primary.invalid/a",
+        "fallback_source_urls": ["https://mirror.invalid/a"],
+        "sha256": hashlib.sha256(raw).hexdigest(),
+    }
+    requests = []
+
+    def fetch(url, timeout):
+        requests.append(url)
+        assert timeout == 30
+        if url == package["source_url"]:
+            raise urllib.error.HTTPError(url, 429, "Too many requests", {}, None)
+        return io.BytesIO(raw)
+
+    monkeypatch.setattr(urllib.request, "urlopen", fetch)
+    destination = tmp_path / "source.tar.gz"
+    receipt = download_verified_source(package, destination)
+    assert destination.read_bytes() == raw
+    assert receipt["source_url"] == package["fallback_source_urls"][0]
+    assert requests == [package["source_url"], *package["fallback_source_urls"]]
+
+
+def test_pinned_source_hash_mismatch_never_triggers_fallback(tmp_path, monkeypatch):
+    import io
+    import urllib.request
+
+    import pytest
+
+    from research_project.method_setup import download_verified_source
+
+    requests = []
+
+    def fetch(url, timeout):
+        requests.append(url)
+        return io.BytesIO(b"wrong archive")
+
+    monkeypatch.setattr(urllib.request, "urlopen", fetch)
+    package = {
+        "name": "synthetic",
+        "version": "1",
+        "source_url": "https://primary.invalid/a",
+        "fallback_source_urls": ["https://mirror.invalid/a"],
+        "sha256": "0" * 64,
+    }
+    destination = tmp_path / "source.tar.gz"
+    with pytest.raises(ValueError, match="SHA-256 mismatch"):
+        download_verified_source(package, destination)
+    assert requests == [package["source_url"]]
+    assert not destination.exists()
+
+
+def test_pinned_source_exhaustion_and_existing_destination_fail_closed(tmp_path, monkeypatch):
+    import urllib.error
+    import urllib.request
+
+    import pytest
+
+    from research_project.method_setup import download_verified_source
+
+    def fetch(url, timeout):
+        raise urllib.error.HTTPError(url, 429, "Too many requests", {}, None)
+
+    monkeypatch.setattr(urllib.request, "urlopen", fetch)
+    package = {
+        "name": "synthetic",
+        "version": "1",
+        "source_url": "https://primary.invalid/a",
+        "fallback_source_urls": ["https://mirror.invalid/a"],
+        "sha256": "0" * 64,
+    }
+    destination = tmp_path / "source.tar.gz"
+    with pytest.raises(urllib.error.HTTPError):
+        download_verified_source(package, destination)
+    assert not destination.exists()
+    destination.write_bytes(b"preserved archive")
+    with pytest.raises(FileExistsError):
+        download_verified_source(package, destination)
+    assert destination.read_bytes() == b"preserved archive"

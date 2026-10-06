@@ -1,5 +1,13 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Preserve native source pins when a CRAN mirror is rate-limited
+
+- **Trigger:** WP1 hosted native-R and report jobs failed before tests because the existing CRAN source server returned HTTP 429. Their missing receipts correctly failed acceptance; local passes did not waive hosted gates.
+- **Change:** Add the official `cloud.r-project.org` source URL as one explicit fallback for the already pinned statcheck and simdistr archives. Both fallback archives were retrieved and independently matched the existing SHA-256 values. Package versions, hashes, runtime imports, R method behavior and qualification requirements are unchanged.
+- **Boundary:** The environment-preparation helper tries each configured URL once with a 30-second timeout. Transport/unavailability failures may reach the next locked URL; a hash mismatch immediately aborts. Existing destinations are never overwritten. This helper is used only by test-environment setup, never production pipeline execution.
+- **Verification:** Three new regressions failed before implementation and passed after it; they cover a rate-limited primary, identical fallback bytes, immediate hash-mismatch refusal, exhausted sources and preserved destinations. Actual downloads of all three pinned archives passed their hashes locally. Hosted evidence on the corrective head remains required.
+
+
 ## 2026-10-06: Keep medical reading imports separate from qualified evidence
 
 - **Scope:** Implement FM-MED-01 inside this repository as an optional feature. The accepted sequence starts with offline import, then adds bundles/profiles, controlled execution, verification/reporting and evaluation readiness. Existing numerical engines, method qualification and INSPECT-SR routes remain unchanged.
