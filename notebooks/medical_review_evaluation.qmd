@@ -1,0 +1,34 @@
+---
+title: "Medical review evaluation: qualification pending"
+format:
+  html:
+    toc: true
+    embed-resources: true
+  pdf:
+    toc: true
+    latex-auto-install: false
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r, results='asis'}
+report_path <- Sys.getenv("MEDICAL_EVALUATION_REPORT_JSON", unset = "")
+if (!nzchar(report_path) || !file.exists(report_path)) {
+  stop("MEDICAL_EVALUATION_REPORT_JSON must name the explicit current-run model.")
+}
+if (!requireNamespace("jsonlite", quietly = TRUE)) {
+  stop("Rendering requires the already prepared jsonlite package.")
+}
+report <- jsonlite::fromJSON(report_path, simplifyVector = FALSE)
+if (!identical(report$schema_version, "medical_evaluation_report_model_v1") ||
+    !identical(report$medical_performance_validated, FALSE) ||
+    !identical(report$review_coverage_available, FALSE) ||
+    !identical(report$qualification$feature_enabled_by_default, FALSE) ||
+    !identical(report$qualification$medical_performance, "pending") ||
+    !is.null(report$official_assessment)) {
+  stop("Unsupported or authority-changing evaluation report model.")
+}
+cat(report$rendered_markdown)
+```

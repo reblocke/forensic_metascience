@@ -1,0 +1,57 @@
+{
+  "schema_version": "medical_guidance_registry_v1",
+  "version": "1",
+  "packs": [
+    {
+      "family": "CONSORT/SPIRIT",
+      "kind": "reporting",
+      "approved": false,
+      "available": false,
+      "source_url": null,
+      "source_sha256": null,
+      "version": null,
+      "license": null
+    },
+    {
+      "family": "STROBE/RECORD",
+      "kind": "reporting",
+      "approved": false,
+      "available": false,
+      "source_url": null,
+      "source_sha256": null,
+      "version": null,
+      "license": null
+    },
+    {
+      "family": "STARD",
+      "kind": "reporting",
+      "approved": false,
+      "available": false,
+      "source_url": null,
+      "source_sha256": null,
+      "version": null,
+      "license": null
+    },
+    {
+      "family": "TRIPOD+AI",
+      "kind": "reporting",
+      "approved": false,
+      "available": false,
+      "source_url": null,
+      "source_sha256": null,
+      "version": null,
+      "license": null
+    },
+    {
+      "family": "PRISMA",
+      "kind": "reporting",
+      "approved": false,
+      "available": false,
+      "source_url": null,
+      "source_sha256": null,
+      "version": null,
+      "license": null
+    }
+  ],
+  "rule": "Unapproved or unavailable external guidance cannot enable guideline-specific assertions; no model-memory reconstruction."
+}

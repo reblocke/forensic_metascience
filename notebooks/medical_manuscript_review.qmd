@@ -1,0 +1,32 @@
+---
+title: "AI-assisted manuscript audit: unverified proposals"
+format:
+  html:
+    toc: true
+    embed-resources: true
+  pdf:
+    toc: true
+    latex-auto-install: false
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r, results='asis'}
+report_path <- Sys.getenv("MEDICAL_REVIEW_REPORT_JSON", unset = "")
+if (!nzchar(report_path) || !file.exists(report_path)) {
+  stop("MEDICAL_REVIEW_REPORT_JSON must name the explicit current-run report model.")
+}
+if (!requireNamespace("jsonlite", quietly = TRUE)) {
+  stop("Medical report rendering requires the already prepared jsonlite package.")
+}
+report <- jsonlite::fromJSON(report_path, simplifyVector = FALSE)
+if (!identical(report$schema_version, "medical_review_report_model_v1") ||
+    !is.null(report$official_assessment) || !is.null(report$synthesis_disposition) ||
+    !identical(report$review_complete, FALSE) ||
+    !identical(report$agent_agreement_is_independent_evidence, FALSE)) {
+  stop("Unsupported or authority-changing medical report model.")
+}
+cat(report$rendered_markdown)
+```

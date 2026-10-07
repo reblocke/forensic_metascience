@@ -1,0 +1,843 @@
+{
+  "schema_version": "medical_check_catalogue_v1",
+  "version": "1",
+  "basis": "User-approved FM-MED-01 Section 6; not a validated medical review instrument.",
+  "supported_profiles": [
+    "clinical_trial",
+    "observational_rwd",
+    "diagnostic_accuracy",
+    "prediction_model"
+  ],
+  "recognized_routes": [
+    "clinical_trial",
+    "observational_rwd",
+    "diagnostic_accuracy",
+    "prediction_model",
+    "systematic_review_meta_analysis",
+    "protocol",
+    "methods",
+    "other"
+  ],
+  "checks": [
+    {
+      "check_id": "core.source_consistency",
+      "module": "core",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "clinical_methods",
+      "question": "Reconcile claims, tables, figures, notes, units, denominators and source versions.",
+      "safeguard": "Parser failures are not manuscript defects. Do not infer missing signs, cells, labels, denominators or formulas.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "core.claim_evidence",
+      "module": "core",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "clinical_methods",
+      "question": "Check whether the implicated claim is supported by the displayed evidence.",
+      "safeguard": "Parser failures are not manuscript defects. Do not infer missing signs, cells, labels, denominators or formulas.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "core.statistical_interpretation",
+      "module": "core",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "clinical_methods",
+      "question": "Interpret estimates, uncertainty, comparison scope and clinical thresholds.",
+      "safeguard": "Parser failures are not manuscript defects. Do not infer missing signs, cells, labels, denominators or formulas.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "core.clinical_meaning",
+      "module": "core",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "clinical_methods",
+      "question": "Separate surrogate, patient-important and implementation claims.",
+      "safeguard": "Parser failures are not manuscript defects. Do not infer missing signs, cells, labels, denominators or formulas.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "core.reporting",
+      "module": "core",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "clinical_methods",
+      "question": "Identify material reporting gaps with explicit source availability.",
+      "safeguard": "Parser failures are not manuscript defects. Do not infer missing signs, cells, labels, denominators or formulas.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "trial.assignment",
+      "module": "trial",
+      "profiles": [
+        "clinical_trial"
+      ],
+      "reviewer": "trial_design",
+      "question": "Inspect assignment mechanism and concealment, including randomized and quasi-randomized designs.",
+      "safeguard": "MRN parity is not concealed random allocation. Balance-table differences do not prove randomization failure. Legitimate pairwise comparisons need not include every arm.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "trial.alignment",
+      "module": "trial",
+      "profiles": [
+        "clinical_trial"
+      ],
+      "reviewer": "trial_design",
+      "question": "Compare eligibility, assignment, time zero and follow-up.",
+      "safeguard": "MRN parity is not concealed random allocation. Balance-table differences do not prove randomization failure. Legitimate pairwise comparisons need not include every arm.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "trial.clustering",
+      "module": "trial",
+      "profiles": [
+        "clinical_trial"
+      ],
+      "reviewer": "trial_design",
+      "question": "Check allocation/analysis units and cluster design.",
+      "safeguard": "MRN parity is not concealed random allocation. Balance-table differences do not prove randomization failure. Legitimate pairwise comparisons need not include every arm.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "trial.analysis_population",
+      "module": "trial",
+      "profiles": [
+        "clinical_trial"
+      ],
+      "reviewer": "trial_design",
+      "question": "Separate ITT, per-protocol and as-treated contrasts and estimands.",
+      "safeguard": "MRN parity is not concealed random allocation. Balance-table differences do not prove randomization failure. Legitimate pairwise comparisons need not include every arm.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "trial.intercurrent_events",
+      "module": "trial",
+      "profiles": [
+        "clinical_trial"
+      ],
+      "reviewer": "trial_design",
+      "question": "Inspect crossover, adherence, contamination and missing outcomes.",
+      "safeguard": "MRN parity is not concealed random allocation. Balance-table differences do not prove randomization failure. Legitimate pairwise comparisons need not include every arm.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "trial.prespecification",
+      "module": "trial",
+      "profiles": [
+        "clinical_trial"
+      ],
+      "reviewer": "trial_design",
+      "question": "Compare prespecified and exploratory analyses using dated source evidence.",
+      "safeguard": "MRN parity is not concealed random allocation. Balance-table differences do not prove randomization failure. Legitimate pairwise comparisons need not include every arm.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ],
+        [
+          "protocol",
+          "sap",
+          "registry_history"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "observational.time_zero",
+      "module": "observational",
+      "profiles": [
+        "observational_rwd"
+      ],
+      "reviewer": "causal_observational",
+      "question": "Align treatment strategies, eligibility, exposure assignment and follow-up; inspect immortal time and prevalent users.",
+      "safeguard": "Do not demand causal identification for a descriptive aim. State the specific mechanism before asserting bias or its direction. Matching does not remove every source of confounding.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "observational.confounding",
+      "module": "observational",
+      "profiles": [
+        "observational_rwd"
+      ],
+      "reviewer": "causal_observational",
+      "question": "Identify specific confounding by indication, severity, frailty, access, adherence and trajectories.",
+      "safeguard": "Do not demand causal identification for a descriptive aim. State the specific mechanism before asserting bias or its direction. Matching does not remove every source of confounding.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "observational.selection",
+      "module": "observational",
+      "profiles": [
+        "observational_rwd"
+      ],
+      "reviewer": "causal_observational",
+      "question": "Inspect post-baseline conditioning and utilization-driven selection mechanisms.",
+      "safeguard": "Do not demand causal identification for a descriptive aim. State the specific mechanism before asserting bias or its direction. Matching does not remove every source of confounding.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "observational.positivity",
+      "module": "observational",
+      "profiles": [
+        "observational_rwd"
+      ],
+      "reviewer": "causal_observational",
+      "question": "Check overlap, positivity and assumptions remaining after matching or weighting.",
+      "safeguard": "Do not demand causal identification for a descriptive aim. State the specific mechanism before asserting bias or its direction. Matching does not remove every source of confounding.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "rwd.phenotype",
+      "module": "rwd",
+      "profiles": [
+        "observational_rwd"
+      ],
+      "reviewer": "rwd_measurement",
+      "question": "Inspect codes/phenotypes, repeated codes, labs, medications, procedures and validation.",
+      "safeguard": "Absence of a code is not absence of disease. Explain how requiring a test, lab, note or encounter changes cohort selection instead of issuing generic collider warnings.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "rwd.capture",
+      "module": "rwd",
+      "profiles": [
+        "observational_rwd"
+      ],
+      "reviewer": "rwd_measurement",
+      "question": "Inspect temporal anchoring, linkage, out-of-network capture and observation completeness.",
+      "safeguard": "Absence of a code is not absence of disease. Explain how requiring a test, lab, note or encounter changes cohort selection instead of issuing generic collider warnings.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "rwd.denominators",
+      "module": "rwd",
+      "profiles": [
+        "observational_rwd"
+      ],
+      "reviewer": "rwd_measurement",
+      "question": "Distinguish participant/encounter units, utilization selection and denominator definitions.",
+      "safeguard": "Absence of a code is not absence of disease. Explain how requiring a test, lab, note or encounter changes cohort selection instead of issuing generic collider warnings.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "diagnosis.reference_standard",
+      "module": "diagnosis",
+      "profiles": [
+        "diagnostic_accuracy"
+      ],
+      "reviewer": "diagnostic_accuracy",
+      "question": "Inspect reference-standard validity, incorporation/verification concerns and index/reference timing.",
+      "safeguard": "Case-control sampling fractions are not clinical prevalence. Joint likelihood ratios require an explicit dependence assumption. Bias direction needs supporting design evidence.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "diagnosis.sampling",
+      "module": "diagnosis",
+      "profiles": [
+        "diagnostic_accuracy"
+      ],
+      "reviewer": "diagnostic_accuracy",
+      "question": "Check sampling scheme, thresholds and indeterminate results.",
+      "safeguard": "Case-control sampling fractions are not clinical prevalence. Joint likelihood ratios require an explicit dependence assumption. Bias direction needs supporting design evidence.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "diagnosis.counts",
+      "module": "diagnosis",
+      "profiles": [
+        "diagnostic_accuracy"
+      ],
+      "reviewer": "diagnostic_accuracy",
+      "question": "Assess source-reconstructable 2x2 counts, sensitivity, specificity and likelihood ratios.",
+      "safeguard": "Case-control sampling fractions are not clinical prevalence. Joint likelihood ratios require an explicit dependence assumption. Bias direction needs supporting design evidence.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "diagnosis.intended_use",
+      "module": "diagnosis",
+      "profiles": [
+        "diagnostic_accuracy"
+      ],
+      "reviewer": "diagnostic_accuracy",
+      "question": "Evaluate intended-use applicability and prevalence assumptions.",
+      "safeguard": "Case-control sampling fractions are not clinical prevalence. Joint likelihood ratios require an explicit dependence assumption. Bias direction needs supporting design evidence.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "prediction.leakage",
+      "module": "prediction",
+      "profiles": [
+        "prediction_model"
+      ],
+      "reviewer": "prediction_ai",
+      "question": "Check prediction time/horizon, predictor availability, patient/site/time splits and preprocessing within validation.",
+      "safeguard": "A development study need not include a deployment trial. High AUROC alone does not establish clinical utility or treatment benefit.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "prediction.performance",
+      "module": "prediction",
+      "profiles": [
+        "prediction_model"
+      ],
+      "reviewer": "prediction_ai",
+      "question": "Inspect calibration, uncertainty, discrimination and clinical utility separately.",
+      "safeguard": "A development study need not include a deployment trial. High AUROC alone does not establish clinical utility or treatment benefit.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "prediction.validation",
+      "module": "prediction",
+      "profiles": [
+        "prediction_model"
+      ],
+      "reviewer": "prediction_ai",
+      "question": "Describe development and external-validation settings and limits.",
+      "safeguard": "A development study need not include a deployment trial. High AUROC alone does not establish clinical utility or treatment benefit.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "prediction.benefit",
+      "module": "prediction",
+      "profiles": [
+        "prediction_model"
+      ],
+      "reviewer": "prediction_ai",
+      "question": "Distinguish diagnostic, prognostic risk and treatment-benefit prediction.",
+      "safeguard": "A development study need not include a deployment trial. High AUROC alone does not establish clinical utility or treatment benefit.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "inference.effects",
+      "module": "inference",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "statistical_interpretation",
+      "question": "Inspect effect scales, intervals, clinical thresholds and noncollapsibility.",
+      "safeguard": "Different null crossings do not prove subgroup differences. Nonsignificance is not equivalence and may be informative when precise. Do not demand post-hoc power.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "inference.subgroups",
+      "module": "inference",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "statistical_interpretation",
+      "question": "Require interaction/scale evidence for subgroup differences; distinguish within- and between-study comparisons.",
+      "safeguard": "Different null crossings do not prove subgroup differences. Nonsignificance is not equivalence and may be informative when precise. Do not demand post-hoc power.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "inference.multiplicity",
+      "module": "inference",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "statistical_interpretation",
+      "question": "Inspect exploratory status, multiplicity and risk versus effect modeling.",
+      "safeguard": "Different null crossings do not prove subgroup differences. Nonsignificance is not equivalence and may be informative when precise. Do not demand post-hoc power.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "noninferiority.margin",
+      "module": "noninferiority",
+      "profiles": [
+        "clinical_trial"
+      ],
+      "reviewer": "trial_design",
+      "question": "Inspect the declared margin and rationale, efficacy loss, burdens and harms.",
+      "safeguard": "Do not invent a universal margin or equate declared noninferiority with clinical equivalence. Separate reporting gaps from demonstrated flaws.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": true,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "noninferiority.estimand",
+      "module": "noninferiority",
+      "profiles": [
+        "clinical_trial"
+      ],
+      "reviewer": "trial_design",
+      "question": "Inspect estimand, adherence/crossover, uncertainty and assay sensitivity.",
+      "safeguard": "Do not invent a universal margin or equate declared noninferiority with clinical equivalence. Separate reporting gaps from demonstrated flaws.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": true,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "outcomes.competing_events",
+      "module": "outcomes",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "outcomes_missingness",
+      "question": "Match death/discharge/disenrollment handling and risk/hazard measures to the estimand.",
+      "safeguard": "Do not automatically impute after death, treat competing events as ordinary loss, or demand Fine-Gray for every question.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "outcomes.missingness",
+      "module": "outcomes",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "outcomes_missingness",
+      "question": "Inspect missingness mechanisms, observation window and completeness.",
+      "safeguard": "Do not automatically impute after death, treat competing events as ordinary loss, or demand Fine-Gray for every question.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "outcomes.recurrent_events",
+      "module": "outcomes",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "outcomes_missingness",
+      "question": "Separate recurrent/first events and days-alive/free definitions.",
+      "safeguard": "Do not automatically impute after death, treat competing events as ordinary loss, or demand Fine-Gray for every question.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "harms.ascertainment",
+      "module": "harms",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "harms_clinical",
+      "question": "Inspect instruments, populations, denominators, observation time and missing ascertainment.",
+      "safeguard": "Similar event counts do not establish safety with limited ascertainment or precision. Do not manufacture clinical-importance thresholds.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "harms.interpretation",
+      "module": "harms",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "harms_clinical",
+      "question": "Separate reported events from treatment effects; relate benefits, burdens and absolute effects.",
+      "safeguard": "Similar event counts do not establish safety with limited ascertainment or precision. Do not manufacture clinical-importance thresholds.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": false,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "implementation.fidelity",
+      "module": "implementation",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "implementation_economics",
+      "question": "Compare intended and delivered interventions, exposure, adaptations and implementation fidelity.",
+      "safeguard": "Retain economics for health-services aims. Spending prediction, utilization reduction, savings and cost effectiveness are distinct.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": true,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    },
+    {
+      "check_id": "implementation.economics",
+      "module": "implementation",
+      "profiles": [
+        "clinical_trial",
+        "observational_rwd",
+        "diagnostic_accuracy",
+        "prediction_model"
+      ],
+      "reviewer": "implementation_economics",
+      "question": "Inspect payer/system perspective, spending horizon, death/disenrollment, implementation cost and net cost.",
+      "safeguard": "Retain economics for health-services aims. Spending prediction, utilization reduction, savings and cost effectiveness are distinct.",
+      "required_source_role_groups": [
+        [
+          "manuscript"
+        ]
+      ],
+      "conditional": true,
+      "stage": "design_and_results",
+      "guideline_specific": false
+    }
+  ],
+  "rule_provenance": {
+    "source": "docs/MEDICAL_REVIEW_TICKET.md",
+    "sha256": "942cd4635c3d7cc1d19e0dbe3c0ee3a984ba399d5f6d6cbfc411b1c5957ad44b",
+    "approval_basis": "Explicit user approval of FM-MED-01 implementation scope",
+    "license": "user-supplied; unknown",
+    "validation_status": "not_medically_qualified"
+  },
+  "prompt_provenance": {
+    "shared": {
+      "path": "prompts/medical_review/shared_evidence.txt",
+      "sha256": "b92ea024b2daeca53ea941cbbac1ef721e060f93fc6a592ca0842be3d3eeb071",
+      "adapted_from": [
+        "prompts/templates/claim_evidence_audit.txt",
+        "prompts/templates/source_consistency_audit.txt"
+      ],
+      "upstream_commit": "c591f4a498f6dc5083153811d6f678339cfb7c78",
+      "local_changes": "Bundle/scope chronology, uncertainty, bounded coverage, source permissions, typed proposals and preserved numerical/human authority."
+    },
+    "modules": [
+      {
+        "path": "prompts/medical_review/core.txt",
+        "sha256": "b8d88506348351529127becde904667791d03214fd733d9287920c476cde3ea0",
+        "origin": "Repository-authored implementation of approved ticket Section 6"
+      },
+      {
+        "path": "prompts/medical_review/diagnosis.txt",
+        "sha256": "b640c3b7d078b848c11cc8777713beaebf0deb9d2e42a81346326661f36bec78",
+        "origin": "Repository-authored implementation of approved ticket Section 6"
+      },
+      {
+        "path": "prompts/medical_review/harms.txt",
+        "sha256": "120b9c399e601e129b7812c5647a430c55d9d21859fa1d634c9c97d4c08a803b",
+        "origin": "Repository-authored implementation of approved ticket Section 6"
+      },
+      {
+        "path": "prompts/medical_review/implementation.txt",
+        "sha256": "990cb3402af81bf6628913610fe493ddf8e3f60ab6a8b1168779c91c167b8632",
+        "origin": "Repository-authored implementation of approved ticket Section 6"
+      },
+      {
+        "path": "prompts/medical_review/inference.txt",
+        "sha256": "2c9a5f96520f499a6bf1cf15170ed3d41d79d20d206df58f89808df3ba9405f2",
+        "origin": "Repository-authored implementation of approved ticket Section 6"
+      },
+      {
+        "path": "prompts/medical_review/noninferiority.txt",
+        "sha256": "e17682638132c514261252eb8621bfefecbf862912600f99072bc6e3980051cf",
+        "origin": "Repository-authored implementation of approved ticket Section 6"
+      },
+      {
+        "path": "prompts/medical_review/observational.txt",
+        "sha256": "6b9fc362ecde75b9b82f0c221d3f655d96a41526d12b967d42511997e6d3dc66",
+        "origin": "Repository-authored implementation of approved ticket Section 6"
+      },
+      {
+        "path": "prompts/medical_review/outcomes.txt",
+        "sha256": "15782edba61a24f23204ff4bec43cef610c2e1c48dddbba5dd16a58e8a241511",
+        "origin": "Repository-authored implementation of approved ticket Section 6"
+      },
+      {
+        "path": "prompts/medical_review/prediction.txt",
+        "sha256": "9558dcfb4f3acd2936698711c9c29d778dc512730b7b20d8688250b2cb6ea845",
+        "origin": "Repository-authored implementation of approved ticket Section 6"
+      },
+      {
+        "path": "prompts/medical_review/rwd.txt",
+        "sha256": "84c1fd63c7e326c2719b7030b492b3c7ef1928b24a74756be76569fc82732266",
+        "origin": "Repository-authored implementation of approved ticket Section 6"
+      },
+      {
+        "path": "prompts/medical_review/trial.txt",
+        "sha256": "0f4a7b112f3700bc222bbeed3f844ed641d4097747454037e7004dfc085abbe9",
+        "origin": "Repository-authored implementation of approved ticket Section 6"
+      },
+      {
+        "path": "prompts/medical_review/counterevidence.txt",
+        "sha256": "405f78d2b041d174353fa79479196504f5ba5a7dc3f1db6cd12b70f9eb97b0d3",
+        "origin": "Repository-authored implementation of approved ticket Sections 7.3 and 10; template only, no live execution enabled"
+      },
+      {
+        "path": "prompts/medical_review/editor.txt",
+        "sha256": "550faad470c396160c47a32d4956f5ad230094f6a4d91245647d043e8836c559",
+        "origin": "Repository-authored implementation of approved ticket Sections 7.3 and 10; template only, no live execution enabled"
+      }
+    ]
+  }
+}

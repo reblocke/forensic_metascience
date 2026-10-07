@@ -26,6 +26,19 @@ def preserve_synthetic_artifact():
         "inspect-sr-early-stop.pdf",
         "private-prediction-review.html",
         "private-prediction-review.pdf",
+        "medical-review.md",
+        "medical-review.html",
+        "medical-review.pdf",
+        "medical-report-model.json",
+        "medical-native-handoffs.json",
+        "medical-native-review.html",
+        "medical-native-review.pdf",
+        "medical-native-report-model.json",
+        "medical-evaluation.md",
+        "medical-evaluation.html",
+        "medical-evaluation.pdf",
+        "medical-evaluation-report-model.json",
+        "medical-evaluation-qualification.json",
     }
 
     def preserve(name: str, source: Path) -> Path | None:

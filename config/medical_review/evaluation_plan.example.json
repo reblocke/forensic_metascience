@@ -1,0 +1,25 @@
+{
+  "schema_version": "medical_evaluation_plan_input_v1",
+  "evaluation_id": "evaluation-synthetic",
+  "revision": 1,
+  "seed": 601,
+  "conditions": [
+    {"condition_id": "strong_single_reviewer", "runtime": null},
+    {"condition_id": "original_reviewer", "runtime": null},
+    {"condition_id": "medical_adaptation", "runtime": null}
+  ],
+  "cases": [
+    {
+      "case_id": "synthetic-example",
+      "bundle_reference": "data/private/medical_reviews/example/bundle.json",
+      "partition": "development",
+      "previously_analyzed": false,
+      "synthetic": true,
+      "dependency_group": "synthetic-example-study",
+      "profile_ids": ["clinical_trial"],
+      "common_source_version_id": "REPLACE_WITH_EXACT_SUPPLIED_MAIN_SOURCE_VERSION_ID",
+      "upstream_full_bundle_source_version_ids": ["REPLACE_WITH_EXACT_SUPPLIED_MAIN_SOURCE_VERSION_ID"]
+    }
+  ],
+  "thresholds": null
+}

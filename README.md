@@ -172,6 +172,34 @@ The private route writes into a fresh run beneath
 locked `uv` Python environment. Source PDFs, transcriptions,
 and review outputs belong in ignored local paths.
 
+### Optional medical reading layer (in development)
+
+FM-MED-01 adds a separate, opt-in reading layer alongside qualified forensic
+methods. Offline upstream import and output-free planning now include
+multi-document bundles, study/comparison reconstruction and four medical
+profiles. Imported findings remain unverified proposals; empty results do not
+imply completed review coverage. Bounded local replay and auditable recovery are
+available; live backends remain explicitly blocked until restrictions are
+qualified. Offline verification, write-once human/source-review attestations and
+private Markdown/Quarto reports and read-only qualified numerical-reference
+handoffs are implemented. WP4 passed its required hosted gates at `83e6252`.
+Offline medical evaluation tooling is implemented: source-bound paired plans, private
+operator-attested reference ledgers, immutable freezing, offline source packets
+and candidate ingestion, metadata-blinded source packets and private candidate
+assessment/adjudication and explicit synthesis accounting are available. Human
+threshold freezing and write-once unblinding passed focused checks. The base-R
+descriptive analysis, canonical source-bound tables and private evaluation
+Markdown/Quarto reports with a separate pending qualification record passed actual
+integration checks. The full-ticket audit, rollback and corrected report visual
+checks are delivered. Final delivered-head CI is tracked separately; live
+operational and held-out medical qualification remain pending. See
+[MEDICAL_REVIEW.md](docs/MEDICAL_REVIEW.md) for implemented contracts and commands
+and [the acceptance map](docs/MEDICAL_REVIEW_ACCEPTANCE.md) plus
+[the complete requirement audit](docs/MEDICAL_REVIEW_REQUIREMENTS.md) for evidence
+and remaining gates.
+The [evaluation guide](docs/MEDICAL_REVIEW_EVALUATION.md) identifies implemented
+planning commands and unfinished evaluation deliverables.
+
 ## Quickstart Reference
 
 ### 1) Preview selected deterministic stages without writing outputs

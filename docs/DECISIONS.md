@@ -1,5 +1,201 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Correct comparison routing and label reconstructed report scopes
+
+- **Routing:** Treat an empty comparison `profile_ids` list as unspecified,
+  equivalent to omitting it. Inherit the plan's selected profiles, including all
+  four supported profiles when the overall design is unresolved. Explicit
+  nonempty comparison profiles retain their scope; `other`, unknown applicability
+  and unsupported-method reporting keep their existing behavior. Test-first
+  regressions reproduced both missing specialist checks and the resulting
+  planned-check refusal before the one-line fallback correction.
+- **Presentation:** Precede reconstructed study fields with their study ID, and
+  comparison fields with their comparison and parent-study IDs. Apply the existing
+  escaping/wrapping formatter to these identities. Keep field values, evidence,
+  context ordering and per-scope unknown summaries intact; JSON identities are
+  unchanged. A failing multi-study/comparison regression preceded the correction.
+- **History:** Existing plans, reports and source records are immutable; these
+  fixes affect newly generated outputs rather than rewriting earlier acceptance
+  evidence. Numerical qualification, INSPECT-SR authority, scientific criteria,
+  dependencies and record/CLI contracts remain unchanged. Live execution stays
+  blocked and medical qualification remains pending.
+- **Delivery:** Prepare one integration branch/PR against `main`, preserving the
+  five original draft PRs and their branch tips. Earlier acceptance at `cca0efa`
+  is historical evidence; the integration commit requires fresh Python, native-R
+  and report receipts and a focused review. Merging requires a separate decision.
+
+## 2026-10-06: Close full-ticket coverage, rollback and evaluation display checks
+
+- **Audit:** `MEDICAL_REVIEW_REQUIREMENTS.md` maps all ticket sections beyond
+  MED-01–MED-27. Existing numerical/INSPECT-SR contracts, the old runner, Python
+  manifests/lock and original R engines remain unchanged from the inspected
+  baseline. Four upstream originals and the immutable ticket match their hashes.
+- **Presentation:** All-page inspection found six clipped identifier labels in
+  the earlier evaluation PDF. A failing regression preceded narrower evaluation
+  wrapping and separate ID/label values. Exact JSON identities are unchanged;
+  the shared appraisal formatter retains its existing default. The corrected
+  actual CLI/R/Quarto suite passed five cases, including every-page text bounds;
+  all 70 synthetic PDF pages were visually inspected.
+- **Rollback:** Two actual drills disable scoped feature code without altering
+  historical data. Finalized synthetic INSPECT-SR histories still render and
+  actual pinned R outputs still qualify through the unchanged adapter.
+- **Required runtimes:** Empty executable search paths cause the actual required
+  R/Quarto tests to fail with zero skips; the acceptance checker rejects both.
+- **Gates:** Source head `3f2a291` passed all hosted lanes and downloaded artifact
+  checks. The correction/rollback revision needs its own delivered-head gates.
+  Live execution remains blocked; real human/source adjudication, criteria and
+  held-out medical qualification remain pending. No promotion or merge occurred.
+
+## 2026-10-06: Bind descriptive evaluation to released sources and every declared attempt
+
+- **Canonical boundary:** Export seven fixed R tables only from a completed, validated condition-release chain. Hash model-selected source versions for source-access comparison; the fuller human assessment bundle cannot make an upstream main-only condition matched. Preserve study units, partitions, profile tags, case-local references, assessment phases and all attempts. Unknown, literal NA, false and zero remain distinct.
+- **Attempt dependence:** Add explicit per-attempt/stage outcomes and retain all declared cross-condition attempt pairs within case/track/planned repetition. Keep the older artifact union separately labeled as a union, never as single-run performance. No best retry selection, independent-finding inference, pooled test or composite score. Failed/blocked/not-started usage remains observable, with unknown totals and currency boundaries intact.
+- **R execution:** Use the reviewed base-R driver and current R source bound to table preparation. Archive code/inputs and register produced outputs/logs, recording actual runtime/interpreter/input/output checksums and duration. No new package, scientific assumption or random calculation. Source/code/runtime drift or missing R retains failure, without publishing an eligible analysis or using a substitute.
+- **Reporting authority:** Build private evidence-linked Markdown and opt-in Quarto reports from the explicit completed analysis. A separate qualification record retains pending medical performance, no default enablement and no official assessment. Human free-text metric rules are not interpreted as executable qualification criteria. Source matching, descriptive execution and operator attestations do not establish live workflow fidelity, equal runtime, credentials, actual blinding or held-out success.
+- **Recovery correction:** A recovery run is already terminal when the plan's recovery-index publication occurs. If index publication fails, preserve that completed run and surface the publication error; do not attempt to rewrite its manifest as failed. This fixes a reproduced terminal-state exception without rewriting the original failed attempt or release receipt.
+
+## 2026-10-06: Separate human threshold approval from write-once condition release
+
+- **Definitions:** Leave the original plan's threshold field null. Freeze separate, explicit human criteria with units, denominator, aggregation, scope and direction. Preserve unknown values and zero. Approval requires the four ticket domains and finite supplied cutoffs; code does not choose scientific cutoffs or interpret free text as executable metric rules. No dependency or existing numerical contract changes.
+- **Authority:** Human identity, qualifications, date and prior blinding are operator attestations. Approval and release do not establish authenticated credentials, actual blinding, complete review coverage, medical performance or an INSPECT-SR judgment. Actual scientific criteria and qualification remain separately authorized human decisions.
+- **Release:** Require approved thresholds and source-adjudicated synthesis from the exact frozen reference/plan lineage. Publish one complete plan-scoped private receipt atomically with exclusive creation. Historical approvals stay readable; newly proposed approvals after release are refused. A different request cannot replace the release.
+- **Recovery:** Preserve raw input, code and parent/archive hashes. If publication succeeds before a later failure, retrying the identical request verifies the original receipt and creates a new recovery record; the failed/interrupted original is preserved. Concurrent publication fails rather than overwrites. The feature remains opt-in; R outcome analysis and qualification reporting remain required.
+
+## 2026-10-06: Require explicit synthesis membership and distinguish missing from empty stages
+
+- **Traceability:** Stage-paired human packets retain original finding content, summary/notes and global numerical caveats, with opaque input/output/attempt scopes. Existing candidate assessments remain unchanged. Group membership is supplied explicitly within one packet/attempt; every input/output item is accounted for and conflicting interpretations are preserved. The program does not infer semantic duplicates or independent evidence from agent agreement.
+- **Availability:** Missing synthesis cannot be treated as observed loss or zero loss. Whole-finding and caveat losses require a supplied, operator-declared completed pair, including when an item's general disposition is unresolved. A supplied empty synthesis can support an explicit human loss judgment, but never reassuring completed review coverage. Reported stage completeness is not an execution or qualified method receipt.
+- **Human judgments:** Record separate primary grouping decisions and adjudication, literal caveat quote anchors, source evidence, error-stage labels, unknown distortion, timing and assessor shortfalls. Literal occurrence is traceability rather than proof of semantic preservation; qualifications, source inspection and blinding remain operator attestations. Stage structure or style can reveal origin.
+- **Recovery and authority:** New private canonical records retain raw/code/parent/source bindings and same-scope immutable supersession. Failed preparation/input drift publishes no completed decision. All numerical/INSPECT-SR authority boundaries remain unchanged; no dependency, scientific threshold or default enablement changes. Threshold adoption, R analysis and medical qualification remain pending.
+
+## 2026-10-06: Separate blinded candidate assessment from medical qualification
+
+- **Source truth and access:** Human assessment packets include all supplied case sources for claim verification and counterevidence, while separately listing the model's source versions. This does not change the common-input model comparison or reinterpret supplement access as better reasoning. Case-local reference labels retain their case namespace.
+- **Blinding scope:** Remove administrative condition/runtime metadata, private benchmark annotations, prompts and finding ID/category/severity/confidence. Preserve substantive claims, caveats, proposed numerical checks and original outputs. Normalize known staged citation paths and consistently pseudonymize source-object IDs. Unmapped paths and stylistic clues remain; effective blinding requires human operational review and is not certified by metadata removal.
+- **Human authority:** Record private, source-linked primary judgments and adjudication, preserving disagreement and exact observation membership. Qualifications, independence, blinding, source inspection and per-view verification/revision times are operator attestations. Unknown timings remain null. Below two primary observations, retain an explicit shortfall; never convert candidate assessments to numerical receipts or INSPECT-SR decisions.
+- **Immutable history:** Explicit same-scope, same-adjudicator, later-date supersession creates a new private canonical run with raw/code/parent/source bindings; predecessors remain unchanged. Empty views retain unavailable coverage. Explicit synthesis loss/distortion accounting, thresholds, R analysis and medical qualification remain separate unfinished deliverables. No package, scientific threshold or default enablement changes.
+
+## 2026-10-06: Keep supplied evaluation candidates distinct from qualified live runs
+
+- **Offline boundary:** Bind candidate inputs to an explicit completed source-packet run. Preserve exact raw outputs, operator-reported runtime/usage, every declared attempt, and unreported packets. Ingestion invokes no backend or search and establishes no source-transmission permission, live execution, upstream-workflow fidelity, or medical performance.
+- **Source resolution:** Resolve exact staged citations through existing canonical evidence identities using only selected source versions. An annotated but unselected supplement cannot become exact evidence. Original bundles and raw model fields remain unchanged; exact anchoring is still a proposed transcription.
+- **Lossless accounting:** Preserve reviewer and synthesis findings independently, including failed/partial attempts. Do not infer semantic deduplication or synthesis membership; these require the later blinded source assessment. Repeated local imports are not independent model observations. Unknown usage remains null and failed-attempt reported costs remain available.
+- **Authority and recovery:** Reject forged model human/official fields and invalid output schemas into preserved failed attempts; no eligible candidate artifact is published. Valid candidates remain human-pending with empty qualified-result IDs and null official assessment. Registered raw/code/parent/source bindings govern reuse. Existing method receipts, INSPECT-SR stores and human workflows are untouched.
+- **Schema-less source leakage:** The upstream output contract has no schema-version field. A test-first regression reproduced staging a complete Reviewer output as an analysis source; reject its recognizable record vocabulary during bounded source privacy preflight, including nested copies. This adds no source-fidelity or arbitrary-prose confidentiality claim.
+- **Remaining:** Blinded candidate assessment/adjudication, pre-unblinding threshold adoption, R analysis and explicit qualification reporting remain engineering work. Clinical qualification needs authorized held-out evaluation and an approved decision.
+
+## 2026-10-06: Keep benchmark answers and unselected context out of source packets
+
+- **Source equivalence:** Stage all declared conditions/tracks/repetitions from a frozen reference ledger, with common manuscript-only input and identical adapted full-bundle source bytes. Preserve main-only upstream as unmatched where appropriate. Opaque packet IDs and the declared seed provide reproducible administrative ordering; execution remains not requested.
+- **Leakage boundary:** Reviewer roots contain exact sources, a minimal source index, and public instructions. Exclude private human/reference records, benchmark evidence annotations, original private paths, document-derived reconstruction and bundle override rationales. Adapted reviewers receive the same public questions/safeguards and reconstruct applicability from staged sources. Original-path aliases and condition/runtime mappings remain in the separate private administrative record; historical bundles and raw outputs are unchanged.
+- **Comparator fidelity:** Retain exact upstream reference files without introducing medical prompts or pretending those originals form a complete executable workflow. Original comparator execution stays blocked until its full pinned workflow, effective runtime and permissions are separately established.
+- **Mislabelled private inputs:** A valid bundle can still point an analysis-output role at a private record. Reject protected source-store locations and recognized private/control schemas in bounded JSON, including copied or nested records, before creating reviewer workspaces. This is a staging privacy floor; arbitrary prose/unknown formats still require operator corpus review and source-specific transmission approval. Existing bundles and historical records remain unchanged.
+- **Mixed aims:** Generic packet questions preserve the plan's declared initial-profile union, including comparison-level aims. A test-first trial-plus-prediction regression caught primary-profile-only narrowing and now protects the prediction module. Profile hints remain distinct from document-derived context or evidence.
+- **Enforcement scope:** Immutable private runs retain request/code/parent lineage and exact inventories. Files are read-only and non-executable; directories are read-only. Explicit byte/file/packet/JSON limits fail rather than truncate or change applicability. Copying drift preserves failure. File modes and a minimal workspace are not proof of a backend sandbox, no-egress enforcement, or successful assessor blinding; live backends remain blocked.
+- **Remaining:** Blinded candidate packets/adjudication, threshold adoption, R analysis, explicit qualification reporting and the full exit audit remain open. Synthetic staging tests establish no medical detection performance or independent human reference truth.
+
+## 2026-10-06: Preserve source-reference adjudication before candidate evaluation
+
+- **Reference boundary:** Add private, operator-attested source-reference inputs and frozen ledgers bound to an explicit completed evaluation plan. Preserve independent observations, disagreements, plausible-but-wrong concerns, unresolved issues and exact canonical evidence. Every assessor observation must have one explicit adjudication disposition; shared quotes do not cause automatic deduplication.
+- **Human limits:** Distinct private identities, domain qualifications, source-byte review and condition blinding are attestations, not authenticated credentials or proof of independence. A single-assessor shortfall requires an explicit reason and remains visible. Existing INSPECT-SR human contracts and stores are unchanged.
+- **Coverage:** Empty reviewed reference scopes retain missing required source groups and never claim universal cleanliness. The ledger bounds the reference universe; it does not establish sensitivity to every possible scientific defect, medical performance or an official assessment.
+- **Storage:** Canonical private runs preserve exact raw input, code and parent-plan manifest binding. Mid-freeze drift retains failed attempts; repeated freezing creates a new attempt. Registered artifact and semantic/source bindings govern reuse. Source/prompt changes require new dependent planning.
+- **Bounded artifacts:** Plan and ledger size guards cover the actual indented JSON, generated record identity and trailing newline. Test-first regressions reproduced both omissions. Refuse oversized output before publishing a completed stage; ordinary plan identities and scientific content remain unchanged.
+- **Remaining:** Model source packets and blinded candidate-adjudication packets, pre-unblinding threshold adoption, R analysis and explicit qualification reporting remain unfinished. No live evaluation or actual human reference adjudication was performed by synthetic acceptance tests.
+
+## 2026-10-06: Freeze evaluation inputs before preparing blinded comparisons
+
+- **Sequence:** WP4 source head `83e6252` passed the required hosted PR and push lanes. Start WP5 on a stacked branch without merging any earlier PR or implying operational/medical acceptance.
+- **Comparison boundary:** Preserve all three conditions. Common-input source access is identical; full-bundle access is identical for the single-reviewer and medical adaptation. The pinned unmodified Reviewer remains explicitly unmatched when main-only access lacks supplied supplements. An unsupported multi-document adapter is refused rather than invented. Runtime equality is declared planning metadata, not an observed or isolated architecture comparison.
+- **Dependence:** Bind declared groups, canonical study/report IDs and exact source bytes across versions/aliases. Prevent development/held-out partition crossings and relabeling analyzed/synthetic cases as held-out. These checks do not establish empirical novelty or independent study relationships.
+- **Authority:** The initial plan/freezing increment preserves raw inputs, prompts/configuration, upstream attribution and code under canonical private runs. No transmission, search, live comparator, assessor decision or threshold is authorized. Threshold adoption and qualification remain unfinished; the strong single-reviewer template uses the same clinical evidence responsibilities rather than a deliberately weak baseline.
+- **Delivery:** The full WP5 still requires blinded packets, source-ledger/adjudication tooling, pre-unblinding threshold adoption, actual R analysis and qualification reporting. Do not equate the planning stage's completion with medical performance evidence.
+
+## 2026-10-06: Reject reassuring coverage with planned source gaps
+
+- **Audit finding:** Routing and imports retain missing required source groups as `required_source_gaps`, while the no-issue validator checked only `unresolved_required_sources`. A simulated completed declaration could therefore pass despite the actual plan's source gap. Existing imports remain unassessed/unverifiable; this gap did not qualify their coverage.
+- **Correction:** Check both fields before accepting `no_issue_identified`. Preserve the legacy field guard and historical artifacts. A real import-to-validator regression keeps the missing-source row, rejects a reassuring declaration, accepts a gap-free positive control and rejects the legacy-gap control without rewriting the imported coverage.
+- **Authority:** This enforces the ticket's existing coverage rule, not a new scientific assumption. Source/evidence identity, numerical qualification and human contracts are unchanged.
+
+## 2026-10-06: Add a byte-verified canonical CRAN fallback for environment preparation
+
+- **Trigger:** Both WP4 hosted runs failed their native/report setup on attempts 1 and 2 with HTTP 429 before executing those tests. Python passed; missing native/report receipts remain failed acceptance. Another unchanged retry is not treated as a solution.
+- **Correction:** Add `cran.r-project.org` as the third explicit source URL for the existing statcheck 1.5.0 and simdistr 1.0.1 archives. Independent retrieval matched the locked SHA-256 values `a7d9f97adfd2409e0facd9bc569ddd3851200e2275b1d089086816179101593f` and `2868bbb369dc07070f22dec1847b36efd8086da0e2e0804f894798fc0591da99`. Versions, hashes, runtime imports and installer behavior remain unchanged.
+- **Boundary:** Existing preparation code still tries each configured URL once, refuses hash mismatches immediately and never overwrites an archive. New regressions exercise the actual lock's URL order after two simulated rate limits, with synthetic bytes. Those regressions test recovery; actual hash verification is a separate recorded download check. Production remains offline and gains no installation or retrieval path. New-head hosted native/report receipts are still required.
+
+## 2026-10-06: Bind original-source navigation to protected versions and report roots
+
+- **Scope:** New private report models include an additive navigation record derived only from their source bundle. Original sources are rechecked for hashes/containment before generating links; unavailable documents never receive a path. The scope/source index and exact evidence references open the original version, preserving source IDs, hashes and locators rather than replacing them with a hyperlink identity.
+- **Paths:** Encoded repo-relative targets resolve from the canonical `<output-root>/<study>/<run>/reports/medical_review` layout, including custom private output depths. The stored root is validated against the actual report run on read. Model-supplied URLs, fuzzy references and unrelated filesystem paths cannot become link targets. No retrieval, execution or transmission is introduced.
+- **Pages and history:** PDF targets use a declared zero-based page index only, converted to one-based navigation. An unknown index or non-PDF source has no invented page target; a link is not visual/source-semantic verification. Historical reports bound to an older renderer may lack navigation and remain readable without rewriting original artifacts. Existing proposal, source, numerical and human identities are unchanged.
+
+## 2026-10-06: Pin verification/editor templates and exercise paired medical safeguards
+
+- **Prompt scope:** Require reviewed counterevidence/editor template hashes alongside the existing module prompts. New plans/replays bind their bytes; tampering or omitted stage provenance fails closed. Templates grant no execution or search permission. Counterevidence remains supplied offline and reports remain deterministic; no editor backend is enabled.
+- **Semantic evidence:** Paired synthetic supplied-response replays cover time-zero alignment, null-crossing/subgroup claims, precise nonsignificance, development versus deployment scope and missing harms ascertainment. A dated SAP amendment/supplement demotes a supplied criticism while the missing-amendment control stays unresolved. These prove routing, identity/history and report behavior, not model detection or medical reasoning.
+- **Presentation:** Display explicit supplied `reporting_gap` groups separately from material concerns and optional improvements, preserving all original categories/proposals and group identities. This is not inferred semantic reclassification. Preserve exact JSON values while wrapping long displayed hashes and separating long field labels/values onto their own paragraphs; actual native-result HTML/PDF retains qualified/unqualified/blocked status and proposed input authority.
+- **Verification boundary:** Real R producers are shared by native and report integration, avoiding fabricated positive receipts. Synthetic CI artifacts are explicitly allowlisted and required. Visual PDF inspection found clipped 64-character hashes despite successful text extraction; a failing regression preceded the display fix. Software checkpoint evidence remains separate from live and medical qualification, and final WP4 acceptance still needs its full audit/hosted gates.
+
+## 2026-10-06: Link existing numerical qualifications without creating new authority
+
+- **Read-only boundary:** Explicit terminal same-study numerical runs provide registered v4 receipts and v2 results. Apply the existing candidate qualifier to the medical bundle's scoped canonical evidence; do not alter routes or write results, receipts, candidates or human judgments. Missing source bindings remain unqualified, partial/failed/blocked coverage stays visible and no handoff supplies review reassurance.
+- **Provenance:** Preserve original proposal/run, source/bundle, numerical manifest, parsed receipt/results and native output hashes. Distinguish native hashes captured at handoff from native files already registered in the original manifest. Archive the existing qualifier/identity code with the medical handoff adapter and request; later artifact/native drift fails closed.
+- **Repeated references:** New passes declare `record_references_unique=true`, keeping identical arithmetic/method identities once while preserving every raw attempt and lineage. Historical passes without that setting keep their original representation. A fresh pass can normalize a historical dossier without rewriting any prior report.
+- **Manual packet:** Include exact numerical and input-review IDs alongside proposal/evidence/human references. Archived older packet fields remain readable; the current renderer requires complete new numerical references. All automatic adoption and official assessment fields remain false/null.
+- **Evidence boundary:** Synthetic native tests execute the pinned R engines; controlled partial/zero-evaluated negative fixtures test contract behavior only. Quarto tests retain proposed-transcription and unqualified-arithmetic labels in actual HTML/PDF. Remaining scenario audit, delivered-head hosted gates and WP5 are still required; no medical performance qualification is claimed.
+
+## 2026-10-06: Preserve verification, human and report authority separately
+
+- **Lineage:** Append counterevidence/arithmetic and report stages as fresh canonical runs bound to the exact parent manifest and original proposal. Preserve raw bytes and reviewed code, including failed attempts. Historical arithmetic is not silently recomputed under changed calculator code; its archived code/contract is checked without executing an arbitrary historical snippet.
+- **Human boundary:** Explicit private operator attestations bind source bytes, locators, rationale and the full original proposal hash. Same-reviewer revisions supersede immutable prior records. Conflicting reviewers are displayed without automatic adjudication. Software validates declarations, not the independence or correctness of human reading.
+- **Numerical inputs:** Keep source-semantic attestation separate from concern disposition and arithmetic execution. Every typed numerical input/semantic assumption needs an exact source binding. Original results retain proposed-transcription status; no arithmetic/input-review sidecar qualifies a method or INSPECT-SR candidate.
+- **Reporting:** Deterministic conservative grouping accounts for every proposal and retains all originals, members, severity/confidence, alternatives and caveats. Source text is escaped before trusted current-run Quarto consumption. Markdown is default; real HTML/PDF are opt-in and retain runtime/log receipts. Compact source/context/coverage summaries coexist with exact JSON and full finding/provenance history. No editor model, new dependency, official judgment or automatic adoption is added.
+- **Partial milestone:** Python, native-R and real report lanes pass locally at this checkpoint. Qualified existing R-result handoffs, remaining scenario audit and WP5 tooling are still required; no full WP4 or medical-performance acceptance is claimed.
+
+## 2026-10-06: Keep bounded arithmetic separate from qualified R evidence
+
+- **Scope:** WP4 begins with counts/percentages, mutually exclusive same-population/timepoint flow, unadjusted binary contrasts and diagnostic 2×2 arithmetic. Existing R engines, method receipts and INSPECT-SR mappings are untouched. Source transcriptions and semantic assumptions remain proposed, regardless of arithmetic correctness.
+- **Contracts:** Exact typed requests bind study/comparison, bundle/evidence, population, horizon, orientation, raw inputs, reported precision/tolerance and calculator code. Results preserve raw requests and explicit 34-digit Decimal precision; qualified-result/candidate eligibility is false. Unknown authority fields and generated-code requests are rejected.
+- **Guards:** Incompatible estimation/population/horizon/orientation/denominators are not comparable. Case-control/unknown-sampling PPV/NPV requires an explicit sourced target-prevalence assumption. Zero cells retain infinite/undefined states without continuity correction. Flow exclusivity remains an evidence-dependent assumption. No inferential-method or clinical threshold is invented.
+- **Partial milestone:** Pure arithmetic tests pass; CLI/storage, verified-input records, qualified-reference handoff, counterevidence, human decisions and Markdown/Quarto reports remain required before WP4 acceptance.
+
+
+## 2026-10-06: Keep live medical execution blocked while delivering bounded replay
+
+- **Authority:** Source-scoped authorization binds exact bundle/source hashes, classifications, provider/backend/model, purpose, tools/search, time validity and a private human approver. Application offline mode wins. Authentication or registry-network permission does not authorize source transmission.
+- **Backend gate:** No live backend has a verified filesystem/tool/egress restriction implementation, so every live request is refused and retained as a blocked attempt. This implements the ticket's explicit blocked-live alternative without an insecure fallback. No prompt-only or staging-only isolation claim is made. A live smoke test and sentinel isolation require a later approved backend.
+- **Replay/recovery:** Run only the trusted offline importer in a bounded child process without inherited provider credentials. Retain exact bytes and canonical import lineage. Every requested attempt and final result is immutable; resume creates a fresh run and requires matching hashes/settings plus valid registered receipts. An interrupted import can be regenerated only as a new explicitly resumed attempt, preserving its earlier manifest/artifacts.
+- **Resources:** Enforce a source-byte cap before replay and a subprocess timeout using the remaining duration allowance. Measure local setup rather than claim it has an OS-level hard deadline. Support one local session and no automatic retries; refuse unsupported settings. Record unknown token/cost values as null and preserve failed coverage. No paid fallback or spend-ceiling claim.
+- **Verification:** Real local CLI/storage/worker tests cover offline precedence, source/runtime/search authorization, malicious instructions retained as data, actual worker timeout, incomplete-stage recovery, unsafe roots/symlinks, missing receipts and changed dependencies. These are engineering evidence, not live isolation or medical-performance evidence.
+
+
+## 2026-10-06: Bind medical planning to evidence, comparison scope and reviewed prompts
+
+- **Reconstruction:** Reported facts, competing interpretations and preferred designs are separate. Each asserted fact/interpretation requires evidence within a reviewed study/report mapping. Comparison context is reconstructed separately and does not inherit a study-level estimand. These are proposed transcriptions/interpretations, not source-semantic verification.
+- **Routing:** Implement four initial profiles and an explicit conservative union for unknown design. Recognized systematic-review/methods scope remains unsupported. Protocol checks state their planned-stage remit. Every scoped check records required source gaps; a comparison cannot borrow a source assigned only to another report. Planned overrides that disappear outside selected catalogue scope fail explicitly.
+- **History/extraction:** Source IDs can have multiple immutable canonical versions with acyclic supersession. Compare dates only at declared precision. Existing pypdf/UTF-8 extraction retains text and original private source references while marking table/reading-order/sign fidelity unsupported or unverified. Text files have no invented page counts; empty PDF pages are extraction limitations.
+- **Prompts/guidance:** Narrowly adapt two pinned Reviewer prompts with exact originals and MIT attribution. Validate every shared/module prompt hash and reject unsafe paths. The plan/context/preflight bind import identity; mid-import code/source/plan drift preserves a failed raw attempt. External reporting packs remain unapproved/unavailable, with no guideline-specific assertions or model-memory reconstruction.
+- **Limits:** No model calls or new dependencies. Planning profiles are implemented, but detection performance, authorized execution, counterevidence/human records and rendered reports require later work packages.
+
+
+## 2026-10-06: Preserve native source pins when a CRAN mirror is rate-limited
+
+- **Trigger:** WP1 hosted native-R and report jobs failed before tests because the existing CRAN source server returned HTTP 429. Their missing receipts correctly failed acceptance; local passes did not waive hosted gates.
+- **Change:** Add the official `cloud.r-project.org` source URL as one explicit fallback for the already pinned statcheck and simdistr archives. Both fallback archives were retrieved and independently matched the existing SHA-256 values. Package versions, hashes, runtime imports, R method behavior and qualification requirements are unchanged.
+- **Boundary:** The environment-preparation helper tries each configured URL once with a 30-second timeout. Transport/unavailability failures may reach the next locked URL; a hash mismatch immediately aborts. Existing destinations are never overwritten. This helper is used only by test-environment setup, never production pipeline execution.
+- **Verification:** Three new regressions failed before implementation and passed after it; they cover a rate-limited primary, identical fallback bytes, immediate hash-mismatch refusal, exhausted sources and preserved destinations. Actual downloads of all three pinned archives passed their hashes locally. Hosted evidence on the corrective head remains required.
+
+
+## 2026-10-06: Keep medical reading imports separate from qualified evidence
+
+- **Scope:** Implement FM-MED-01 inside this repository as an optional feature. The accepted sequence starts with offline import, then adds bundles/profiles, controlled execution, verification/reporting and evaluation readiness. Existing numerical engines, method qualification and INSPECT-SR routes remain unchanged.
+- **Offline boundary:** Preserve exact imported bytes and all finding fields. Pin the inspected upstream schema by SHA-256 because it has no version field. Preserve the upstream MIT notice. Adapter provenance does not establish an imported output's generating revision; absent model/backend/prompt data remains unknown. Unsupported shapes and identity conflicts fail closed.
+- **Identity/storage:** Reuse existing source/evidence and `forensics_run_v3` helpers. Deterministic import identities bind the bundle, exact output bytes, adapter/reused-helper hashes and declared origin. Ignore-protected private roots are mandatory. Sources, completed artifacts and duplicate findings are never overwritten. An explicit 20 MiB JSON limit fails instead of truncating inputs.
+- **Scientific boundary:** Upstream assessments and proposed numeric checks are retained original data. Imported coverage is unavailable, even for `ok` or empty findings. Declared exact-anchor resolution is separate from source transcription/visual verification. No new threshold, scientific method, official judgment or candidate route is introduced.
+- **Delivery gates:** Software acceptance, authorized live operational testing and held-out medical performance qualification are tracked independently. WP1 does not authorize transmission/search or establish medical review performance. Live/human/report features remain pending until their sequential work packages are delivered and checked.
+- **Verification:** Test-first importer cases failed because the new package was absent, then passed after implementation. Exact baseline and final receipts are recorded in `HANDOFF.md`; the acceptance map retains remaining scenario coverage explicitly.
+
+
 ## 2026-09-29: Use the locked Python runtime and record the completed FM-12 gate
 
 - **Runtime decision:** Both shell entrypoints now invoke Python through `uv run --offline --locked python` for manifest operations and category stages. This removes their prior dependence on whichever system `python3` happened to be first on `PATH`. Registry network opt-in remains separate from dependency preparation; package resolution stays offline during execution.

@@ -1,0 +1,15 @@
+Medical prediction responsibilities, version 1
+
+Read shared_evidence.txt and the explicit bounded plan.
+
+prediction.leakage: Check prediction time/horizon, predictor availability, patient/site/time splits and preprocessing within validation.
+
+prediction.performance: Inspect calibration, uncertainty, discrimination and clinical utility separately.
+
+prediction.validation: Describe development and external-validation settings and limits.
+
+prediction.benefit: Distinguish diagnostic, prognostic risk and treatment-benefit prediction.
+
+False-positive safeguards: A development study need not include a deployment trial. High AUROC alone does not establish clinical utility or treatment benefit.
+
+Questions identify responsibilities; they do not require a separate session for each heading. Retain source-specific uncertainty and competing interpretations.

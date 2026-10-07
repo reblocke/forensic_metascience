@@ -1,0 +1,13 @@
+Medical inference responsibilities, version 1
+
+Read shared_evidence.txt and the explicit bounded plan.
+
+inference.effects: Inspect effect scales, intervals, clinical thresholds and noncollapsibility.
+
+inference.subgroups: Require interaction/scale evidence for subgroup differences; distinguish within- and between-study comparisons.
+
+inference.multiplicity: Inspect exploratory status, multiplicity and risk versus effect modeling.
+
+False-positive safeguards: Different null crossings do not prove subgroup differences. Nonsignificance is not equivalence and may be informative when precise. Do not demand post-hoc power.
+
+Questions identify responsibilities; they do not require a separate session for each heading. Retain source-specific uncertainty and competing interpretations.

@@ -10,25 +10,19 @@ mkdir -p "$target_lib"
 export R_LIBS_USER="$target_lib"
 export USE_BUNDLED_LIBUV=1
 
-python3 - "$lock_file" "$download_dir" <<'PY'
-import hashlib
+PYTHONPATH="$repo_root/src${PYTHONPATH:+:$PYTHONPATH}" python3 - "$lock_file" "$download_dir" <<'PY'
 import json
 import pathlib
 import sys
-import urllib.request
+from research_project.method_setup import download_verified_source
 
 lock_path = pathlib.Path(sys.argv[1])
 download_dir = pathlib.Path(sys.argv[2])
 lock = json.loads(lock_path.read_text(encoding="utf-8"))
 for package in lock["packages"]:
-    name = package["name"]
-    archive = download_dir / f"{name}.tar.gz"
-    with urllib.request.urlopen(package["source_url"]) as response:
-        archive.write_bytes(response.read())
-    observed = hashlib.sha256(archive.read_bytes()).hexdigest()
-    if observed != package["sha256"]:
-        raise SystemExit(f"SHA-256 mismatch for {name}: {observed}")
-    print(f"verified {name} {package['version']} sha256={observed}")
+    archive = download_dir / f"{package['name']}.tar.gz"
+    receipt = download_verified_source(package, archive)
+    print(f"verified {receipt['name']} {receipt['version']} sha256={receipt['sha256']} source={receipt['source_url']}")
 PY
 
 runtime_imports="$(python3 -c 'import json,sys; print(",".join(json.load(open(sys.argv[1], encoding="utf-8"))["runtime_imports_preparation_only"]))' "$lock_file")"
