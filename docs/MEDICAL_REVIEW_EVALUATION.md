@@ -1,10 +1,11 @@
 # Medical reviewer evaluation status
 
 Software acceptance, live operational acceptance and medical qualification are
-independent gates. Current status: software in progress; live operational testing
-not authorized or performed; medical qualification pending.
+independent gates. Offline engineering is implemented; software acceptance
+requires the final delivered-head receipts. Live operational testing is not
+authorized or performed; medical qualification is pending.
 
-WP5 is in progress. Offline plan validation/freezing and source-reference ledger
+WP5 offline tooling is implemented. Plan validation/freezing and source-reference ledger
 validation/freezing, minimum-content source packets and offline candidate
 ingestion, metadata-blinded candidate packets and operator-attested candidate
 assessment/adjudication are implemented. Explicit synthesis membership and
@@ -13,11 +14,14 @@ write-once unblinding boundary passed eleven focused tests.
 Canonical source-bound table export and actual base-R descriptive execution are
 implemented. Attempt-level comparisons preserve failed and unreported attempts,
 unknown values and study dependence. Private evidence-linked evaluation reports
-and a separate pending qualification record are being verified; delivered-head
-acceptance and the full requirement/rollback audit remain open.
-Actual source adjudication and live evaluation have not occurred. Before candidate
-evaluation, approve the source corpus, providers/models, transmission/search
-permissions, budgets, domain assessors and performance thresholds.
+and a separate pending qualification record passed five actual integration/guard
+cases. All 70 corrected synthetic PDF pages were visually inspected and their
+text bounds checked. The full section-by-section audit and two rollback cases
+are delivered; final delivered-head acceptance remains separately required.
+Actual source adjudication and live evaluation have not occurred. Before live
+candidate evaluation, approve the source corpus, providers/models,
+transmission/search permissions, budgets and domain assessors. Approve performance
+criteria before unblinding; the software does not choose them.
 
 Compare the adaptation with a strong single-reviewer medical prompt and the
 unmodified pinned Reviewer workflow. Preserve a computational forensic-only
@@ -315,8 +319,9 @@ Preparation is bounded to 1,024 attempts, 4,096 outputs, 20 MiB per JSON and
 128 MiB of retained raw outputs. The actual serialized combined record must fit
 the JSON limit; explicit splitting preserves packet/study identities rather
 than truncating evidence. These are storage/preparation bounds, not model costs.
-The synthesis stage below supplies explicit accounting. Approved thresholds, R analysis,
-qualification reporting and actual held-out performance remain required.
+The following stages implement synthesis accounting, human threshold recording,
+R analysis and pending qualification reporting. Actual scientific approval and
+held-out performance remain separate requirements.
 
 ## Implemented candidate assessment boundary
 
@@ -494,7 +499,8 @@ Workspace and JSON limits match candidate assessment, with streaming copy checks
 and exact read-only inventory validation. All records keep unavailable completed
 review coverage, `medical_performance_validated=false` and
 `official_assessment=null`. Existing INSPECT-SR and numerical contracts remain
-unchanged. R outcome analysis and medical qualification are separate work.
+unchanged. The source-bound R outcome analysis below consumes these records;
+medical qualification remains a separate scientific gate.
 
 ## Human criteria and condition release
 

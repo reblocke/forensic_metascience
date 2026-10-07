@@ -1,5 +1,88 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 Final offline requirement, rollback and visual checkpoint
+
+This section supersedes older incomplete WP5 checkpoint descriptions below.
+WP1–WP5 offline engineering deliverables are implemented and the complete
+ticket is mapped in `MEDICAL_REVIEW_REQUIREMENTS.md` and the 27-scenario matrix.
+Final software acceptance still requires the correction/rollback revision's
+delivered-head Python/native-R/report receipts. Consult draft PR #12 for that
+external gate; do not confuse an earlier head's pass with the latest changes.
+
+Visual inspection of the completed 3f2a291 synthetic report found six clipped
+identifier labels despite passing text/links/render tests. A failing display
+regression preceded narrower evaluation wrapping and separate view/attempt
+ID/label values. Exact JSON identities remain intact and shared appraisal
+formatting retains its existing default. The corrected canonical suite passed
+5 cases in 495.55s, including real CLI, R analysis, Quarto HTML/PDF, source
+links, caveat retention, pending labels and every-page text bounds. All 70 PDF
+pages were visually inspected using `pdftoppm`/Pillow contact sheets plus a
+single-page check. No clipped/overlapping text, missing glyphs or unusable tables
+were observed. This is synthetic report QC, not source-fidelity/medical proof.
+
+The expanded rollback drill passed 2 cases in 4.09s: scoped code/config/prompt/CLI
+disablement preserves every existing data byte and both legacy CLI boundaries;
+finalized two-reviewer/adjudicated synthetic INSPECT-SR history still builds its
+original report. Actual pinned R outputs still qualify through the unchanged
+adapter after the new package is removed, while rounding-bias remains blocked.
+Two required-runtime refusal tests passed in 0.50s: actual required R/Quarto
+tests with an empty executable search path fail (one failure, zero skips each),
+and the acceptance checker rejects both receipts. Twenty existing private report/
+source-navigation compatibility cases passed in 31.17s (2 unrelated native/report
+cases deselected). No production/source papers were analyzed.
+
+Executed reproductions, with prepared dependencies and no installation:
+
+```bash
+FORENSICS_REQUIRE_R_INTEGRATION=1 FORENSICS_REQUIRE_REPORT_INTEGRATION=1 R_LIBS_USER=/tmp/fm-med-r-library PATH=/Applications/quarto/bin/tools:$PATH FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp5-evaluation-report-artifacts-3 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_reporting.py --tb=short --junitxml=/tmp/fm-med-wp5-evaluation-report-layout.xml
+FORENSICS_REQUIRE_R_INTEGRATION=1 R_LIBS_USER=/tmp/fm-med-r-library UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_rollback.py --tb=short --junitxml=/tmp/fm-med-wp5-rollback-final.xml
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_required_runtimes.py --tb=short --junitxml=/tmp/fm-med-wp5-required-runtimes.xml
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_reporting.py tests/medical_review/test_source_navigation.py -m 'not native_r and not report_integration' --tb=short --junitxml=/tmp/fm-med-wp5-report-compatibility.xml
+pdftoppm -r 60 -png /tmp/fm-med-wp5-evaluation-report-artifacts-3/medical-evaluation.pdf reports/diagnostics/medical_evaluation_qc_final/page
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+git diff --check
+```
+
+R library/tool paths above are the prepared local verification environment,
+not production configuration. Use the CI preparation manifests for other hosts.
+Final local JUnit hashes: layout
+`1a5202f8afe40a9b14d25683c3a62890f428e2dae9bebbf087e168c27a42e8c8`,
+rollback `6b059293f97892b48130564570ca44b796dbd384eeec457af588eb83a7ebc36e`,
+required runtimes `b78448b609860f069863ec0bea14fcb66bfcaed620acd944d34364227b33fa4a`,
+compatibility `7a64f151f1385b4570b75091200e4de9b02ddcde9b007399b5e9afb72b1034e0`.
+All have zero failures/errors/skips. The five saved report/model/qualification
+companion hashes were verified. Corrected PDF SHA-256 is
+`cc12a309bb214bf09dbfc346a386d4ab3b480f8da96f56501b9f50e2efb3b0c3`;
+the ignored QC receipt binds all pages and contact-sheet hashes.
+
+Prior source head `3f2a2914404e656a6e0da8db7237955c4c589967` passed PR Actions
+`37556005491` and push `37556001049` in all three lanes. Downloaded PR receipts
+contain 432 Python, 23 native-R and 8 report tests, no failures/errors/skips.
+The actual required-lane checker accepted all receipts/runtime/artifact inputs;
+21 companion artifact hashes match. JUnit hashes are Python
+`bc4b3fa61e10f9c2f28c1e56471c4c22ac178f81bbc8f029e207faa3dab8e7d6`,
+native `31506fb6b3a0d188b271b1063ccbcc08578569aafbf04aba144086dfa2a53367`,
+report `98320dddc939eb1cb693f5c93347823f180a209c2dffcb72dbe1f8a564d28d5a`.
+These are prior-head evidence; the presentation correction must pass separately.
+
+Read-only baseline checks confirmed unchanged `inspect_sr/`, run-manifest helper,
+old manuscript runner, credibility/INSPECT-SR contracts and Python manifests/lock.
+The original R engines/package versions/archive hashes are unchanged; only the
+earlier documented hash-preserving download fallbacks differ. The immutable ticket
+and all four attributed upstream originals match their hashes. Some audit lookups
+used proposed filenames that do not exist; corrected inventory-based reads used
+the actual routing/numeric/handoff and existing test modules. The first rollback
+Ruff pass found long strings; splitting them restored whole-repository clean checks.
+
+Operational/scientific gates remain unestablished: live backend isolation/smoke
+testing, actual pinned executable upstream comparator, real domain source
+adjudication/blinding, human criteria approval and held-out evaluation/promotion.
+The ticket expressly permits blocked live execution and pending qualification
+while offline functionality remains usable. No source transmission/search/model
+run, new dependency, real human disposition/approval, INSPECT-SR write, default
+enablement or merge occurred. All five draft PRs remain open and unmerged.
+
 ## 2026-10-06 WP5 source-bound tables, native analysis and evaluation reports in progress
 
 The full FM-MED-01 goal remains active. This increment adds canonical

@@ -6,6 +6,7 @@ import copy
 import hashlib
 import os
 import subprocess
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -25,8 +26,12 @@ from research_project.medical_review.records import (
     read_json,
 )
 from research_project.medical_review.reporting import (
-    _escaped,
-    _record_lines,
+    _escaped as _base_escaped,
+)
+from research_project.medical_review.reporting import (
+    _record_lines as _base_record_lines,
+)
+from research_project.medical_review.reporting import (
     _source_navigation,
     _table,
 )
@@ -36,6 +41,8 @@ MODEL_PATH = "processed/medical_evaluation/report_model.json"
 QUALIFICATION_PATH = "processed/medical_evaluation/qualification.json"
 REPORTS = "reports/medical_evaluation/"
 TEMPLATE = "notebooks/medical_review_evaluation.qmd"
+_escaped = partial(_base_escaped, wrap_width=16)
+_record_lines = partial(_base_record_lines, wrap_width=16)
 
 
 def _code_sources(repo: Path):
@@ -216,7 +223,16 @@ def _markdown(model: dict[str, Any]) -> str:
     lines.append("### View and attempt labels\n")
     for view in model["source_tables"]["tables"]["views"]:
         lines.append(compact(view))
-    lines.extend(_record_lines({"view_ids": views, "attempt_ids": attempts}))
+    lines.extend(
+        _record_lines(
+            {
+                "view_labels": [{"view_id": key, "label": value} for key, value in views.items()],
+                "attempt_labels": [
+                    {"attempt_id": key, "label": value} for key, value in attempts.items()
+                ],
+            }
+        )
+    )
     lines.append("### Attempt-level finding overview\n")
     lines.append(
         "Detected counts are important reference issue IDs in the bounded source ledger; "

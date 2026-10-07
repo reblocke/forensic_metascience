@@ -17,7 +17,7 @@ filesystem/tool/egress restrictions are not yet qualified. WP4 now adds offline
 counterevidence/arithmetic passes, private human dispositions, numeric source-review
 attestations, read-only qualified R-reference handoffs and Markdown/Quarto reports.
 WP4's requirement audit and required hosted Python/native/report gates passed at
-`83e6252`. WP5 evaluation tooling is in progress: paired plan validation and
+`83e6252`. WP5 offline evaluation tooling is implemented: paired plan validation and
 immutable freezing, operator-attested source-reference ledgers and offline
 minimum-content source packets, offline candidate ingestion, metadata-blinded
 human packets and operator-attested candidate assessment/adjudication are available.
@@ -26,8 +26,10 @@ implemented. Human threshold freezing and write-once unblinding passed focused
 checks. Canonical source-bound table export and native base-R analysis are
 implemented, preserving explicit attempt-level comparisons and unknown usage.
 Private evaluation Markdown/Quarto reports and a separate pending qualification
-record are undergoing integration verification. Delivered-head CI and the full
-requirement/rollback audit remain open.
+record passed real CLI/R/Quarto integration verification. The full
+[requirement audit](MEDICAL_REVIEW_REQUIREMENTS.md), rollback drill and visual
+inspection of all 70 corrected synthetic evaluation PDF pages are complete
+locally. Final delivered-head CI is a separate gate recorded in the handoff/PR.
 See the [evaluation guide](MEDICAL_REVIEW_EVALUATION.md) for the
 separate criteria and release contracts.
 Planning profiles encode review questions;
@@ -240,6 +242,8 @@ or CI uploads.
 ## Acceptance, recovery and rollback
 
 [MEDICAL_REVIEW_ACCEPTANCE.md](MEDICAL_REVIEW_ACCEPTANCE.md) tracks MED-01–27.
+The [complete ticket audit](MEDICAL_REVIEW_REQUIREMENTS.md) maps the other named
+requirements and distinguishes implemented engineering from approval gates.
 Run focused and baseline Python checks with the locked offline environment;
 required native-R and synthetic Quarto lanes establish their own evidence.
 Missing dependencies/skips do not pass a required lane. Mocked model responses
@@ -255,6 +259,13 @@ Rollback disables use of the new CLI and reverts its scoped code/config changes.
 Existing workflows and historical numerical, medical and human records remain
 readable. Preserve the ignored medical stores and import-origin references;
 rollback must not erase an unsuccessful pilot.
+
+`tests/medical_review/test_rollback.py` exercises actual code disablement in an
+isolated synthetic checkout, byte-preserved histories, legacy CLI boundaries,
+finalized INSPECT-SR report reading and actual-R candidate qualification.
+`test_required_runtimes.py` proves required R/Quarto tests fail rather than skip
+when the executable search path contains neither runtime. These negative checks
+complement the mandatory positive real-runtime lanes; they do not replace them.
 
 
 ## Controlled replay and the live gate

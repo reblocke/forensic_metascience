@@ -161,40 +161,49 @@ def _statuses(proposals, verification, history):
     return result
 
 
-def _escaped(value: Any) -> str:
+def _escaped(value: Any, *, wrap_width: int = 32) -> str:
     """Display data without allowing HTML, Markdown, R inline code or Quarto directives."""
     text = (
         value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, sort_keys=True)
     )
     # Break unusually long identifiers for PDF wrapping; exact values remain in the model.
     text = re.sub(
-        r"\S{49,}", lambda m: " ".join(m[0][i : i + 32] for i in range(0, len(m[0]), 32)), text
+        r"\S{49,}",
+        lambda m: " ".join(m[0][i : i + wrap_width] for i in range(0, len(m[0]), wrap_width)),
+        text,
     )
     active = set("&<>`{}$\\[]*_!#|~")
     return "".join(f"&#{ord(c)};" if c in active else c for c in text)
 
 
-def _record_lines(value: Any, prefix: str = "") -> list[str]:
+def _record_lines(value: Any, prefix: str = "", *, wrap_width: int = 32) -> list[str]:
     """Lossless display of all leaf values; original structures remain in the JSON model."""
     if isinstance(value, dict):
         return [
             line
             for key, child in sorted(value.items())
-            for line in _record_lines(child, f"{prefix}.{key}" if prefix else key)
-        ] or [f"**{_escaped(prefix)}:** empty object\n"]
+            for line in _record_lines(
+                child, f"{prefix}.{key}" if prefix else key, wrap_width=wrap_width
+            )
+        ] or [f"**{_escaped(prefix, wrap_width=wrap_width)}:** empty object\n"]
     if isinstance(value, list):
         return [
             line
             for index, child in enumerate(value)
-            for line in _record_lines(child, f"{prefix}[{index}]")
-        ] or [f"**{_escaped(prefix)}:** empty list\n"]
+            for line in _record_lines(child, f"{prefix}[{index}]", wrap_width=wrap_width)
+        ] or [f"**{_escaped(prefix, wrap_width=wrap_width)}:** empty list\n"]
     label = prefix.replace("_", " ").replace(".", " / ")
     display_value = (
         value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, sort_keys=True)
     )
     if len(label) > 60 or any(len(token) > 48 for token in display_value.split()):
-        return [f"**{_escaped(label)}:**\n\n{_escaped(value)}\n"]
-    return [f"**{_escaped(label)}:** {_escaped(value)}\n"]
+        return [
+            f"**{_escaped(label, wrap_width=wrap_width)}:**\n\n"
+            f"{_escaped(value, wrap_width=wrap_width)}\n"
+        ]
+    return [
+        f"**{_escaped(label, wrap_width=wrap_width)}:** {_escaped(value, wrap_width=wrap_width)}\n"
+    ]
 
 
 def _table(headers: list[str], rows: list[list[Any]]) -> list[str]:

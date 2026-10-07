@@ -1,5 +1,27 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Close full-ticket coverage, rollback and evaluation display checks
+
+- **Audit:** `MEDICAL_REVIEW_REQUIREMENTS.md` maps all ticket sections beyond
+  MED-01–MED-27. Existing numerical/INSPECT-SR contracts, the old runner, Python
+  manifests/lock and original R engines remain unchanged from the inspected
+  baseline. Four upstream originals and the immutable ticket match their hashes.
+- **Presentation:** All-page inspection found six clipped identifier labels in
+  the earlier evaluation PDF. A failing regression preceded narrower evaluation
+  wrapping and separate ID/label values. Exact JSON identities are unchanged;
+  the shared appraisal formatter retains its existing default. The corrected
+  actual CLI/R/Quarto suite passed five cases, including every-page text bounds;
+  all 70 synthetic PDF pages were visually inspected.
+- **Rollback:** Two actual drills disable scoped feature code without altering
+  historical data. Finalized synthetic INSPECT-SR histories still render and
+  actual pinned R outputs still qualify through the unchanged adapter.
+- **Required runtimes:** Empty executable search paths cause the actual required
+  R/Quarto tests to fail with zero skips; the acceptance checker rejects both.
+- **Gates:** Source head `3f2a291` passed all hosted lanes and downloaded artifact
+  checks. The correction/rollback revision needs its own delivered-head gates.
+  Live execution remains blocked; real human/source adjudication, criteria and
+  held-out medical qualification remain pending. No promotion or merge occurred.
+
 ## 2026-10-06: Bind descriptive evaluation to released sources and every declared attempt
 
 - **Canonical boundary:** Export seven fixed R tables only from a completed, validated condition-release chain. Hash model-selected source versions for source-access comparison; the fuller human assessment bundle cannot make an upstream main-only condition matched. Preserve study units, partitions, profile tags, case-local references, assessment phases and all attempts. Unknown, literal NA, false and zero remain distinct.

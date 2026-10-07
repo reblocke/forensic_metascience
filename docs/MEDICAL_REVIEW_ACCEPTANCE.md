@@ -1,15 +1,26 @@
 # Medical review acceptance map
 
-This matrix preserves all 27 FM-MED-01 scenarios. Implementation/testing notes
-are partial evidence, not a blanket acceptance result. Software acceptance is
-in progress. Live operational acceptance and medical qualification are pending.
+This matrix preserves all 27 FM-MED-01 scenarios. The
+[full-ticket requirement audit](MEDICAL_REVIEW_REQUIREMENTS.md) covers every
+section and the named engineering deliverables beyond these scenarios. Required
+delivered-head receipts remain the authority for software acceptance. Live
+operational acceptance and medical qualification are pending.
 
 The current WP5 increment integrates released source-bound CSV tables and actual
 base-R attempt-level analysis, plus evidence-linked private evaluation reports
 and a separate pending qualification record. Focused table/storage and real-R
-checks passed; report verification and delivered-head CI are still in progress.
-The final full-ticket requirement/rollback audit has not passed. No real clinical
-corpus, domain credentials, scientific thresholds or live evaluation was used.
+checks passed. Source head `3f2a291` passed PR run `37556005491` and push run
+`37556001049` in all three lanes. Downloaded PR receipts contain 432 Python,
+23 native-R and 8 report tests with zero failures/errors/skips; all 21 companion
+artifact hashes and required runtime files were checked. Visual inspection then
+found clipped evaluation identifier labels despite those passes. The correction
+adds narrower evaluation display wrapping and a real-PDF text-bound regression;
+its canonical suite passed five cases in 495.55s. All 70 corrected PDF pages
+were visually inspected and text bounds checked; all five saved companion
+artifact hashes match. New delivered-head gates remain required. The expanded
+rollback drill passed both legacy/human-history and actual-R qualification cases.
+No real clinical corpus, domain credentials, scientific thresholds or live
+evaluation was used.
 
 WP4's requirement audit and required hosted lanes passed at source head
 `83e6252` in PR run `37519984240` and push run `37519977156` (318 Python,
@@ -29,8 +40,10 @@ were verified. Candidate head `ebd64b4` passed PR run `37539006029` and push run
 and 7 report tests with zero failures/errors/skips. Assessment head `618aec8`
 passed PR run `37543357162` and push run `37543351417` in all lanes. Downloaded
 PR receipts have 405 Python, 14 native-R and 7 report tests, no failures/errors/
-skips, and eight verified medical artifact hashes. Synthesis accounting is the
-next checkpoint and requires its own delivered-head gates.
+skips, and eight verified medical artifact hashes. Subsequent synthesis,
+threshold/release, source-bound table/native analysis and pending qualification
+reporting checkpoints are implemented; the WP5 audit below states their evidence
+and retained operational/scientific limits.
 
 Tests with mocked semantic responses check orchestration and safeguards only.
 Clinical detection performance requires the separately authorized pilot. Every
@@ -43,7 +56,7 @@ in the handoff. A skipped or absent required runtime is not a passing gate.
 | MED-02 | Help and dry-run/plan-only | No model calls, searches, output files, or installs; planning with absent sources is explicitly incomplete | WP1/WP2 | Real CLI help, absent/present-source planning and no-write boundary tested |
 | MED-03 | Valid upstream result imported twice | Exact raw bytes retained; stable identity; no duplicate proposal or false evidence multiplication | WP1 | Lossless byte retention and identical real CLI replay tested |
 | MED-04 | Unknown upstream schema or duplicate ID with changed payload | Explicit rejection/conflict; no silent field loss or overwrite | WP1 | Pinned schema and changed duplicate payload rejection tested |
-| MED-05 | Wrong source hash, fuzzy-only quote, wrong page, ambiguous study map | Evidence unresolved or rejected; no exact-source claim | WP1/WP2 | Wrong quote/page/path, hashes and unreviewed mapping tested; full extraction pending |
+| MED-05 | Wrong source hash, fuzzy-only quote, wrong page, ambiguous study map | Evidence unresolved or rejected; no exact-source claim | WP1/WP2 | Wrong quote/page/path, hashes and unreviewed mapping tested; source-semantic/visual fidelity remains unestablished |
 | MED-06 | Source/SAP/registry corrected after review | New version and invalidated dependent reuse; old review remains historical | WP2/WP3 | Date precision/history and source/bundle revision invalidation tested; live dependency reuse remains blocked |
 | MED-07 | Supplement missing or table unreadable | Relevant check is unverifiable; report states the missing evidence | WP2/WP4 | Missing SAP constrains verification; blank-PDF extraction remains partial; report model retains gaps and preflight limitations |
 | MED-08 | Upstream `ok` with empty findings and no coverage records | Import succeeds; substantive coverage remains unavailable | WP1 | Empty ok import and Markdown report retain unavailable/null coverage; no complete/reassuring review claim |
@@ -65,7 +78,7 @@ in the handoff. A skipped or absent required runtime is not a passing gate.
 | MED-24 | Unsafe output override, symlink escape, public export attempt | Rejected; private logs, excerpts and identities remain inside protected roots | WP1/WP3 | Import/replay private-path controls and public report destination refusal tested; inert imported Markdown/HTML/Quarto content verified |
 | MED-25 | Human confirms/dismisses then revises a proposal | Write-once history, supersession link, evidence and original model provenance retained | WP4 | Write-once operator-attested revisions, original provenance, same-reviewer supersession and changed-context binding tested; no automatic consensus |
 | MED-26 | New medical report exists without finalized INSPECT-SR review | No official judgment or synthesis disposition appears or becomes exportable | WP4/report integration | Private reports/manual adoption packet keep official assessment and synthesis disposition null; actual CLI/HTML/PDF create no INSPECT store |
-| MED-27 | Real R/Quarto dependencies absent in required acceptance lane | Blocked/failed acceptance, never a passing mock substitute | baseline/native/report | WP4 corrective checkpoint local/hosted Python318/native14/report7 passed at 83e6252 with no failures/errors/skips. Earlier hosted setup failures were retained, not waived. New WP5 delivered-head gates remain required |
+| MED-27 | Real R/Quarto dependencies absent in required acceptance lane | Blocked/failed acceptance, never a passing mock substitute | baseline/native/report | `test_required_runtimes.py` actually launches each required test with an empty executable search path: missing R/Quarto causes one failed test with zero skips, and the JUnit gate rejects it. Both refusal cases pass locally. Positive real-runtime acceptance remains a separate mandatory hosted lane; 3f2a291 passed all three lanes, and the corrected final head requires its own receipts |
 
 Offline reproductions:
 
@@ -92,12 +105,13 @@ compatibility. Real report integration checks HTML/PDF hyperlinks as well as tex
 Hosted receipts for
 the delivered revision remain a separate check from local passes.
 
-## WP5 requirement audit in progress
+## WP5 requirement audit
 
-Completed planning, ledger or packet stages are engineering artifacts, not
-completed reviewer runs or a medical performance result. This table preserves
-the remaining work beyond the 27 software scenarios; no pending item is waived
-because live permission has not been granted.
+Completed planning, ledger, packet, descriptive analysis and report stages are
+engineering artifacts, not verified reviewer execution or medical performance.
+This table preserves the evidence and remaining gates beyond the 27 scenarios.
+Blocked live and pending medical qualification are explicit ticket alternatives,
+not inferred operational/scientific acceptance.
 
 | Ticket requirement | Current implementation/evidence | Remaining work or gate |
 |---|---|---|
@@ -105,12 +119,12 @@ because live permission has not been granted.
 | 14: Repeated runs and study dependence | Plans bind declared families, study/report IDs, source hashes and development/held-out partitions. Packets, canonical R tables and attempt-level outputs retain explicit repetition/profile/study units. All declared within-case/track/repetition attempt pairs remain dependent; no best retry or independent-finding inference. Focused real-R comparisons passed. | Delivered-head verification remains required; actual study relationships/novelty require human review. |
 | 14: Source issue ledger before candidate evaluation | Explicit plan-bound source-reference ledgers retain observations, evidence, disagreements, adjudication and plausible-but-wrong/unresolved criticisms. Registered artifact, semantic and source lineage tests exercise real private storage. | Independent domain-qualified human source adjudication has not occurred in synthetic acceptance fixtures. |
 | 9/14: Withhold benchmark answers and human identities from reviewer inputs | Source packets contain exact selected source bytes and public instructions; private reconstruction, evidence annotations and ledger/human metadata remain outside reviewer roots. Protected source locations and recognized private/control JSON records are rejected. | Operator corpus review is still required for arbitrary prose/unknown formats; actual backend filesystem/tool/egress enforcement remains blocked. |
-| 14: Blinded assessment and adjudication of candidate findings | Human packet roots omit administrative condition/runtime metadata and benchmark annotations, retain substantive claims/caveats and full supplied case sources, and separately identify model source access. Private assessments preserve independent observations, source evidence, case-local reference membership, per-view reported human times and explicit supersession. Explicit source/synthesis groups, global caveat contexts, loss/distortion and error-stage judgments passed nine focused cases. Missing stages cannot become caveat losses even on unresolved items. | Metadata removal and operator attestations do not establish actual blinding, human credentials or source fidelity. Synthesis delivered-head gates and R outcome analysis remain required. |
-| 9/14: Candidate provenance, source attribution, attempts and resources | Explicit packet-bound offline candidate imports retain raw input/output/code and parent lineage. Selected-source exact anchors use existing identities; unselected supplement citations stay unresolved. Reviewer/synthesis findings and failed-attempt usage remain separate; unknown measurements stay null. Source-linked human judgments and verification/revision times have an immutable assessment contract. | Supplied runtime/attempt status and human decisions/times are operator-reported, not verified execution or authenticated human performance. R analysis remains required; no synthesis membership or independence is inferred. |
+| 14: Blinded assessment and adjudication of candidate findings | Human packet roots omit administrative condition/runtime metadata and benchmark annotations, retain substantive claims/caveats and full supplied case sources, and separately identify model source access. Private assessments preserve independent observations, source evidence, case-local reference membership, per-view reported human times and explicit supersession. Explicit source/synthesis groups, global caveat contexts, loss/distortion and error-stage judgments passed nine focused cases. Missing stages cannot become caveat losses even on unresolved items. | Metadata removal and operator attestations do not establish actual blinding, human credentials or source fidelity. Actual base-R outcome analysis and 3f2a291 hosted gates passed; the presentation/rollback increment needs its own delivered-head gates. |
+| 9/14: Candidate provenance, source attribution, attempts and resources | Explicit packet-bound offline candidate imports retain raw input/output/code and parent lineage. Selected-source exact anchors use existing identities; unselected supplement citations stay unresolved. Reviewer/synthesis findings and failed-attempt usage remain separate; unknown measurements stay null. Source-linked human judgments and verification/revision times have an immutable assessment contract. | Supplied runtime/attempt status and human decisions/times are operator-reported, not verified execution or authenticated human performance. Source-bound base-R analysis is implemented and passed actual execution tests; no unreported synthesis membership or independence is inferred. |
 | 14: Predeclared thresholds before unblinding | Initial frozen plans leave thresholds unset. Separate human criteria/approvals bind the exact frozen reference. Unblinding requires approved criteria and same-lineage synthesis, with a write-once receipt, serialized approval/release and idempotent recovery. Eleven focused tests passed. | Delivered-head gates remain required. Actual definitions, values, scientific approval and operational blinding remain human responsibilities. |
-| 14: All named evaluation outcomes | Source-bound tables map findings/reference membership, attribution, synthesis loss/distortion/caveats, clean-reference scope, verification/revision times, error stages and every attempt's status/resources. Actual base-R integration and drift refusal passed two cases; expanded R contracts passed five. Runtime/input/output/code/interpreter receipts retain actual descriptive execution, distinct from operator-reported model usage. | Private Markdown/Quarto report verification and delivered-head gates are in progress. Unknown measurements remain null. Supplied model usage/status are not verified live execution. |
-| 12/14/16: Qualification reporting and held-out performance | New private evaluation models and separate qualification records preserve software acceptance as needing separate exact-head evidence, live operations unestablished and medical performance pending. Human criteria remain original data; no automatic interpretation or default enablement. | Complete report verification and full scope audit. Authorized held-out evaluation and an approved promotion decision remain separate scientific gates. |
-| 16: Rollback and reproducible delivery | Existing private runs and historical sources/decisions remain immutable; the feature stays opt-in. | Finish exact delivered-head required lanes and final rollback/handoff audit after all WP5 tooling is implemented. |
+| 14: All named evaluation outcomes | Source-bound tables map findings/reference membership, attribution, synthesis loss/distortion/caveats, clean-reference scope, verification/revision times, error stages and every attempt's status/resources. Actual base-R integration and drift refusal passed two cases; expanded R contracts passed five. Runtime/input/output/code/interpreter receipts retain actual descriptive execution, distinct from operator-reported model usage. | Actual private Markdown/Quarto CLI rendering, evidence links and pending labels passed; the visual identifier-wrapping correction passed five cases, all 70 pages were inspected, and its new hosted checks remain required. Unknown measurements remain null. Supplied model usage/status are not verified live execution. |
+| 12/14/16: Qualification reporting and held-out performance | New private evaluation models and separate qualification records preserve software acceptance as needing separate exact-head evidence, live operations unestablished and medical performance pending. Human criteria remain original data; no automatic interpretation or default enablement. | The full section-by-section audit is delivered; corrected report visual inspection passed; final delivered-head gates remain required. Authorized held-out evaluation and an approved promotion decision remain separate scientific gates. |
+| 16: Rollback and reproducible delivery | Existing private runs and historical sources/decisions remain immutable; the feature stays opt-in. | Two actual rollback cases pass locally, including historical final human-report rendering and actual-R candidate qualification after package removal. Corrected report/visual checks passed; finish exact delivered-head gates and preserve the final handoff. |
 
 ## WP4 requirement audit
 

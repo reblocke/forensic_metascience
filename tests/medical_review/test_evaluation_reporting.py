@@ -18,9 +18,23 @@ from research_project.medical_review.evaluation_reporting import (
     load_evaluation_report,
     render_evaluation,
 )
+from research_project.medical_review.reporting import _escaped, _record_lines
 from research_project.run_manifest import create_run
 
 source = table_tests.source
+
+
+def test_evaluation_display_wraps_long_id_values_and_labels_without_changing_data():
+    value = "assessmentview_" + "a" * 64
+    record = {"view_ids": {value: "V1"}}
+    before = repr(record)
+    lines = _record_lines(record, wrap_width=16)
+    assert value not in unescape("".join(lines))
+    assert "a" * 32 not in unescape("".join(lines))
+    assert "a" * 16 in unescape("".join(lines))
+    assert "V1" in "".join(lines)
+    assert repr(record) == before
+    assert _escaped(value) == _escaped(value, wrap_width=32)
 
 
 def test_text_locators_remain_text_and_only_explicit_pdf_page_indices_add_fragments():
@@ -161,6 +175,15 @@ def test_real_quarto_evaluation_html_pdf_keep_source_links_and_qualification(
     html = (run / "reports/medical_evaluation/evaluation.html").read_text()
     pdf = PdfReader(run / "reports/medical_evaluation/evaluation.pdf")
     text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+    import pdfplumber
+
+    with pdfplumber.open(run / "reports/medical_evaluation/evaluation.pdf") as layout:
+        for index, page in enumerate(layout.pages, 1):
+            for word in page.extract_words():
+                assert word["x0"] >= 70 and word["x1"] <= page.width - 70, (
+                    index,
+                    word,
+                )
     for label in ("Medical qualification: pending", "Source reference ledger"):
         assert label in html and label in text
     assert all(row["href"] in html for row in model["source_navigation"])
