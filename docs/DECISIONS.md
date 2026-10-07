@@ -1,5 +1,12 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Separate human threshold approval from write-once condition release
+
+- **Definitions:** Leave the original plan's threshold field null. Freeze separate, explicit human criteria with units, denominator, aggregation, scope and direction. Preserve unknown values and zero. Approval requires the four ticket domains and finite supplied cutoffs; code does not choose scientific cutoffs or interpret free text as executable metric rules. No dependency or existing numerical contract changes.
+- **Authority:** Human identity, qualifications, date and prior blinding are operator attestations. Approval and release do not establish authenticated credentials, actual blinding, complete review coverage, medical performance or an INSPECT-SR judgment. Actual scientific criteria and qualification remain separately authorized human decisions.
+- **Release:** Require approved thresholds and source-adjudicated synthesis from the exact frozen reference/plan lineage. Publish one complete plan-scoped private receipt atomically with exclusive creation. Historical approvals stay readable; newly proposed approvals after release are refused. A different request cannot replace the release.
+- **Recovery:** Preserve raw input, code and parent/archive hashes. If publication succeeds before a later failure, retrying the identical request verifies the original receipt and creates a new recovery record; the failed/interrupted original is preserved. Concurrent publication fails rather than overwrites. The feature remains opt-in; R outcome analysis and qualification reporting remain required.
+
 ## 2026-10-06: Require explicit synthesis membership and distinguish missing from empty stages
 
 - **Traceability:** Stage-paired human packets retain original finding content, summary/notes and global numerical caveats, with opaque input/output/attempt scopes. Existing candidate assessments remain unchanged. Group membership is supplied explicitly within one packet/attempt; every input/output item is accounted for and conflicting interpretations are preserved. The program does not infer semantic duplicates or independent evidence from agent agreement.

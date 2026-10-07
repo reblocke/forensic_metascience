@@ -1,5 +1,109 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 WP5 threshold governance and descriptive R-core checkpoint
+
+The active goal remains the full FM-MED-01 sequence. This increment adds
+`evaluation_governance.py`, focused tests, and the offline `evaluation-thresholds`
+and `evaluation-unblind` commands. Human-supplied criteria retain definitions,
+units, denominator, aggregation, scope, direction and unknown values; approval
+requires the four ticket domains. Unblinding binds completed thresholds/synthesis
+to the exact frozen reference and preserves a write-once plan-scoped receipt.
+Published-release failures retain their original raw/code/parent archives and
+permit an identical recovery without changing the original attempt.
+Approval/release operations share a persistent plan lock. A separate exclusive
+recovery receipt makes another identical retry return the completed recovery run.
+Original failures and interrupted manifests remain unchanged.
+
+No real human criteria, approvals, credentials or dispositions were supplied.
+Test approval identities/values are explicitly synthetic. No source transmission,
+live model/search run, dependency addition, numerical qualification, INSPECT-SR
+write, default enablement or main merge occurred. R-first outcome analysis,
+qualification reporting and the final requirement/rollback audit remain required.
+
+The pre-implementation command below failed collection with missing
+`evaluation_governance` (exit 2; 0.04s). The first Ruff check found one import-order
+issue; `ruff check --fix` corrected it, and the scoped check passed. Both new CLI
+help commands ran successfully. The initial five integration cases passed in
+602.16s. A focused regression then reproduced `OverflowError: int too large to
+convert to float` (one failure; 0.03s) from an unnecessary conversion in finite
+threshold checking. The fix preserves integers and checks finiteness only for
+floats. Expanded tests passed **11 in 786.05s**, with zero failures/errors/skips,
+including real CLI operation, changed-request refusal, post-publication recovery
+and its idempotent retry, input drift, foreign reference binding, exclusive
+publication and a competing plan-lock transaction. Existing offline/replay CLI
+tests passed **2 in 1.56s**. Whole-repository Ruff check and format check passed
+(108 Python files); `git diff --check` passed.
+
+Added the base-R functional core `R/medical_evaluation.R` and explicit CSV helper
+`scripts/analyze_medical_evaluation.R`, with no new package. Test-first native
+checks failed because the R source was absent (three failures; 0.41s); after
+implementation three passed in 0.53s, then three in 0.56s. Expanded native checks
+passed **4 in 1.16s**: source-case matching, unavailable outputs/unknown totals,
+failed-attempt usage/separate currencies and actual CSV I/O/overwrite refusal.
+Two overlong R fixture-string lines and one import-order issue were corrected;
+lint subsequently passed. A final driver-only variable rename was verified by
+the affected CSV test (**1 passed, 3 deselected; 0.56s**). All native receipts have
+zero failures/errors/skips. Counts describe supplied artifacts, not medically
+qualified performance or every scientific defect.
+
+The R core is not yet integrated into the governed canonical pipeline. In
+particular, current packet-level detection across supplied artifacts can pool
+attempts: the integrated analysis must preserve explicit attempt-level outcomes
+and comparisons, rather than treating this union as a single-run performance
+estimate. Preserve failed-attempt resource accounting and study/repetition
+dependence. Do not choose cutoffs, successful attempts, semantic groups, runtime
+equivalence, or actual-human credentials from missing evidence. The next
+increment must bind exported tables, actual R runtime/code/input/output receipts,
+governed Markdown/Quarto reports and an honest pending qualification record to
+the completed unblinding chain, then finish the full requirement/rollback audit.
+No `evaluation-analyze` command exists yet. This checkpoint does not finish WP5.
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_governance.py
+UV_OFFLINE=1 uv run --offline --locked ruff format src/research_project/medical_review/evaluation_governance.py tests/medical_review/test_evaluation_governance.py scripts/medical_review.py
+UV_OFFLINE=1 uv run --offline --locked ruff check --fix src/research_project/medical_review/evaluation_governance.py
+UV_OFFLINE=1 uv run --offline --locked ruff check src/research_project/medical_review/evaluation_governance.py tests/medical_review/test_evaluation_governance.py scripts/medical_review.py
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_governance.py --junitxml=/tmp/fm-med-wp5-governance-initial.xml
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_governance.py -k finite_integer
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_governance.py -k 'finite_integer or receipt_publication'
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_governance.py --junitxml=/tmp/fm-med-wp5-governance-final.xml
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_importer.py::test_cli_plan_help_and_import_replay_are_real_boundaries tests/medical_review/test_execution.py::test_replay_cli_is_offline_and_blocked_live_returns_nonzero --junitxml=/tmp/fm-med-wp5-governance-existing-cli.xml
+FORENSICS_REQUIRE_R_INTEGRATION=1 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_r.py
+FORENSICS_REQUIRE_R_INTEGRATION=1 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_r.py --tb=short --junitxml=/tmp/fm-med-wp5-r-outcomes-initial.xml
+FORENSICS_REQUIRE_R_INTEGRATION=1 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_r.py --tb=short --junitxml=/tmp/fm-med-wp5-r-outcomes-final.xml
+FORENSICS_REQUIRE_R_INTEGRATION=1 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_r.py --tb=short --junitxml=/tmp/fm-med-wp5-r-outcomes-boundary.xml
+FORENSICS_REQUIRE_R_INTEGRATION=1 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_r.py -k csv_boundary --tb=short --junitxml=/tmp/fm-med-wp5-r-outcomes-boundary-final.xml
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+UV_OFFLINE=1 uv run --offline --locked python scripts/medical_review.py evaluation-thresholds --help
+UV_OFFLINE=1 uv run --offline --locked python scripts/medical_review.py evaluation-unblind --help
+git diff --check
+```
+
+Revalidated the existing synthesis head
+`7539ac60a2376950b79797c16f904dd838088164`: PR Actions run `37546734443` and
+push run `37546729562` both completed successfully with all three required lanes.
+Downloaded the PR artifacts to `/tmp/fm-med-wp5-hosted-753-pr/`, parsed JUnit and
+checked all seven medical report companion hashes against actual downloaded
+bytes. Python: 414 tests, JUnit SHA-256
+`41a46d6c3420bd7e3622be4f02ac331c747e589fd4b4c06dc5d047888130a2d3`;
+native R: 14,
+`5ee196f1c32a8334d639b28cf02c11e98b0b890842dd4a1a56d30e3320f75e2e`;
+report integration: 7,
+`151e9f4d79fcb5b7319a212677b764c4e6503413359d576b561f15073b9cbdcf`.
+All receipts have zero failures, errors and skips. These are prior-head evidence,
+not acceptance of this governance/R-core increment. New delivered-head lanes
+remain required. Draft PR #12 and the earlier draft stack remain open.
+
+
+New local receipt SHA-256 values (parsed JUnit; zero failures/errors/skips):
+
+- Governance initial five: `4053ea67310d23a671c9d49c708b06240cd6df2f0a8cbd2fc82c8b5f43875180`.
+- Governance final eleven: `5437081493306a004e30396e439dde2c48b730a151ef371cbad371c62637afbc`.
+- Existing CLI two: `62b287e3b06752f8a3fb82843b0891ca1aedf0aa5fe0064490556881d0f01266`.
+- Native R expanded four: `0a187ec8c53806ec0a2f983247347797bd9b92f767186037b19a9e29677131c6`.
+- Final affected CSV test: `31cf26e134bb09abb9d85970c55f2eb1ea2007626715cff812c4468237a9f525`.
+
 ## 2026-10-06 WP5 explicit synthesis-accounting checkpoint
 
 The preceding goal turn made concrete progress in `618aec8eb9da242841cd732156479baec7c29227`,

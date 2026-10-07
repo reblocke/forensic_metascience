@@ -22,8 +22,11 @@ immutable freezing, operator-attested source-reference ledgers and offline
 minimum-content source packets, offline candidate ingestion, metadata-blinded
 human packets and operator-attested candidate assessment/adjudication are available.
 Explicit synthesis memberships, caveat/error annotations and loss accounting are
-implemented. Threshold adoption, R analysis and final qualification tooling
-remain unfinished.
+implemented. Human threshold freezing and write-once unblinding passed focused
+checks. The base-R descriptive core passed native tests; canonical analysis and
+final qualification tooling remain unfinished. Delivered-head CI is pending.
+See the [evaluation guide](MEDICAL_REVIEW_EVALUATION.md) for the
+separate criteria and release contracts.
 Planning profiles encode review questions;
 they do not establish live medical detection performance.
 The feature is opt-in. No medical performance qualification is claimed.

@@ -186,8 +186,11 @@ handoffs are implemented. WP4 passed its required hosted gates at `83e6252`.
 Medical evaluation tooling is in progress: source-bound paired plans, private
 operator-attested reference ledgers, immutable freezing, offline source packets
 and candidate ingestion, metadata-blinded source packets and private candidate
-assessment/adjudication and explicit synthesis accounting are available, with
-live and medical qualification pending. See
+assessment/adjudication and explicit synthesis accounting are available. Human
+threshold freezing and write-once unblinding passed focused checks. The base-R
+descriptive helper also passed native checks; canonical analysis and qualification
+reporting remain unfinished. Delivered-head CI, live and medical
+qualification are pending. See
 [MEDICAL_REVIEW.md](docs/MEDICAL_REVIEW.md) for implemented contracts and commands
 and [the acceptance map](docs/MEDICAL_REVIEW_ACCEPTANCE.md) for remaining gates.
 The [evaluation guide](docs/MEDICAL_REVIEW_EVALUATION.md) identifies implemented

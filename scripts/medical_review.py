@@ -30,6 +30,10 @@ from research_project.medical_review.evaluation_assessment import (
     record_assessment,
 )
 from research_project.medical_review.evaluation_candidates import freeze_candidates
+from research_project.medical_review.evaluation_governance import (
+    freeze_thresholds,
+    record_unblinding,
+)
 from research_project.medical_review.evaluation_packets import (
     DEFAULT_PACKET_BYTES,
     DEFAULT_TOTAL_BYTES,
@@ -179,6 +183,17 @@ def parser() -> argparse.ArgumentParser:
     )
     synthesis.add_argument("--packets-run", required=True, type=Path)
     synthesis.add_argument("--input", required=True, type=Path)
+    thresholds = commands.add_parser(
+        "evaluation-thresholds", help="Freeze human-supplied private threshold definitions."
+    )
+    thresholds.add_argument("--reference-run", required=True, type=Path)
+    thresholds.add_argument("--input", required=True, type=Path)
+    unblind = commands.add_parser(
+        "evaluation-unblind", help="Record a write-once private condition release."
+    )
+    unblind.add_argument("--thresholds-run", required=True, type=Path)
+    unblind.add_argument("--synthesis-run", required=True, type=Path)
+    unblind.add_argument("--input", required=True, type=Path)
     return cli
 
 
@@ -300,6 +315,10 @@ def main() -> int:
             print(prepare_synthesis_packets(ROOT, args.assessment_run))
         elif args.operation == "evaluation-synthesis":
             print(record_synthesis(ROOT, args.packets_run, args.input))
+        elif args.operation == "evaluation-thresholds":
+            print(freeze_thresholds(ROOT, args.reference_run, args.input))
+        elif args.operation == "evaluation-unblind":
+            print(record_unblinding(ROOT, args.thresholds_run, args.synthesis_run, args.input))
         return 0
     except (ValueError, OSError, KeyError, TypeError) as error:
         cli.exit(2, f"medical-review: {error}\n")

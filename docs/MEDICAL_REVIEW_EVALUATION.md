@@ -8,8 +8,10 @@ WP5 is in progress. Offline plan validation/freezing and source-reference ledger
 validation/freezing, minimum-content source packets and offline candidate
 ingestion, metadata-blinded candidate packets and operator-attested candidate
 assessment/adjudication are implemented. Explicit synthesis membership and
-loss/distortion accounting are implemented. Threshold adoption, R analysis
-and final qualification tooling remain unfinished.
+loss/distortion accounting are implemented. Human threshold freezing and a
+write-once unblinding boundary passed eleven focused tests.
+The base-R descriptive helper has focused native tests; canonical analysis
+integration and final qualification tooling remain unfinished.
 Actual source adjudication and live evaluation have not occurred. Before candidate
 evaluation, approve the source corpus, providers/models, transmission/search
 permissions, budgets, domain assessors and performance thresholds.
@@ -489,4 +491,97 @@ Workspace and JSON limits match candidate assessment, with streaming copy checks
 and exact read-only inventory validation. All records keep unavailable completed
 review coverage, `medical_performance_validated=false` and
 `official_assessment=null`. Existing INSPECT-SR and numerical contracts remain
-unchanged. Qualification thresholds and R outcome analysis are separate work.
+unchanged. R outcome analysis and medical qualification are separate work.
+
+## Human criteria and condition release
+
+The initial plan's `thresholds` field remains null. A separate immutable
+`medical_evaluation_threshold_input_v1` contains `reference_record_id` (the frozen
+ledger's `ledger_id`), `criteria`, and nullable `approval`. Each criterion has
+`criterion_id`, `domain`, `metric_definition`, `unit`, `denominator`, `aggregation`,
+`scope_description`, `direction`, `threshold_value`, and `rationale`. Domains are
+important_issue_coverage, serious_false_allegations, traceability, and
+human_verification_burden. Direction is at_least or at_most. Values are finite
+numbers or null; zero is preserved. Pending records may leave values unknown.
+At most 128 criteria are accepted. The code neither selects cutoffs nor interprets
+human-written metric/aggregation definitions as executable rules.
+
+Approval requires all four domains, numeric values, and a human record containing
+`decision=approved`, `human_identity`, `domain_qualifications`, a timezone-aware
+`date`, `conditions_not_previously_unblinded=true`, and `rationale`. These are
+operator attestations, not authenticated credentials, independent scientific
+approval, or proof that a person never saw administrative records. Actual
+scientific definitions and values still require authorized human decisions.
+No approval or recommended cutoff is supplied by this implementation.
+
+```bash
+uv run --offline --locked python scripts/medical_review.py evaluation-thresholds \
+  --reference-run data/processed/forensics_runs/private_reviews/EVALUATION_ID/REFERENCE_RUN \
+  --input data/private/medical_reviews/EVALUATION_ID/evaluation/thresholds.json
+uv run --offline --locked python scripts/medical_review.py evaluation-unblind \
+  --thresholds-run data/processed/forensics_runs/private_reviews/EVALUATION_ID/THRESHOLDS_RUN \
+  --synthesis-run data/processed/forensics_runs/private_reviews/EVALUATION_ID/SYNTHESIS_RUN \
+  --input data/private/medical_reviews/EVALUATION_ID/evaluation/unblinding.json
+```
+
+`medical_evaluation_unblinding_input_v1` has `threshold_record_id`,
+`synthesis_record_id`, and `operator` with the human fields above except
+`decision`. Its date cannot precede threshold approval or synthesis adjudication.
+The approved thresholds and completed synthesis assessment must resolve to the
+same frozen reference ledger and plan. Release records retain exact view/condition
+and item/candidate mappings, with medical performance false and official
+assessment null. No model, search, numerical execution, or INSPECT-SR write occurs.
+
+A private plan-scoped receipt is published atomically and exclusively beneath
+`data/private/medical_reviews/EVALUATION_ID/evaluation/governance/unblinded/`.
+New threshold approvals for that plan are refused after release; historical
+approvals remain readable, and pending proposals do not become approvals.
+Approval and release transactions share a persistent plan lock, preventing
+concurrent approval from passing the pre-release check after publication.
+Repeating an identical successful release returns the original run. A different
+request or lineage cannot replace its receipt. If output recording fails after
+publication, the receipt still locks the plan. An identical retry verifies the
+original raw/code/parent/receipt archives and creates a recovery run without
+altering the original failure. Interrupted runs are not declared completed by
+recovery. A separate exclusive recovery receipt binds the first completed
+recovery run, so another identical retry returns it. Both receipts are verified
+against their registered canonical archives. Concurrent publication cannot
+overwrite an existing release.
+
+Inputs, code and parents are archived and checked before publication; malformed,
+drifting or mismatched records fail closed. A release supplies a governed input
+for later outcome analysis; it does not establish complete review coverage,
+held-out performance, or medical qualification. Administrators can still inspect
+private source records outside this workflow, so actual blinding requires the
+evaluation team's operational controls.
+
+## Descriptive R core in development
+
+`R/medical_evaluation.R` implements a functional descriptive core, with
+`scripts/analyze_medical_evaluation.R` as an explicit CSV I/O helper. The helper
+uses base R only and reads seven named tables: views, findings, references,
+matches, synthesis, timings, and attempts. Unknown numeric/boolean data are
+empty CSV fields; literal `NA` identifiers remain text. Existing outputs are
+refused rather than overwritten. Native tests exercise case-local reference
+membership, unknown and absent data, unmatched source access, failed-attempt costs,
+separate currencies and actual CSV I/O.
+
+The core returns per-view/stage source-adjudicated record counts, important
+reference IDs detected in supplied artifacts, explicit synthesis loss/distortion
+and caveat counts, error-stage annotations, reported human times, reported
+attempt resources including failures, and descriptive case/track/repetition
+comparisons. Unknown totals remain unavailable alongside separately labeled sums
+of known values and unknown counts. Repeated references are counted once within
+the same case/artifact scope. Metadata retains study dependence and profile tags;
+no finding becomes an independent experimental unit, inferential test, composite
+quality score, or qualification result. Coverage remains unavailable even when
+the supplied finding list is empty.
+
+These counts describe the supplied artifact set. Multiple attempts/retries can
+increase its opportunity to detect an issue; such a union is not a single-run
+performance estimate. Source matching concerns declared supplied bytes, not
+extraction fidelity or verified equal runtime. The integrated analysis still
+needs explicit attempt-level outcomes/comparisons and traceable source-bound
+tables, runtime/input/code receipts, governed private reports and a pending
+qualification record. There is no `evaluation-analyze` CLI operation yet.
+Standalone helper tests do not complete WP5 or authenticate their input data.
