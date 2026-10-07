@@ -17,6 +17,127 @@ from research_project.medical_review.importer import import_reviewer
 from research_project.medical_review.reporting import build_report_model, render_review
 
 
+def _set_reconstruction_scopes(workspace):
+    _, bundle_path, _, bundle, _ = workspace
+    bundle["studies"].append({"study_id": "second-study", "trial_id": None})
+    bundle["reports"][0]["study_ids"].append("second-study")
+    bundle["comparisons"] = [
+        {
+            "comparison_id": "trial-effect",
+            "study_id": "synthetic",
+            "profile_ids": ["clinical_trial"],
+        },
+        {
+            "comparison_id": "risk-model",
+            "study_id": "synthetic",
+            "profile_ids": ["prediction_model"],
+        },
+        {
+            "comparison_id": "followup-effect",
+            "study_id": "second-study",
+            "profile_ids": ["observational_rwd"],
+        },
+    ]
+    scopes = [
+        ("Study: synthetic", "Study one population", "Study one estimand"),
+        ("Study: second-study", "Study two population", "Study two estimand"),
+        (
+            "Comparison: trial-effect (study: synthetic)",
+            "Trial comparison population",
+            "Trial comparison estimand",
+        ),
+        (
+            "Comparison: risk-model (study: synthetic)",
+            "Prediction comparison population",
+            "Prediction comparison estimand",
+        ),
+        (
+            "Comparison: followup-effect (study: second-study)",
+            "Followup comparison population",
+            "Followup comparison estimand",
+        ),
+    ]
+
+    def fields(population, estimand):
+        return {
+            field: {
+                "reported": {
+                    "status": "known",
+                    "value": value,
+                    "evidence_ids": [bundle["evidence"][0]["evidence_id"]],
+                }
+            }
+            for field, value in (("target_population", population), ("estimand", estimand))
+        }
+
+    bundle["context_fields"] = {
+        row["study_id"]: fields(*scope[1:])
+        for row, scope in zip(bundle["studies"], scopes[:2], strict=True)
+    }
+    bundle["comparison_context_fields"] = {
+        row["comparison_id"]: fields(*scope[1:])
+        for row, scope in zip(bundle["comparisons"], scopes[2:], strict=True)
+    }
+    write_json(bundle_path, bundle)
+    return scopes
+
+
+def _assert_reconstruction_scopes(text, scopes):
+    section = " ".join(text.split()).rsplit("Study reconstruction and unresolved gaps", 1)[1]
+    section = section.split("Upstream qualifications", 1)[0]
+    positions = [section.index(label) for label, _, _ in scopes]
+    assert positions == sorted(positions)
+    for index, (_, population, estimand) in enumerate(scopes):
+        end = positions[index + 1] if index + 1 < len(scopes) else len(section)
+        block = section[positions[index] : end]
+        assert population in block and estimand in block
+        assert "Unknown or not reconstructed" in block
+        for other, (_, other_population, other_estimand) in enumerate(scopes):
+            if other != index:
+                assert other_population not in block and other_estimand not in block
+
+
+def test_reconstruction_keeps_each_study_and_comparison_labeled(workspace):
+    repo, bundle_path, incoming, _, _ = workspace
+    scopes = _set_reconstruction_scopes(workspace)
+    dossier = load_dossier(repo, import_reviewer(repo, bundle_path, incoming))
+    original = copy.deepcopy(dossier["study_context"])
+    model = build_report_model(repo, dossier)
+    _assert_reconstruction_scopes(model["rendered_markdown"], scopes)
+    assert model["study_context"] == original == dossier["study_context"]
+
+
+@pytest.mark.parametrize("kind", ["study", "comparison"])
+@pytest.mark.parametrize("scope_id", ["scope-" + "a" * 58, "scope_<script>{{"])
+def test_scope_labels_escape_and_wrap_ids_without_changing_context(workspace, kind, scope_id):
+    repo, bundle_path, incoming, bundle, _ = workspace
+    _set_reconstruction_scopes(workspace)
+    if kind == "study":
+        bundle["studies"][1]["study_id"] = scope_id
+        bundle["reports"][0]["study_ids"][1] = scope_id
+        bundle["comparisons"][2]["study_id"] = scope_id
+        fields = bundle["context_fields"]
+        fields[scope_id] = fields.pop("second-study")
+    else:
+        bundle["comparisons"][1]["comparison_id"] = scope_id
+        fields = bundle["comparison_context_fields"]
+        fields[scope_id] = fields.pop("risk-model")
+    write_json(bundle_path, bundle)
+    dossier = load_dossier(repo, import_reviewer(repo, bundle_path, incoming))
+    original = copy.deepcopy(dossier["study_context"])
+    model = build_report_model(repo, dossier)
+    section = model["rendered_markdown"].split("## Study reconstruction and unresolved gaps", 1)[1]
+    section = section.split("## Upstream qualifications", 1)[0]
+    if "<script>" in scope_id:
+        assert "<script>" not in section and "{{" not in section
+        assert "&#60;script&#62;" in section and "&#123;&#123;" in section
+    else:
+        assert f"scope-{'a' * 26} {'a' * 32}" in section
+        assert scope_id not in section
+    assert scope_id in json.dumps(model["study_context"])
+    assert model["study_context"] == original == dossier["study_context"]
+
+
 def test_same_observation_groups_all_provenance_but_same_quote_different_issue_survives(workspace):
     repo, bundle_path, incoming, _, upstream = workspace
     first = import_reviewer(repo, bundle_path, incoming)
@@ -336,6 +457,7 @@ def test_medical_current_model_renders_major_concern_and_caveat_html_pdf(
             pytest.fail("Quarto is required for the medical report acceptance lane.")
         pytest.skip("Quarto unavailable; medical report acceptance remains open.")
     repo, bundle_path, incoming, bundle, upstream = workspace
+    scopes = _set_reconstruction_scopes(workspace)
     (repo / "notebooks").mkdir()
     template = Path(__file__).resolve().parents[2] / "notebooks/medical_manuscript_review.qmd"
     shutil.copy(template, repo / "notebooks/medical_manuscript_review.qmd")
@@ -386,6 +508,11 @@ def test_medical_current_model_renders_major_concern_and_caveat_html_pdf(
     pdf = " ".join(
         " ".join(page.extract_text() or "" for page in PdfReader(pdf_path).pages).split()
     )
+    import re
+    from html import unescape
+
+    _assert_reconstruction_scopes(unescape(re.sub(r"<[^>]+>", " ", html)), scopes)
+    _assert_reconstruction_scopes(pdf, scopes)
     for text in ("Major concern", "Critical caveat", "pending", "coverage remains unavailable"):
         assert text in html and text in pdf
     for text in ("proposed_transcription", "qualified method result", "false"):

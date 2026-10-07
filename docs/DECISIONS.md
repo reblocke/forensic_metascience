@@ -1,5 +1,29 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Correct comparison routing and label reconstructed report scopes
+
+- **Routing:** Treat an empty comparison `profile_ids` list as unspecified,
+  equivalent to omitting it. Inherit the plan's selected profiles, including all
+  four supported profiles when the overall design is unresolved. Explicit
+  nonempty comparison profiles retain their scope; `other`, unknown applicability
+  and unsupported-method reporting keep their existing behavior. Test-first
+  regressions reproduced both missing specialist checks and the resulting
+  planned-check refusal before the one-line fallback correction.
+- **Presentation:** Precede reconstructed study fields with their study ID, and
+  comparison fields with their comparison and parent-study IDs. Apply the existing
+  escaping/wrapping formatter to these identities. Keep field values, evidence,
+  context ordering and per-scope unknown summaries intact; JSON identities are
+  unchanged. A failing multi-study/comparison regression preceded the correction.
+- **History:** Existing plans, reports and source records are immutable; these
+  fixes affect newly generated outputs rather than rewriting earlier acceptance
+  evidence. Numerical qualification, INSPECT-SR authority, scientific criteria,
+  dependencies and record/CLI contracts remain unchanged. Live execution stays
+  blocked and medical qualification remains pending.
+- **Delivery:** Prepare one integration branch/PR against `main`, preserving the
+  five original draft PRs and their branch tips. Earlier acceptance at `cca0efa`
+  is historical evidence; the integration commit requires fresh Python, native-R
+  and report receipts and a focused review. Merging requires a separate decision.
+
 ## 2026-10-06: Close full-ticket coverage, rollback and evaluation display checks
 
 - **Audit:** `MEDICAL_REVIEW_REQUIREMENTS.md` maps all ticket sections beyond

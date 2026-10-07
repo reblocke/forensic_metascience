@@ -103,6 +103,79 @@ def test_unknown_classification_is_unresolved_and_does_not_skip_profiles(workspa
     assert not any(c["applicability"] == "not_applicable" for c in plan["checks"])
 
 
+@pytest.mark.parametrize(
+    ("profiles", "required", "excluded"),
+    [
+        (
+            None,
+            {
+                "trial.assignment",
+                "observational.time_zero",
+                "diagnosis.reference_standard",
+                "prediction.leakage",
+            },
+            set(),
+        ),
+        (
+            ["clinical_trial"],
+            {"trial.assignment"},
+            {"observational.time_zero", "diagnosis.reference_standard", "prediction.leakage"},
+        ),
+        (
+            ["clinical_trial", "prediction_model"],
+            {"trial.assignment", "prediction.leakage"},
+            {"observational.time_zero", "diagnosis.reference_standard"},
+        ),
+        (
+            ["other"],
+            {
+                "trial.assignment",
+                "observational.time_zero",
+                "diagnosis.reference_standard",
+                "prediction.leakage",
+            },
+            set(),
+        ),
+    ],
+)
+def test_empty_comparison_profiles_inherit_the_same_scope_as_omitted_profiles(
+    workspace, profiles, required, excluded
+):
+    _, _, _, bundle, _ = workspace
+    bundle["planned_checks"] = []
+    bundle["comparisons"] = [{"comparison_id": "unresolved-aim", "study_id": "synthetic"}]
+    omitted = build_review_plan(bundle, build_study_context(bundle), profiles, ROOT)
+    bundle["comparisons"][0]["profile_ids"] = []
+    empty = build_review_plan(bundle, build_study_context(bundle), profiles, ROOT)
+    assert empty["checks"] == omitted["checks"]
+    assert empty["selected_profiles"] == omitted["selected_profiles"]
+    assert empty["unsupported_profiles"] == omitted["unsupported_profiles"]
+    ids = {row["check_id"] for row in empty["checks"]}
+    assert required <= ids and not excluded.intersection(ids)
+    assert all(row["comparison_id"] == "unresolved-aim" for row in empty["checks"])
+    assert all(row["applicability"] == "unknown" for row in empty["checks"])
+
+
+def test_empty_profile_fallback_does_not_broaden_an_explicit_neighbor(workspace):
+    _, _, _, bundle, _ = workspace
+    bundle["comparisons"] = [
+        {
+            "comparison_id": "trial-effect",
+            "study_id": "synthetic",
+            "profile_ids": ["clinical_trial"],
+        },
+        {"comparison_id": "unspecified-aim", "study_id": "synthetic", "profile_ids": []},
+    ]
+    plan = build_review_plan(
+        bundle, build_study_context(bundle), ["clinical_trial", "prediction_model"], ROOT
+    )
+    trial = {r["check_id"] for r in plan["checks"] if r["comparison_id"] == "trial-effect"}
+    unspecified = {r["check_id"] for r in plan["checks"] if r["comparison_id"] == "unspecified-aim"}
+    assert "trial.assignment" in trial and "prediction.leakage" not in trial
+    assert {"trial.assignment", "prediction.leakage"} <= unspecified
+    assert not {"observational.time_zero", "diagnosis.reference_standard"}.intersection(unspecified)
+
+
 def test_missing_sap_prevents_prespecification_verification(workspace):
     _, _, _, bundle, _ = workspace
     plan = build_review_plan(bundle, build_study_context(bundle), ["clinical_trial"], ROOT)

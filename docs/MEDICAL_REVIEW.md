@@ -147,6 +147,12 @@ Declare `comparisons` with comparison/study IDs, optional report IDs and
 per comparison; it never silently inherits a study-level estimand. A report may
 contain both a trial contrast and a prognostic model. Explicit report scope
 prevents a comparison from borrowing another report's SAP/supplement.
+An empty `profile_ids` list means unspecified, just like an omitted list: it
+inherits the plan's selected profiles rather than disabling specialist checks.
+An unresolved overall design selects all four supported profiles; explicit
+nonempty comparison profiles retain their narrower scope. Rendered reconstruction
+labels every study and every comparison, including the comparison's parent study,
+before its fields and unknown summary. Exact identities remain in the JSON model.
 
 The four initial scopes are clinical_trial, observational_rwd, diagnostic_accuracy
 and prediction_model. Unknown design uses a conservative union; systematic-review

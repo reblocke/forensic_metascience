@@ -62,7 +62,7 @@ def build_review_plan(
         ] or [{"comparison_id": None}]
         for comparison in comparisons:
             comparison_id = comparison["comparison_id"]
-            scope_profiles = comparison.get("profile_ids", selected)
+            scope_profiles = comparison.get("profile_ids") or selected
             scope_unresolved = unresolved or (
                 comparison_id is not None and not comparison.get("profile_ids")
             )

@@ -254,6 +254,13 @@ def _markdown(model: dict[str, Any]) -> str:
             lines.extend(_record_lines({"source_version_id": source["source_version_id"]}))
     lines.append("## Study reconstruction and unresolved gaps\n")
     for scope in [*model["study_context"]["studies"], *model["study_context"]["comparisons"]]:
+        study = _escaped(scope["study_id"])
+        heading = (
+            f"Comparison: {_escaped(scope['comparison_id'])} (study: {study})"
+            if "comparison_id" in scope
+            else f"Study: {study}"
+        )
+        lines.append(f"### {heading}\n")
         unknown = []
         for field, value in sorted(scope["fields"].items()):
             if (

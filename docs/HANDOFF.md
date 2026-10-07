@@ -1,5 +1,75 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 Integration review fixes and merge readiness
+
+The user approved one integration PR against `main`, retaining draft PRs #8–#12
+and their branch history. `codex/medical-review-integration` starts from reviewed
+head `cca0efabee4b94a9ecc056563ee74908b728a56a`. Main was still at
+`b629cab67ac8ee8c705a068ea81f5b849e095a26`. No merge is authorized by this milestone.
+
+Both review findings are corrected. Empty comparison profiles now inherit the
+plan's selected profiles exactly like an omitted list, preserving explicit
+comparison scopes and unsupported/unknown behavior. Reconstruction now labels
+each study and each comparison's parent study before the original fields and
+unknown summary, using the existing escaping and wrapping formatter. No
+dependency, scientific criterion, record schema or CLI argument changed.
+Historical plans/reports and acceptance receipts remain untouched.
+
+Test-first reproduction selected six cases: all six failed before the fixes,
+showing missing specialist checks and missing scope labels. The corrected focused
+suite passed 42 cases in 27.52s, with two unrelated native/report cases deselected.
+This includes four long/active scope-ID cases and mixed explicit/unspecified
+comparison controls. The actual prepared Quarto/R integration case passed in
+11.49s: two studies and three comparisons retain distinct populations/estimands
+in Markdown/HTML/PDF, with original context values, source links, caveats, pending
+labels and authority boundaries intact.
+
+The same independent reviewer completed a focused read-only review with no
+actionable issues. Its no-write checks compared 64 routing combinations against
+the previous implementation and confirmed preserved explicit/unknown/unsupported
+behavior, plus unchanged report values/evidence/order and escaped scope identities.
+The reviewer inspected tests/documentation and syntax/diff checks; it did not rerun
+pytest or Quarto under the read-only review constraint.
+
+All 19 synthetic PDF pages were visually inspected, including individual checks
+of changed reconstruction pages 2–5. No clipped text, overlap or missing glyphs
+was observed. An auxiliary strict margin check found one provenance path extending
+into the margin; the retained `cca0efa` baseline has the same existing field/layout
+limitation. Neither PDF exceeds the physical page boundary, and no new scope label
+exceeds the margins. The first auxiliary check used system Python without
+pdfplumber; it was rerun in the existing locked project environment. No dependency
+was installed. This existing provenance-path layout limitation was not expanded
+into an unrelated formatter change.
+
+Executed local verification (the report artifact destination is shown in its
+equivalent repo-relative form):
+
+```bash
+PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_planning.py tests/medical_review/test_reporting.py -k 'empty_comparison_profiles or empty_profile_fallback or reconstruction_keeps_each' --tb=short --junitxml=/tmp/fm-med-integration-regressions-before.xml
+PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_planning.py tests/medical_review/test_reporting.py -m 'not native_r and not report_integration' --junitxml=/tmp/fm-med-integration-focused-final.xml
+FORENSICS_REQUIRE_R_INTEGRATION=1 FORENSICS_REQUIRE_REPORT_INTEGRATION=1 R_LIBS_USER=/tmp/fm-med-r-library PATH=/Applications/quarto/bin/tools:$PATH FM_TEST_ARTIFACT_DIR=reports/diagnostics/medical_review_integration_local UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_reporting.py::test_medical_current_model_renders_major_concern_and_caveat_html_pdf --tb=short --junitxml=/tmp/fm-med-integration-report.xml
+pdftoppm -r 70 -png reports/diagnostics/medical_review_integration_local/medical-review.pdf reports/diagnostics/medical_review_integration_local/page
+uv run --offline --locked ruff check .
+uv run --offline --locked ruff format --check .
+git diff --check
+```
+
+R/TeX paths identify the existing local verification environment, not production
+configuration. Ruff was clean across all 116 files; diff checks passed. The ignored
+`reports/diagnostics/medical_review_integration_local/` retains local JUnit
+receipts, the four synthetic report/model artifacts with verified companion hashes,
+page images/contact sheets and `visual-qc-receipt.json`.
+
+Final software acceptance must be recorded on the new integration PR against its
+actual final commit: all three hosted lanes, nonempty zero-failure/error/skip JUnit
+receipts, required runtime/report artifacts and matching companion hashes. Finish
+documentation before that gate and record terminal receipts in the PR rather than
+creating a new source revision merely to record CI. Earlier `cca0efa` passes are
+historical and do not clear these review findings. A focused fix review and those
+new receipts are required before marking the integration PR ready for review.
+Live execution remains blocked, medical qualification pending, and the feature
+opt-in. No real source transmission/search, human medical approval or merge occurred.
+
 ## 2026-10-06 Final offline requirement, rollback and visual checkpoint
 
 This section supersedes older incomplete WP5 checkpoint descriptions below.
