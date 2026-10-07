@@ -10,7 +10,7 @@ import pytest
 
 
 @pytest.mark.native_r
-@pytest.mark.parametrize("scenario", ["source", "unknown", "resources", "csv_boundary"])
+@pytest.mark.parametrize("scenario", ["source", "unknown", "resources", "csv_boundary", "attempts"])
 def test_native_descriptive_evaluation_retains_scope_and_unknowns(tmp_path, scenario):
     rscript = shutil.which("Rscript")
     if not rscript:
@@ -27,20 +27,23 @@ views <- data.frame(view_id=c("v1","v2","v3"), packet_id=c("p1","p2","p3"),
   partition="development", profile_ids="clinical_trial", track="common_input",
   condition_id=c("strong_single_reviewer","medical_adaptation","medical_adaptation"),
   repetition=1, source_set_id=c("main","other","main"), input_equivalence="equivalent",
-  reviewer_supplied=c(TRUE,TRUE,TRUE), synthesis_supplied=c(FALSE,TRUE,FALSE))
+  reviewer_supplied=c(TRUE,TRUE,FALSE), synthesis_supplied=c(FALSE,TRUE,FALSE))
 findings <- data.frame(item_id=c("i1","i2"), view_id=c("v1","v1"), case_id="c1",
+  attempt_id=c("a1","a2"),
   stage="reviewer", disposition=c("confirmed_concern","unsupported_criticism"),
   serious_false_allegation=c(FALSE,NA), source_attribution=c("correct","incorrect"))
 references <- data.frame(case_id=c("c1","c2"), reference_id="same-local-id",
   disposition="reference_issue", important=TRUE)
 matches <- data.frame(item_id="i1", case_id="c1", reference_id="same-local-id")
 synthesis <- data.frame(item_id="i1", view_id="v1", stage="reviewer",
+  attempt_id="a1",
   disposition="unavailable", distorted=NA, error_stage="unknown",
   caveats_lost=0, caveats_distorted=0, caveats_unresolved=0)
 timings <- data.frame(view_id="v1", phase="candidate_assessment",
   verification_seconds=NA_real_, revision_seconds=0)
 attempts <- data.frame(packet_id=c("p1","p1","p2"), attempt_id=c("a1","a2","a3"),
   status=c("failed","completed","completed"), elapsed_seconds=c(2,NA,1),
+  reviewer_supplied=TRUE, synthesis_supplied=c(FALSE,FALSE,TRUE),
   input_tokens=c(10,NA,1), output_tokens=c(2,NA,1), total_tokens=c(12,NA,2),
   cost_amount=c(3,NA,5), cost_currency=c("USD","USD","EUR"))
 result <- medical_evaluation_outcomes(views, findings, references, matches,
@@ -48,7 +51,7 @@ result <- medical_evaluation_outcomes(views, findings, references, matches,
 if (args[2] == "source") {
   rows <- result$findings_by_view_stage
   stopifnot(rows$important_reference_detected[rows$view_id=="v1" & rows$stage=="reviewer"]==1,
-    rows$important_reference_detected[rows$view_id=="v3" & rows$stage=="reviewer"]==0)
+    is.na(rows$important_reference_detected[rows$view_id=="v3" & rows$stage=="reviewer"]))
   pair <- result$paired_case_comparisons
   stopifnot(all(pair$comparison_status == "unmatched_source_access"),
     all(is.na(pair$important_detection_difference)))
@@ -65,6 +68,28 @@ if (args[2] == "source") {
   stopifnot(is.na(burden$verification_seconds[1]), burden$verification_known_sum[1]==0,
     burden$verification_unknown_count[1]==1, burden$revision_seconds[1]==0)
   stopifnot(rows$serious_false_unknown[rows$view_id=="v1" & rows$stage=="reviewer"]==1)
+} else if (args[2] == "attempts") {
+  rows <- result$findings_by_attempt_stage
+  stopifnot(nrow(rows)==8,
+    rows$important_reference_detected[rows$attempt_id=="a1" &
+      !is.na(rows$attempt_id) & rows$stage=="reviewer"]==1,
+    rows$important_reference_detected[rows$attempt_id=="a2" &
+      !is.na(rows$attempt_id) & rows$stage=="reviewer"]==0)
+  absent <- rows[is.na(rows$attempt_id),]
+  stopifnot(all(is.na(absent$important_reference_detected)),
+    all(!rows$review_coverage_available))
+  views$source_set_id[2] <- "main"
+  matched <- medical_evaluation_outcomes(views,findings,references,matches,
+    synthesis,timings,attempts)$paired_case_comparisons
+  stopifnot(nrow(matched)==4,
+    all(matched$left_attempt_id %in% c("a1","a2")),
+    all(matched$right_attempt_id=="a3"),
+    all(!matched$independent_experimental_units),
+    sum(matched$comparison_status=="descriptive_matched_sources")==2)
+  wrong <- findings; wrong$attempt_id[1] <- "a3"
+  error <- try(medical_evaluation_outcomes(views,wrong,references,matches,
+    synthesis,timings,attempts),silent=TRUE)
+  stopifnot(inherits(error,"try-error"))
 } else {
   resources <- result$resources_by_packet_currency
   usd <- resources[resources$packet_id=="p1",]

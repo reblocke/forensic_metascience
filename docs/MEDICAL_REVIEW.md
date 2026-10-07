@@ -23,8 +23,11 @@ minimum-content source packets, offline candidate ingestion, metadata-blinded
 human packets and operator-attested candidate assessment/adjudication are available.
 Explicit synthesis memberships, caveat/error annotations and loss accounting are
 implemented. Human threshold freezing and write-once unblinding passed focused
-checks. The base-R descriptive core passed native tests; canonical analysis and
-final qualification tooling remain unfinished. Delivered-head CI is pending.
+checks. Canonical source-bound table export and native base-R analysis are
+implemented, preserving explicit attempt-level comparisons and unknown usage.
+Private evaluation Markdown/Quarto reports and a separate pending qualification
+record are undergoing integration verification. Delivered-head CI and the full
+requirement/rollback audit remain open.
 See the [evaluation guide](MEDICAL_REVIEW_EVALUATION.md) for the
 separate criteria and release contracts.
 Planning profiles encode review questions;

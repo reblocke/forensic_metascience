@@ -25,6 +25,7 @@ from research_project.medical_review.evaluation import (
     freeze_evaluation_plan,
     prepare_evaluation_plan,
 )
+from research_project.medical_review.evaluation_analysis import prepare_analysis_tables
 from research_project.medical_review.evaluation_assessment import (
     prepare_assessment_packets,
     record_assessment,
@@ -34,12 +35,14 @@ from research_project.medical_review.evaluation_governance import (
     freeze_thresholds,
     record_unblinding,
 )
+from research_project.medical_review.evaluation_native_analysis import run_native_analysis
 from research_project.medical_review.evaluation_packets import (
     DEFAULT_PACKET_BYTES,
     DEFAULT_TOTAL_BYTES,
     prepare_source_packets,
 )
 from research_project.medical_review.evaluation_reference import freeze_reference_ledger
+from research_project.medical_review.evaluation_reporting import render_evaluation
 from research_project.medical_review.evaluation_synthesis import (
     prepare_synthesis_packets,
     record_synthesis,
@@ -194,6 +197,20 @@ def parser() -> argparse.ArgumentParser:
     unblind.add_argument("--thresholds-run", required=True, type=Path)
     unblind.add_argument("--synthesis-run", required=True, type=Path)
     unblind.add_argument("--input", required=True, type=Path)
+    tables = commands.add_parser(
+        "evaluation-tables", help="Freeze private R inputs from an explicit completed release."
+    )
+    tables.add_argument("--unblinding-run", required=True, type=Path)
+    analysis = commands.add_parser(
+        "evaluation-analyze", help="Execute source-bound private descriptive tables in base R."
+    )
+    analysis.add_argument("--tables-run", required=True, type=Path)
+    evaluation_report = commands.add_parser(
+        "evaluation-render", help="Render a private evaluation report; qualification stays pending."
+    )
+    evaluation_report.add_argument("--analysis-run", required=True, type=Path)
+    evaluation_report.add_argument("--html", action="store_true")
+    evaluation_report.add_argument("--pdf", action="store_true")
     return cli
 
 
@@ -319,6 +336,12 @@ def main() -> int:
             print(freeze_thresholds(ROOT, args.reference_run, args.input))
         elif args.operation == "evaluation-unblind":
             print(record_unblinding(ROOT, args.thresholds_run, args.synthesis_run, args.input))
+        elif args.operation == "evaluation-tables":
+            print(prepare_analysis_tables(ROOT, args.unblinding_run))
+        elif args.operation == "evaluation-analyze":
+            print(run_native_analysis(ROOT, args.tables_run))
+        elif args.operation == "evaluation-render":
+            print(render_evaluation(ROOT, args.analysis_run, html=args.html, pdf=args.pdf))
         return 0
     except (ValueError, OSError, KeyError, TypeError) as error:
         cli.exit(2, f"medical-review: {error}\n")

@@ -567,11 +567,13 @@ def record_unblinding(
             )
             update_run(manifest, stage="unblinding", status="completed")
             update_run(manifest, status="completed")
-            if recovery_raw is not None:
-                _publish(_recovery_marker(repo, record), recovery_raw)
         except Exception as error:
             update_run(manifest, status="failed", error=str(error))
             raise
+        # Index publication is separate from the completed, immutable run. A
+        # publication error must not attempt to rewrite its terminal manifest.
+        if recovery_raw is not None:
+            _publish(_recovery_marker(repo, record), recovery_raw)
         return run
 
 

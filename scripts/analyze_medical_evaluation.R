@@ -18,7 +18,7 @@ names(tables) <- table_names
 result <- do.call(medical_evaluation_outcomes, tables)
 result$runtime <- data.frame(name = c("schema_version", "r_version", "platform", "base_version",
                                      "inferential_analysis", "medical_performance_validated"),
-  value = c("medical_evaluation_descriptive_tables_v1", R.version.string,
+  value = c("medical_evaluation_descriptive_tables_v2", R.version.string,
     R.version$platform, as.character(packageVersion("base")), "not_performed", "false"))
 targets <- file.path(output_root, paste0(names(result), ".csv"))
 if (any(file.exists(targets))) stop("Analysis output exists; choose a fresh run instead of overwriting.")

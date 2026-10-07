@@ -213,6 +213,45 @@ def test_existing_release_refuses_a_different_request(ready):
         record_unblinding(repo, threshold_run, synthesis, changed)
 
 
+def test_completed_recovery_preserves_its_receipts_when_index_publication_fails(
+    workspace, monkeypatch
+):
+    repo, reference, synthesis, thresholds, base = ready_workspace(workspace)
+    ready = (repo, reference, synthesis, thresholds, base)
+    _, _, path = inputs(ready)
+    original_write = governance._write
+
+    def fail_output(run, manifest, artifact, raw):
+        if artifact == "processed/medical_evaluation/unblinding.json":
+            raise RuntimeError("Synthetic initial publication failure")
+        original_write(run, manifest, artifact, raw)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(governance, "_write", fail_output)
+        with pytest.raises(RuntimeError, match="initial publication"):
+            record_unblinding(repo, thresholds, synthesis, path)
+    before = set((repo / "data/processed").rglob("run_manifest.json"))
+    original_publish = governance._publish
+
+    def fail_index(target, raw):
+        if target.name.endswith(".recovery.json"):
+            raise OSError("Synthetic recovery index publication failure")
+        original_publish(target, raw)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(governance, "_publish", fail_index)
+        with pytest.raises(OSError, match="index publication failure"):
+            record_unblinding(repo, thresholds, synthesis, path)
+    new = set((repo / "data/processed").rglob("run_manifest.json")) - before
+    assert len(new) == 1
+    completed = new.pop()
+    assert json.loads(completed.read_text())["status"] == "completed"
+    assert (
+        load_unblinding(repo, completed.parent)["unblinding"]["medical_performance_validated"]
+        is False
+    )
+
+
 def test_threshold_freeze_preserves_failed_input_drift(ready, monkeypatch):
     repo, reference, _, _, base = ready
     data = threshold_input(reference, approved=False)

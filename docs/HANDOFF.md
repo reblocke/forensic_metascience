@@ -1,5 +1,124 @@
 # Handoff (for multi-session work)
 
+## 2026-10-06 WP5 source-bound tables, native analysis and evaluation reports in progress
+
+The full FM-MED-01 goal remains active. This increment adds canonical
+`evaluation-tables --unblinding-run`, `evaluation-analyze --tables-run` and
+`evaluation-render --analysis-run [--html --pdf]` operations. Seven fixed private
+CSV tables bind the completed threshold/release/reference/source/human chain.
+Actual base-R execution preserves attempt-level outcomes and all declared
+within-case/track/repetition pairs; the retained artifact union is explicitly
+not single-run performance. Model-selected source hashes determine input
+equivalence, independently of full-case source access for human review. Unknown
+values, reported failure resources, separate currencies, study units/profile
+tags, assessment phases and unreported stages remain explicit.
+
+Native execution archives reviewed code and inputs, binds actual runtime/base/
+platform/interpreter/input/output checksums and duration, and refuses source
+drift or missing R. Private evaluation models retain every candidate and human/
+synthesis disposition, groups/caveats, original-source navigation and lineage.
+The Quarto notebook reads an explicit current-run JSON; no numerical recompute or
+latest-run discovery occurs. Separate qualification stays pending; free-text
+human criteria are not automatically interpreted, and no live execution,
+credentials, actual blinding, held-out success or default enablement is inferred.
+
+Fixed a reproduced recovery-index publication bug: the original handler tried
+to fail an already completed recovery manifest, masking the OSError with a
+terminal-state ValueError. The regression failed in 209.06s, then passed in
+292.79s after moving index publication outside the mutable-attempt handler.
+Original failures and the completed recovery remain unchanged/readable.
+
+Verification already completed (zero failures/errors/skips for final receipts):
+
+- Source-bound table/storage tests: 3 passed in 391.24s.
+- Actual table CLI / unauthorized search flag: 1 passed, 3 deselected in 330.19s.
+- Actual native R execution / post-execution code drift: 2 passed in 437.40s.
+- Expanded base-R contracts including explicit attempt comparisons: 5 passed in 1.48s.
+- Actual analysis CLI / unauthorized model flag: 1 passed, 2 deselected in 392.03s.
+- Existing real offline import/replay/help/live-refusal CLI boundaries: 2 passed in 1.61s.
+- Explicit textual locator/PDF-page and renderer-timeout log/artifact guards: 2 passed, 2 deselected in 0.06s.
+- Whole-repository Ruff check/format and diff check passed (114 Python files).
+
+Test-first collection for table/native/report modules failed while those modules
+were absent; these are red-phase evidence, not passing runtime tests. The new
+report module's first Ruff check found one overlong string; it was split and the
+whole check passed. The first report integration run failed both cases in
+425.83s because source locators are text, not dictionaries. The focused regression
+reproduced that error, then passed after source links used the separately declared
+page index and only PDF sources received fragments. Human textual locators do not
+invent page numbers. A new timeout guard preserves partial Quarto stdout/stderr
+and produced artifacts before failure; its first fixture used a string where the
+existing helper requires a Path, corrected before the implementation. The focused
+guard run passed. The corrected integration run completed 3 passing cases and
+one failed presentation assertion in 546.21s: Markdown escapes underscores, so
+semantic text assertions now decode entities. Actual HTML/PDF CLI rendering,
+source links/annotations and pending qualification passed in that run. Its
+initial fully expanded PDF was 227 pages for the synthetic case, exposing an
+unusable presentation. Compact metrics, local display labels, a finding overview
+and selected human-readable finding/provenance fields now reduce the formatting
+preview to 69 pages; all complete original records remain in the linked model.
+Critical caveats and every candidate retain individual accounting. The preview
+is explicitly a synthetic formatting preview, not a completed canonical run or
+acceptance receipt. `pdftoppm` and bundled Pillow are available for visual QC;
+bundled PyMuPDF is absent, and no dependency was added. Actual private
+Markdown/Quarto HTML/PDF tests are now running
+with synthetic artifact retention; preserve their handles and inspect terminal evidence
+before editing source closures. Delivered-head CI and the full requirements/
+rollback audit remain required. Do not claim this checkpoint finishes WP5.
+
+```bash
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_governance.py -k completed_recovery --tb=short --junitxml=/tmp/fm-med-wp5-recovery-index-final.xml
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_tables.py --tb=short --junitxml=/tmp/fm-med-wp5-tables-initial.xml
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_tables.py -k table_cli --tb=short --junitxml=/tmp/fm-med-wp5-tables-cli.xml
+FORENSICS_REQUIRE_R_INTEGRATION=1 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_native_analysis.py --tb=short --junitxml=/tmp/fm-med-wp5-native-analysis-initial.xml
+FORENSICS_REQUIRE_R_INTEGRATION=1 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_native_analysis.py -k actual_analysis_cli --tb=short --junitxml=/tmp/fm-med-wp5-analysis-cli.xml
+FORENSICS_REQUIRE_R_INTEGRATION=1 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_r.py --tb=short --junitxml=/tmp/fm-med-wp5-r-attempts-final.xml
+FORENSICS_REQUIRE_R_INTEGRATION=1 FORENSICS_REQUIRE_REPORT_INTEGRATION=1 R_LIBS_USER=/tmp/fm-med-r-library PATH=/Applications/quarto/bin/tools:$PATH UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_reporting.py --tb=short --junitxml=/tmp/fm-med-wp5-evaluation-report-initial.xml
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_reporting.py -k 'text_locators or render_timeout' --tb=short --junitxml=/tmp/fm-med-wp5-evaluation-report-guards.xml
+UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_importer.py::test_cli_plan_help_and_import_replay_are_real_boundaries tests/medical_review/test_execution.py::test_replay_cli_is_offline_and_blocked_live_returns_nonzero --tb=short --junitxml=/tmp/fm-med-wp5-analysis-existing-cli.xml
+FORENSICS_REQUIRE_R_INTEGRATION=1 FORENSICS_REQUIRE_REPORT_INTEGRATION=1 R_LIBS_USER=/tmp/fm-med-r-library PATH=/Applications/quarto/bin/tools:$PATH FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp5-evaluation-report-artifacts-1 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_reporting.py --tb=short --junitxml=/tmp/fm-med-wp5-evaluation-report-final.xml
+FORENSICS_REQUIRE_R_INTEGRATION=1 FORENSICS_REQUIRE_REPORT_INTEGRATION=1 R_LIBS_USER=/tmp/fm-med-r-library PATH=/Applications/quarto/bin/tools:$PATH FM_TEST_ARTIFACT_DIR=/tmp/fm-med-wp5-evaluation-report-artifacts-2 UV_OFFLINE=1 PYTHONPATH=src uv run --offline --locked pytest -q -o addopts='' tests/medical_review/test_evaluation_reporting.py --tb=short --junitxml=/tmp/fm-med-wp5-evaluation-report-compact.xml
+UV_OFFLINE=1 uv run --offline --locked ruff check .
+UV_OFFLINE=1 uv run --offline --locked ruff format . --check
+git diff --check
+```
+
+Revalidated the prior delivered head `dd10869a4856e980cec952fae4623edfb3b3ae5c`:
+PR Actions run `37550507631` and push run `37550503574` completed successfully in
+all three required lanes. Downloaded PR JUnit receipts under
+`/tmp/fm-med-wp5-hosted-dd1-pr/` contain 425 Python, 18 native-R and 7 report tests,
+all with zero failures/errors/skips. Their SHA-256 values are respectively
+`09e81bfbaaeba17c5220888a07e350b03e1ab218dc8e0226d96eec87007d4bba`,
+`4c9021cd6fb8af85833fd87db9dfd7de115d2d683c7ab35ec3713a2ad76eba26`,
+`6c5cb8466ec316f75bc9d9abcbcb6c72c0b13451905ee8c1bbb328d4ef462dfe`.
+All seven medical report companion hashes were checked against downloaded bytes.
+These are prior-head receipts, not acceptance of the current increment.
+
+The report CI lane now explicitly selects the evaluation report test and requires
+its synthetic Markdown/HTML/PDF/model/qualification artifacts. The existing
+synthetic allowlist preserves each with a companion checksum. PyYAML was absent
+for a local workflow-structure check; no dependency was added. Ruby's installed
+standard YAML reader successfully parsed all three jobs. A baseline diff against
+the ticket's inspected revision found no change to `inspect_sr/adapters.py`, the
+old manuscript runner, run-manifest helper, INSPECT-SR contracts or credibility
+criteria. The pinned R lock's only changes remain documented, hash-preserving
+source-download fallbacks from the earlier hosted setup correction.
+
+Final local JUnit checksums (parsed counts above; no failures/errors/skips):
+
+- Recovery index: `5389b270d917e0ac25a861954aa9bf1fbe0f95d403649bfda9795228566b5309`.
+- Table/storage initial three: `8d175c1faca943dc3329f4d851b7975d8e15a037aac0493e64a77f6e3fe3764e`.
+- Table CLI: `816ec4df682eaeebdb4b452009d3c127a43339906a737a4e37c72ab53682b189`.
+- Native analysis initial two: `fdeaddd04ee16f8f3ed19fe16e560bfc34500bab8e31e8ac034694f86da88160`.
+- R contracts five: `5fc324a723c5b5bc224c4d985a3d91dd41d6d332ac30597eae3b1dce6e12d126`.
+- Actual analysis CLI: `06e2c58554a23c990a812a8f100db1364d9f9822fa1dc4774ef21e197124525b`.
+- Existing CLI two: `d0d5aa6f5e1a446ea2feb76a8eaa3c5952ca3652e436048a85da9a5527a76dbd`.
+- Report guards two: `64e294569291e538582f16af13ffe7392a668b3e38f3ac83416eeeae69e224bd`.
+
+No real human criteria/approvals/dispositions, source transmission, model/search
+run, dependency addition, method qualification, INSPECT-SR write, default
+enablement or main merge occurred. Draft PR #12 and earlier draft stack stay open.
+
 ## 2026-10-06 WP5 threshold governance and descriptive R-core checkpoint
 
 The active goal remains the full FM-MED-01 sequence. This increment adds

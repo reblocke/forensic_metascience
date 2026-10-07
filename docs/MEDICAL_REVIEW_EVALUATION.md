@@ -10,8 +10,11 @@ ingestion, metadata-blinded candidate packets and operator-attested candidate
 assessment/adjudication are implemented. Explicit synthesis membership and
 loss/distortion accounting are implemented. Human threshold freezing and a
 write-once unblinding boundary passed eleven focused tests.
-The base-R descriptive helper has focused native tests; canonical analysis
-integration and final qualification tooling remain unfinished.
+Canonical source-bound table export and actual base-R descriptive execution are
+implemented. Attempt-level comparisons preserve failed and unreported attempts,
+unknown values and study dependence. Private evidence-linked evaluation reports
+and a separate pending qualification record are being verified; delivered-head
+acceptance and the full requirement/rollback audit remain open.
 Actual source adjudication and live evaluation have not occurred. Before candidate
 evaluation, approve the source corpus, providers/models, transmission/search
 permissions, budgets, domain assessors and performance thresholds.
@@ -555,7 +558,7 @@ held-out performance, or medical qualification. Administrators can still inspect
 private source records outside this workflow, so actual blinding requires the
 evaluation team's operational controls.
 
-## Descriptive R core in development
+## Source-bound descriptive R analysis
 
 `R/medical_evaluation.R` implements a functional descriptive core, with
 `scripts/analyze_medical_evaluation.R` as an explicit CSV I/O helper. The helper
@@ -566,7 +569,7 @@ refused rather than overwritten. Native tests exercise case-local reference
 membership, unknown and absent data, unmatched source access, failed-attempt costs,
 separate currencies and actual CSV I/O.
 
-The core returns per-view/stage source-adjudicated record counts, important
+The core returns per-attempt/stage source-adjudicated record counts, important
 reference IDs detected in supplied artifacts, explicit synthesis loss/distortion
 and caveat counts, error-stage annotations, reported human times, reported
 attempt resources including failures, and descriptive case/track/repetition
@@ -577,11 +580,56 @@ no finding becomes an independent experimental unit, inferential test, composite
 quality score, or qualification result. Coverage remains unavailable even when
 the supplied finding list is empty.
 
-These counts describe the supplied artifact set. Multiple attempts/retries can
-increase its opportunity to detect an issue; such a union is not a single-run
-performance estimate. Source matching concerns declared supplied bytes, not
-extraction fidelity or verified equal runtime. The integrated analysis still
-needs explicit attempt-level outcomes/comparisons and traceable source-bound
-tables, runtime/input/code receipts, governed private reports and a pending
-qualification record. There is no `evaluation-analyze` CLI operation yet.
-Standalone helper tests do not complete WP5 or authenticate their input data.
+The retained per-view/stage union is explicitly labeled
+`supplied_artifact_union_not_single_run`. Primary descriptive comparisons retain
+every declared attempt pair within the same case, track and planned repetition;
+they do not pick the best retry or treat pairs/findings as independent units.
+Missing stages retain unavailable measurements. `not_started` is a legitimate
+reported attempt state. Source matching uses the model packet's selected source
+versions, not the fuller human assessment bundle. Equal source hashes do not
+establish extraction fidelity or verified runtime equality.
+
+```bash
+uv run --offline --locked python scripts/medical_review.py evaluation-tables \
+  --unblinding-run data/processed/forensics_runs/private_reviews/EVALUATION_ID/RELEASE_RUN
+uv run --offline --locked python scripts/medical_review.py evaluation-analyze \
+  --tables-run data/processed/forensics_runs/private_reviews/EVALUATION_ID/TABLES_RUN
+uv run --offline --locked python scripts/medical_review.py evaluation-render \
+  --analysis-run data/processed/forensics_runs/private_reviews/EVALUATION_ID/ANALYSIS_RUN \
+  --html --pdf
+```
+
+Replace these placeholders with explicit completed run paths; there is no
+latest-run discovery. Each operation creates a new canonical private run.
+`evaluation-tables` publishes `medical_evaluation_analysis_tables_v2` and the
+seven fixed CSV tables, retaining provenance, case-local reference IDs, study
+units/profile tags, complete source-reference scope, candidate/synthesis human
+assessment phases and all attempt usage. Literal `NA` identifiers, unknown,
+false and zero remain distinct. CSV and JSON size limits fail rather than
+truncate. Failed exports retain archives but cannot load as completed tables.
+
+`evaluation-analyze` invokes the reviewed base-R driver, not model-generated code
+or arbitrary archived code selected by an input. Its R source must still match
+the code archived at table preparation. `medical_evaluation_native_analysis_v2`
+binds the table/plan/reference/threshold/unblinding identities to eight actual R
+outputs, with runtime schema `medical_evaluation_descriptive_tables_v2`.
+The native receipt records actual R/base/platform versions, interpreter checksum,
+input/output checksums, elapsed execution time and a 120-second execution timeout.
+Descriptive transforms use no random draws; the plan's administrative seed is
+retained separately. Failed execution and dependency drift preserve produced
+outputs/logs without publishing an eligible analysis. Missing R is blocked,
+never replaced by a mock. Loaders check lineage and recorded bytes without
+executing historical archived scripts.
+
+`evaluation-render` writes `medical_evaluation_report_model_v1`, a separate
+`medical_evaluation_qualification_v1`, private Markdown and opt-in Quarto HTML/PDF.
+The versioned notebook reads one explicit current-run model path and performs
+formatting only. Reports preserve original-source navigation, reference scope,
+every candidate/human/synthesis disposition, groups, critical caveats, attempts,
+unknown resources and failed execution. Data are escaped against active Markdown,
+HTML, R and Quarto instructions. The renderer archives code/template and checks
+the completed analysis again before publication. Human thresholds remain data:
+free-text definitions and aggregation rules are not automatically interpreted.
+No cutoff, clinical credential, actual blinding, live execution or held-out
+success is inferred. Software acceptance requires separate exact-head evidence;
+live operational and medical performance qualification remain pending.
