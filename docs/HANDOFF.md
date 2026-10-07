@@ -33,6 +33,12 @@ walkthrough and all previous branch/PR history; no merge was performed.
   13); no clipping or overlap was observed. New CI verifies the final model again.
 - Ruff check, Ruff format check and `git diff --check` passed. No real provider/model
   execution, study transmission, medical adjudication or medical qualification ran.
+- Initial PR CI run 37657166909 passed 477 Python, 24 native-R and 9 report tests,
+  with zero failures/skips and 25 verified companion hashes. The parallel push
+  exposed a crash-recovery test race: credential removal happens just before
+  guardian exit releases its lock. The test now waits for actual lock release
+  within its original deadline; controller behavior and qualification policy are
+  unchanged. Fresh receipts on the corrected final commit remain required.
 
 Reproduction (operator supplies the local model catalogue):
 

@@ -199,8 +199,17 @@ def test_controller_crash_kills_orphan_and_releases_lock_after_cleanup(tmp_path)
         while cleanup.exists():
             assert time.monotonic() < deadline
             time.sleep(0.01)
-        with session_lock(lock):
-            pass
+        # Removing credentials precedes guardian exit and closing its lock FD.
+        # Observe actual lock release rather than assuming both occur atomically.
+        while True:
+            assert time.monotonic() < deadline
+            try:
+                with session_lock(lock):
+                    pass
+                break
+            except ValueError:
+                assert time.monotonic() < deadline
+                time.sleep(0.01)
         time.sleep(1.1)
         assert not (tmp_path / "escaped-after-crash").exists()
     finally:
