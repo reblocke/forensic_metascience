@@ -1,5 +1,74 @@
 # Handoff (for multi-session work)
 
+## 2026-10-07 Merge completed and development intake checkpoint
+
+The user explicitly authorized merging PR #13 and proceeding. GitHub reports
+it merged at `2026-10-07T07:03:59Z`, with merge commit
+`a26c2f4e45734861618d7f1bf53ec6d1eefb4ff4`. Local `main` fast-forwarded to the
+same commit as `origin/main`; its tree matches the verified integration head
+`0f3f8a0b6967ef4c02d47b03416a4b110ee4e7e3`. All five original branch tips and
+the integration branch were retained. GitHub automatically marked ancestor PR #8
+merged two seconds after #13; #9–#12 remain open drafts. Fresh main CI is
+[run 37585070132](https://github.com/reblocke/forensic_metascience/actions/runs/37585070132);
+its terminal receipts are retained separately once available, rather than
+repeatedly creating documentation commits to record CI.
+
+The next branch, `codex/medical-review-development-walkthrough`, records operator
+instructions and this checkpoint. Production code/configuration are unchanged.
+The selected CRASH-3 case is development data, ineligible for untouched held-out
+qualification. The ignored `data/private/medical_reviews/crash3-development/`
+contains the real bundle, original XML snapshots, cloud metadata, four supplied
+source representations and parsed evidence. Separate DOI-derived report IDs
+identify the main publication, 2012 protocol and revised analysis plan.
+
+Direct PDF requests returned 403; the discontinued PMC OA API returned 404.
+These attempts remain recorded. NLM's current supported cloud dataset supplied
+licensed manuscript text, supplement, protocol PDF and version-2 analysis-plan
+PDF. All four match metadata MD5 checksums and recorded SHA-256 hashes. The
+publisher manuscript PDF, later protocol v2.2 and registry snapshot/history are
+explicitly unavailable. Correction searching was not performed.
+
+Bounded `pdf-inspector==0.2.6` routing passed for all 39 PDF pages. Five selected
+pages were rendered and visually inspected: supplement 2/7, protocol 9, SAP 3/4.
+Table flattening and multi-column extraction remain semantic limitations. The
+supplement's sparse final page is a genuine abbreviation-only continuation.
+Eight source-reported reconstruction fields are evidence-linked to inspected
+SAP pages; independent human semantic verification remains pending. Other
+reconstruction fields stay unknown.
+
+The actual offline CLI plan ran twice with identical output: 23 comparison-scoped
+checks, zero model calls, unexecuted coverage and `status=incomplete`. The supplied
+roles satisfy the plan's role groups; this does not certify amendment completeness,
+registry history or source fidelity. There is no compatible Reviewer output here,
+so no import, model execution, verification/adjudication or standard medical-review
+report was fabricated. The local readiness report is explicitly intake/planning
+only. Its actual render/QC and hash receipts are retained with the diagnostics.
+HTML and four-page PDF renders succeeded; all four report pages were visually
+inspected without observed clipping or overlap. Source targets/page labels and
+six companion artifact hashes were checked. PDF viewer page-jump behavior was
+not tested. Two auxiliary assertions were corrected to account for PDF line
+wrapping and GoToR remote-file annotations; the rendered artifact was unchanged.
+Whole-repository Ruff check/format and Git diff checks passed.
+
+Reproduction with already prepared environments and retained immutable inputs:
+
+```bash
+PYTHONPATH=src uv run --offline --locked python reports/diagnostics/medical_review_crash3_walkthrough/prepare_case.py
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py plan --bundle data/private/medical_reviews/crash3-development/bundle.json --profile clinical_trial --dry-run --offline
+uv run --offline --script /Users/reblocke/.codex/skills/pdf/scripts/pdf_route_extract.py data/private/medical_reviews/crash3-development/sources/supplement.pdf --mode pages --output-dir reports/diagnostics/medical_review_crash3_walkthrough/pdf-routing/supplement --max-pages 100 --max-file-mb 10 --max-output-mb 10 --timeout-seconds 45
+quarto render reports/diagnostics/medical_review_crash3_walkthrough/walkthrough.qmd --to html
+quarto render reports/diagnostics/medical_review_crash3_walkthrough/walkthrough.qmd --to pdf
+```
+
+The skill path records the actual local verification tool, not production config.
+The ignored `reports/diagnostics/medical_review_crash3_walkthrough/` retains
+retrieval failures/successes, cloud metadata, immutable-source preparation code,
+bounded extraction receipts, page images, deterministic plan and verification
+receipt, and readiness Markdown/Quarto artifacts. The remaining walkthrough needs
+a genuine compatible Reviewer output or an explicitly selected, implemented and
+qualified live backend, followed by real human review. See
+[MEDICAL_REVIEW_WALKTHROUGH.md](MEDICAL_REVIEW_WALKTHROUGH.md).
+
 ## 2026-10-06 Integration review fixes and merge readiness
 
 The user approved one integration PR against `main`, retaining draft PRs #8–#12
