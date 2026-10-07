@@ -1,5 +1,61 @@
 # Handoff (for multi-session work)
 
+## 2026-10-07 Codex backend implementation; live qualification blocked
+
+Implemented the approved Codex CLI path on `codex/medical-review-codex-backend`,
+starting from preserved planning commit `86411d1`. The branch retains PR #14's
+walkthrough and all previous branch/PR history; no merge was performed.
+
+- Added deterministic private packet/index preparation, source authorization v2,
+  strict Astra/max invocation, actual offline CLI qualification, bounded streams,
+  kernel concurrency locking and orphan/deadline guardians.
+- Retained original generation envelopes and derived imports with transformation
+  hashes. A registered scoped layer preserves Codex provenance without rewriting
+  historical proposals. Dossiers, verification, human decisions and Markdown/Quarto
+  reports preserve that layer and incomplete coverage.
+- Added test coverage for blocked provider starts, malformed authority, unknown
+  citations, scope, empty findings, timeouts/child termination, controller-crash
+  recovery, success-only reuse and human-decision provenance. Report CI requires
+  four new synthetic generation/import artifacts and their companion hashes.
+- Focused tests passed 94 selections before the final printed-page-label safeguard;
+  fresh hosted CI on the committed head is the delivery acceptance gate. Printed
+  PDF page labels are left unknown; physical indices/pages retain their conventions.
+- Actual synthetic CLI qualification reached its loopback provider using synthetic
+  ChatGPT credentials. Allowed reads, denied outside/symlink reads/writes/network,
+  Astra/max, context byte reserve, zero retry on server/context errors, successful
+  response and cancellation passed. Tool definitions and injected skill/agent
+  instructions remained visible: **qualification failed** and live use is blocked.
+  Failed configuration attempts and all later negative receipts are retained privately.
+- Actual synthetic Quarto HTML/PDF render passed after selecting the existing
+  isolated R library and Quarto's bundled Pandoc. Default R lacked report packages;
+  default Pandoc was an incompatible Intel executable. No dependencies were added.
+  Visually inspected the new provenance/runtime/source-link PDF pages (3 and 4 of
+  13); no clipping or overlap was observed. New CI verifies the final model again.
+- Ruff check, Ruff format check and `git diff --check` passed. No real provider/model
+  execution, study transmission, medical adjudication or medical qualification ran.
+
+Reproduction (operator supplies the local model catalogue):
+
+```bash
+PYTHONPATH=src uv run --offline --locked pytest -q tests/medical_review/test_codex_backend.py tests/medical_review/test_codex_packet.py tests/medical_review/test_codex_execution.py tests/medical_review/test_execution.py tests/medical_review/test_planning.py tests/medical_review/test_reporting.py -m 'not native_r and not report_integration'
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE"
+R_LIBS_USER=/tmp/fm-med-r-library PATH=/Applications/quarto/bin/tools:$PATH RSTUDIO_PANDOC=/Applications/quarto/bin/tools FORENSICS_REQUIRE_REPORT_INTEGRATION=1 PYTHONPATH=src uv run --offline --locked pytest -q tests/medical_review/test_reporting.py::test_codex_generation_import_lineage_renders_html_pdf
+uv run --offline --locked ruff check .
+uv run --offline --locked ruff format . --check
+git diff --check
+```
+
+Private local diagnostics are under
+`reports/diagnostics/medical_review_codex_qualification/`; runtime qualification
+receipts are in the fixed ignored private runtime boundary. The qualification
+command's expected current exit is 3. See
+[MEDICAL_REVIEW_CODEX_BACKEND.md](MEDICAL_REVIEW_CODEX_BACKEND.md) for contracts,
+limits, authorization, recovery and rollback. Remaining gates: fresh final-commit
+CI/artifact receipts, review of this PR, an enforceable CLI capability/context
+configuration with requalification, separate source approval/smoke testing and
+medical performance validation. Do not waive the failed live gate.
+
+
 ## 2026-10-07 Accepted offline checkpoint and next backend plan
 
 The user said to consider the preceding checkpoint done and continue. This accepts

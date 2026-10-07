@@ -276,6 +276,17 @@ def _markdown(model: dict[str, Any]) -> str:
             f"**Unknown or not reconstructed:** {_escaped(', '.join(unknown) or 'none')}\n"
         )
     lines.extend(["## Upstream qualifications\n", *_record_lines(model["upstream_metadata"])])
+    if model.get("reading_execution"):
+        lines.extend(
+            [
+                "## Codex reading provenance\n",
+                "This is a Codex reading workflow. "
+                "The original Reviewer workflow was not executed. "
+                "Requested settings are distinct from observed runtime metadata; missing usage, "
+                "effective model identity and cost remain unknown. Coverage remains incomplete.\n",
+                *_record_lines(model["reading_execution"]),
+            ]
+        )
     status_by_id = {r["proposal_id"]: r for r in model["proposal_statuses"]}
     for heading, section in [
         ("Material proposed concerns", "material"),
@@ -478,6 +489,8 @@ def build_report_model(
             ],
         },
     }
+    if "reading_execution" in dossier:
+        model["reading_execution"] = copy.deepcopy(dossier["reading_execution"])
     model["rendered_markdown"] = _markdown(model)
     model["rendered_markdown_sha256"] = hashlib.sha256(
         model["rendered_markdown"].encode()
@@ -517,6 +530,8 @@ def validate_report_model(model: dict[str, Any], dossier: dict[str, Any]) -> Non
             raise ValueError("Report source traceability changed.")
     if model.get("method_handoffs", []) != dossier.get("method_handoffs", []):
         raise ValueError("Report numerical handoff traceability changed.")
+    if model.get("reading_execution") != dossier.get("reading_execution"):
+        raise ValueError("Report Codex reading provenance changed.")
     if model["upstream_metadata"] != dossier.get("upstream_metadata", {}) or (
         model["failures"] != dossier.get("failures", [])
         or model["source_run"]

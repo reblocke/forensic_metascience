@@ -1,5 +1,15 @@
 # Next milestone: qualify one live medical-reading backend
 
+## Current implementation checkpoint — 2026-10-07
+
+The user approved the Codex CLI implementation with GPT-6 Astra/max and existing
+ChatGPT authentication. The software and its operator workflow are documented in
+[MEDICAL_REVIEW_CODEX_BACKEND.md](MEDICAL_REVIEW_CODEX_BACKEND.md). Actual synthetic
+CLI qualification fails on exposed tools and injected skill/agent context, so
+live execution remains blocked. No alternate backend or relaxed policy was adopted.
+The proposal below is retained as earlier planning context; its pending backend
+choice is superseded by this checkpoint.
+
 ## Goal and boundary
 
 Deliver one opt-in backend that produces genuine, source-linked reading proposals

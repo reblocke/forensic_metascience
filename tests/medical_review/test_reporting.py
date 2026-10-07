@@ -619,3 +619,50 @@ def test_actual_native_qualifications_and_blocked_coverage_survive_html_pdf(
     preserve_synthetic_artifact(
         "medical-native-report-model.json", report / "processed/medical_review/report_model.json"
     )
+
+
+@pytest.mark.report_integration
+def test_codex_generation_import_lineage_renders_html_pdf(
+    workspace, monkeypatch, preserve_synthetic_artifact
+):
+    from pypdf import PdfReader
+    from support.codex_fixtures import execute_fixture
+
+    if not shutil.which("quarto"):
+        if os.environ.get("FORENSICS_REQUIRE_REPORT_INTEGRATION") == "1":
+            pytest.fail("Quarto is required for Codex reading report acceptance.")
+        pytest.skip("Quarto unavailable; Codex reading rendering remains unverified.")
+    repo, *_ = workspace
+    source, *_ = execute_fixture(workspace, monkeypatch, comparisons=True)
+    (repo / "notebooks").mkdir()
+    shutil.copy(
+        Path(__file__).resolve().parents[2] / "notebooks/medical_manuscript_review.qmd",
+        repo / "notebooks",
+    )
+    report = render_review(repo, source, html=True, pdf=True)
+    model = json.loads((report / "processed/medical_review/report_model.json").read_text())
+    assert load_dossier(repo, report)["proposals"] == model["proposals"]
+    assert model["proposals"][0]["comparison_id"] == "alpha"
+    assert model["proposal_statuses"][0]["human_status"] == "pending"
+    assert model["reading_execution"]["original_reviewer_executed"] is False
+    html = (report / "reports/medical_review/review.html").read_text()
+    pdf = " ".join(
+        (page.extract_text() or "")
+        for page in PdfReader(report / "reports/medical_review/review.pdf").pages
+    )
+    for text in (html, pdf):
+        normalized = " ".join(text.split())
+        assert "Codex reading provenance" in normalized
+        assert "original Reviewer workflow was not executed" in normalized
+        assert "Coverage remains incomplete" in normalized
+        assert "pending" in normalized
+        assert "Comparison: alpha (study: synthetic)" in normalized
+        assert "Comparison: beta (study: synthetic)" in normalized
+        assert "Open original source" in normalized
+    for fmt in ("md", "html", "pdf"):
+        preserve_synthetic_artifact(
+            "medical-codex-reading." + fmt, report / ("reports/medical_review/review." + fmt)
+        )
+    preserve_synthetic_artifact(
+        "medical-codex-report-model.json", report / "processed/medical_review/report_model.json"
+    )

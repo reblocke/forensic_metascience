@@ -272,6 +272,10 @@ def load_dossier(repo_root: Path, run_path: Path, *, _depth: int = 0) -> dict[st
             dossier = load_dossier(repo, parent, _depth=_depth + 1)
             if settings.get("bundle_sha256") != content_hash(dossier["bundle"]):
                 raise ValueError("Replay import bundle binding changed.")
+            if settings["execution_mode"] == "codex_reading":
+                from research_project.medical_review.codex_runner import load_reading_layer
+
+                dossier = load_reading_layer(repo, run, manifest, result, dossier)
             return {
                 **dossier,
                 "run_root": run,
@@ -381,7 +385,7 @@ def _combined_dossier(dossiers: list[dict[str, Any]], repo: Path) -> dict[str, A
                 raise ValueError("Conflicting original proposal identity in consolidation.")
             proposals[key] = proposal
             references[key] = _proposal_reference(dossier, key)
-    return {
+    combined = {
         **first,
         "proposals": list(proposals.values()),
         "proposal_run_references": references,
@@ -411,6 +415,10 @@ def _combined_dossier(dossiers: list[dict[str, Any]], repo: Path) -> dict[str, A
             ]
         },
     }
+    readings = [d["reading_execution"] for d in dossiers if d.get("reading_execution")]
+    if readings:
+        combined["reading_execution"] = {"contributing_readings": readings}
+    return combined
 
 
 def consolidate_reviews(repo_root: Path, source_runs: list[Path]) -> Path:

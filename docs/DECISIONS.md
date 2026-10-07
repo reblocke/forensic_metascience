@@ -529,3 +529,35 @@ Record decisions that affect reproducibility and interpretation.
 - **Integration configuration:** CI now has a locked Python fast job, a required native-R job that asserts exact package versions and positive method coverage, and a Quarto job that renders synthetic current-run HTML/PDF reports. Tests remain offline after package/runtime preparation. A required native job fails if R or a pinned method is missing; Python-lane skips are not treated as gate passes.
 - **Verification:** On the final code head, `PYTHONPATH=src uv run pytest -q -o addopts='' -ra` passed (114 passed, 2 expected native-package skips, 67.28s). With isolated pinned packages, `FORENSICS_REQUIRE_R_INTEGRATION=1 R_LIBS_USER=/tmp/fm-inspect-r.locked-library PYTHONPATH=src uv run pytest -q -o addopts='' -ra tests/test_r_integration.py` passed (3, 5.58s). Synthetic report tests passed (7, 43.72s, including HTML and PDF). `uv run ruff check .`, `uv run ruff format . --check`, shell syntax, R script parsing, guidance checksums, package-lock JSON, workflow YAML parsing, `uv sync --locked --dev`, and `git diff --check` passed. No source-paper analysis was run.
 - **Open status:** FM-01–FM-12 implementation and local verification are complete; FM-13 remains deferred. The configured GitHub Actions jobs still need to run on the eventual committed head. Transitive R dependencies are not pinned independently, and human reviewer identities, ambiguous trial/report mappings, and review-specific synthesis policy remain explicit human inputs. No deployment or historical-results rewrite is authorized.
+
+## 2026-10-07 — Codex reading policy and failed live qualification
+
+- **Approved choice:** Implement opt-in `codex_cli` with `gpt-6-astra`, max reasoning,
+  file-backed ChatGPT authentication, one concurrent session, a 600-second worker
+  deadline and zero automatic retries/fallback. No new dependency or scientific
+  criterion was added. Existing replay keeps its 120-second default and v1 records.
+- **Qualification is behavioral:** An actual CLI loopback probe uses synthetic
+  credentials/sources, audits nested wire tool definitions and model context, and
+  exercises successful/error/context-error responses and cancellation. Filesystem
+  and network tests require functioning positive controls. macOS, CLI bytes/version,
+  catalogue, code, entrypoint, parser/Python versions and policy are bound to receipts.
+- **Observed boundary:** CLI 0.157.0 passes the command sandbox and transport checks,
+  but still exposes tools and emits skill/agent instructions with those features
+  disabled. Its qualification is failed; source approval cannot override it. No
+  real model/provider call or study transmission is approved or executed here.
+- **Source/proposal authority:** Offline packet preparation creates a new indexed
+  bundle revision with unverified exact text units and public review questions.
+  V2 approval binds packet/policy hashes and leaves human approval fields unset in
+  templates. Original generations/imports remain immutable; a registered scoped
+  layer labels Codex origin without claiming original-Reviewer execution. Unknown
+  runtime model identity/request count/cost stay unknown; empty findings remain
+  incomplete coverage. Human dispositions reference the scoped layer, and numerical
+  proposals cannot become qualified forensic receipts or INSPECT-SR judgments.
+- **Recovery:** Bounded output/deadline failures retain partial bytes and terminate
+  the process group. A guardian retains the concurrency lock and stops orphaned
+  workers/cleans temporary credentials after controller death. Failed attempts need
+  a new explicit attempt; success reuse requires identical validated dependencies.
+- **Delivery gate:** Fresh Python, native-R and report CI plus artifact hashes verify
+  software separately from the failed live gate. No existing acceptance receipt was
+  rewritten. Merge, real source authorization/smoke testing and medical qualification
+  remain separate. See [the operator workflow](MEDICAL_REVIEW_CODEX_BACKEND.md).
