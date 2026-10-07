@@ -1,5 +1,48 @@
 # Handoff (for multi-session work)
 
+## 2026-10-07 Accepted offline checkpoint and next backend plan
+
+The user said to consider the preceding checkpoint done and continue. This accepts
+the offline intake/planning checkpoint; no model execution, source-semantic human
+verification, human disposition or medical qualification was performed or inferred.
+Documentation PR #14 is now ready for review at
+`7eae29cfcab86c168b87d5561cbac871a96e7b22`; it has not been merged. Both push and PR
+checks passed. Downloaded PR-run 37586746980 receipts confirm 446 Python, 24
+native-R and 8 report tests, zero skips/errors/failures, required regressions,
+pinned source hashes and 21 companion hashes. Ignored acceptance evidence is in
+`reports/diagnostics/medical_review_walkthrough_hosted/`.
+
+Continue from [MEDICAL_REVIEW_LIVE_BACKEND_PLAN.md](MEDICAL_REVIEW_LIVE_BACKEND_PLAN.md).
+It defines the next backend contract, source packet, adapter, controlled runner,
+recovery/import/report path, file map and test gates. A backend-selection question
+is pending: Codex CLI with existing account access, or a tool-free Responses API
+adapter. No backend/model, runtime or transmission approval is inferred. Core
+implementation awaits the concrete choice; no dependency or CLI change is proposed.
+
+Read-only CLI help/version and official documentation inspection found
+`codex-cli 0.157.0`, named permission profiles and separate search/capability
+controls. A synthetic command-sandbox probe used temporary files only. Its first
+attempt failed configuration parsing and is preserved separately; corrected TOML
+overrides allowed an approved text read while blocking an outside read, symlink
+escape, source modification and workspace modification. A listening local TCP
+socket observed no sandboxed connection. No model process or study input was used.
+This is command-sandbox evidence only; complete live-backend isolation and spending
+controls are unqualified. The probe and both receipts remain ignored in
+`reports/diagnostics/medical_review_backend_preflight/`.
+
+Executed verification commands for these receipts:
+
+```bash
+gh run download 37586746980 --dir reports/diagnostics/medical_review_walkthrough_hosted
+PYTHONPATH=src uv run --offline --locked python reports/diagnostics/medical_review_walkthrough_hosted/verify_pr.py
+uv run --offline --locked python reports/diagnostics/medical_review_backend_preflight/isolation_probe.py
+```
+
+The next plan preserves the original Reviewer comparator as a separate fidelity
+gate, and requires exact source/model/runtime authorization before any real smoke
+test. Human source adjudication, frozen evaluation criteria and untouched held-out
+medical evidence remain pending. Historical acceptance records were not rewritten.
+
 ## 2026-10-07 Merge completed and development intake checkpoint
 
 The user explicitly authorized merging PR #13 and proceeding. GitHub reports

@@ -1,5 +1,27 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-07: Accept offline intake and prepare one backend contract
+
+- **Checkpoint:** The user's instruction to consider the preceding work done
+  accepts offline intake/planning. It does not supply human verification or
+  dispositions, execute a review, authorize source transmission or establish
+  medical qualification. PR #14 is ready for review with verified hosted receipts;
+  it is not merged by this checkpoint.
+- **Next implementation:** Prepare the concrete sequential plan in
+  [MEDICAL_REVIEW_LIVE_BACKEND_PLAN.md](MEDICAL_REVIEW_LIVE_BACKEND_PLAN.md).
+  Select exactly one backend before changing the intentionally blocked live path.
+  Backend choice and source-specific authorization remain distinct decisions.
+- **Enforcement evidence:** The installed Codex command sandbox passed a small
+  synthetic read/write/escape probe after correcting rejected override syntax.
+  A local listener received no sandboxed connection. Preserve both attempts;
+  neither proves complete harness/tool isolation, model availability or an
+  enforceable monetary ceiling. Refuse unsupported restrictions rather than
+  inherit broader user configuration or silently change runtime.
+- **Scope:** Initial bounded generation tests the backend and development
+  walkthrough. It does not establish full specialist orchestration, comparator
+  fidelity or scientific performance. No production code, dependency, CLI,
+  numerical contract or historical evidence changes at this planning step.
+
 ## 2026-10-07: Merge the offline foundation and begin a development walkthrough
 
 - **Merge authority:** The user explicitly confirmed PR #13 after the initially

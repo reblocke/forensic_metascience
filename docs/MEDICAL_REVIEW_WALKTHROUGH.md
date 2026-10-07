@@ -91,6 +91,9 @@ workflow problems. No reassuring conclusion follows from an empty findings list.
 
 Every live backend remains blocked. Prepare a focused backend implementation
 plan after selecting the provider/backend/model and execution environment.
+The next [backend implementation proposal](MEDICAL_REVIEW_LIVE_BACKEND_PLAN.md)
+records the file map, sequential checks and outstanding selection/authorization
+decisions; it does not itself qualify or enable a backend.
 Before a live attempt, require:
 
 - exact source-specific transmission authorization and purpose;
