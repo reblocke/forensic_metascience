@@ -21,6 +21,32 @@ from research_project.medical_review.audit import (
 )
 from research_project.medical_review.bundle import load_bundle
 from research_project.medical_review.context import build_study_context
+from research_project.medical_review.evaluation import (
+    freeze_evaluation_plan,
+    prepare_evaluation_plan,
+)
+from research_project.medical_review.evaluation_analysis import prepare_analysis_tables
+from research_project.medical_review.evaluation_assessment import (
+    prepare_assessment_packets,
+    record_assessment,
+)
+from research_project.medical_review.evaluation_candidates import freeze_candidates
+from research_project.medical_review.evaluation_governance import (
+    freeze_thresholds,
+    record_unblinding,
+)
+from research_project.medical_review.evaluation_native_analysis import run_native_analysis
+from research_project.medical_review.evaluation_packets import (
+    DEFAULT_PACKET_BYTES,
+    DEFAULT_TOTAL_BYTES,
+    prepare_source_packets,
+)
+from research_project.medical_review.evaluation_reference import freeze_reference_ledger
+from research_project.medical_review.evaluation_reporting import render_evaluation
+from research_project.medical_review.evaluation_synthesis import (
+    prepare_synthesis_packets,
+    record_synthesis,
+)
 from research_project.medical_review.importer import import_reviewer
 from research_project.medical_review.numeric_inputs import record_input_review
 from research_project.medical_review.preflight import structural_preflight
@@ -119,6 +145,72 @@ def parser() -> argparse.ArgumentParser:
     rendering.add_argument("--output-root", type=Path)
     rendering.add_argument("--html", action="store_true")
     rendering.add_argument("--pdf", action="store_true")
+    evaluation = commands.add_parser(
+        "evaluation-plan", help="Validate a private paired evaluation plan; freeze is explicit."
+    )
+    evaluation.add_argument("--input", required=True, type=Path)
+    evaluation.add_argument("--freeze", action="store_true")
+    reference = commands.add_parser(
+        "evaluation-reference", help="Freeze a private operator-attested source reference ledger."
+    )
+    reference.add_argument("--plan-run", required=True, type=Path)
+    reference.add_argument("--input", required=True, type=Path)
+    packets = commands.add_parser(
+        "evaluation-packets", help="Stage local read-only source packets; no live execution."
+    )
+    packets.add_argument("--reference-run", required=True, type=Path)
+    packets.add_argument("--repetitions", type=int, default=1)
+    packets.add_argument("--max-packet-bytes", type=int, default=DEFAULT_PACKET_BYTES)
+    packets.add_argument("--max-total-bytes", type=int, default=DEFAULT_TOTAL_BYTES)
+    candidates = commands.add_parser(
+        "evaluation-candidates",
+        help="Import supplied offline candidate outputs; no live execution.",
+    )
+    candidates.add_argument("--packets-run", required=True, type=Path)
+    candidates.add_argument("--input", required=True, type=Path)
+    blind = commands.add_parser(
+        "evaluation-blind", help="Prepare private source packets for human assessment."
+    )
+    blind.add_argument("--candidates-run", required=True, type=Path)
+    assess = commands.add_parser(
+        "evaluation-assess", help="Record explicit private human candidate judgments."
+    )
+    assess.add_argument("--packets-run", required=True, type=Path)
+    assess.add_argument("--input", required=True, type=Path)
+    synthesis_packets = commands.add_parser(
+        "evaluation-synthesis-packets", help="Prepare private stage-paired human packets."
+    )
+    synthesis_packets.add_argument("--assessment-run", required=True, type=Path)
+    synthesis = commands.add_parser(
+        "evaluation-synthesis", help="Record explicit private synthesis memberships and judgments."
+    )
+    synthesis.add_argument("--packets-run", required=True, type=Path)
+    synthesis.add_argument("--input", required=True, type=Path)
+    thresholds = commands.add_parser(
+        "evaluation-thresholds", help="Freeze human-supplied private threshold definitions."
+    )
+    thresholds.add_argument("--reference-run", required=True, type=Path)
+    thresholds.add_argument("--input", required=True, type=Path)
+    unblind = commands.add_parser(
+        "evaluation-unblind", help="Record a write-once private condition release."
+    )
+    unblind.add_argument("--thresholds-run", required=True, type=Path)
+    unblind.add_argument("--synthesis-run", required=True, type=Path)
+    unblind.add_argument("--input", required=True, type=Path)
+    tables = commands.add_parser(
+        "evaluation-tables", help="Freeze private R inputs from an explicit completed release."
+    )
+    tables.add_argument("--unblinding-run", required=True, type=Path)
+    analysis = commands.add_parser(
+        "evaluation-analyze", help="Execute source-bound private descriptive tables in base R."
+    )
+    analysis.add_argument("--tables-run", required=True, type=Path)
+    evaluation_report = commands.add_parser(
+        "evaluation-render", help="Render a private evaluation report; qualification stays pending."
+    )
+    evaluation_report.add_argument("--analysis-run", required=True, type=Path)
+    evaluation_report.add_argument("--html", action="store_true")
+    evaluation_report.add_argument("--pdf", action="store_true")
     return cli
 
 
@@ -209,6 +301,47 @@ def main() -> int:
                     ROOT, args.run, output_root=args.output_root, html=args.html, pdf=args.pdf
                 )
             )
+        elif args.operation == "evaluation-plan":
+            if args.freeze:
+                print(freeze_evaluation_plan(ROOT, args.input))
+            else:
+                path = private_path(ROOT, args.input, PRIVATE_SOURCES)
+                data = read_json(path)
+                plan = prepare_evaluation_plan(ROOT, data)
+                private_path(ROOT, path, PRIVATE_SOURCES / data["evaluation_id"] / "evaluation")
+                print(json.dumps(plan, sort_keys=True))
+        elif args.operation == "evaluation-reference":
+            print(freeze_reference_ledger(ROOT, args.plan_run, args.input))
+        elif args.operation == "evaluation-packets":
+            print(
+                prepare_source_packets(
+                    ROOT,
+                    args.reference_run,
+                    repetitions=args.repetitions,
+                    max_packet_bytes=args.max_packet_bytes,
+                    max_total_bytes=args.max_total_bytes,
+                )
+            )
+        elif args.operation == "evaluation-candidates":
+            print(freeze_candidates(ROOT, args.packets_run, args.input))
+        elif args.operation == "evaluation-blind":
+            print(prepare_assessment_packets(ROOT, args.candidates_run))
+        elif args.operation == "evaluation-assess":
+            print(record_assessment(ROOT, args.packets_run, args.input))
+        elif args.operation == "evaluation-synthesis-packets":
+            print(prepare_synthesis_packets(ROOT, args.assessment_run))
+        elif args.operation == "evaluation-synthesis":
+            print(record_synthesis(ROOT, args.packets_run, args.input))
+        elif args.operation == "evaluation-thresholds":
+            print(freeze_thresholds(ROOT, args.reference_run, args.input))
+        elif args.operation == "evaluation-unblind":
+            print(record_unblinding(ROOT, args.thresholds_run, args.synthesis_run, args.input))
+        elif args.operation == "evaluation-tables":
+            print(prepare_analysis_tables(ROOT, args.unblinding_run))
+        elif args.operation == "evaluation-analyze":
+            print(run_native_analysis(ROOT, args.tables_run))
+        elif args.operation == "evaluation-render":
+            print(render_evaluation(ROOT, args.analysis_run, html=args.html, pdf=args.pdf))
         return 0
     except (ValueError, OSError, KeyError, TypeError) as error:
         cli.exit(2, f"medical-review: {error}\n")

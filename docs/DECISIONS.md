@@ -1,5 +1,92 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-06: Close full-ticket coverage, rollback and evaluation display checks
+
+- **Audit:** `MEDICAL_REVIEW_REQUIREMENTS.md` maps all ticket sections beyond
+  MED-01–MED-27. Existing numerical/INSPECT-SR contracts, the old runner, Python
+  manifests/lock and original R engines remain unchanged from the inspected
+  baseline. Four upstream originals and the immutable ticket match their hashes.
+- **Presentation:** All-page inspection found six clipped identifier labels in
+  the earlier evaluation PDF. A failing regression preceded narrower evaluation
+  wrapping and separate ID/label values. Exact JSON identities are unchanged;
+  the shared appraisal formatter retains its existing default. The corrected
+  actual CLI/R/Quarto suite passed five cases, including every-page text bounds;
+  all 70 synthetic PDF pages were visually inspected.
+- **Rollback:** Two actual drills disable scoped feature code without altering
+  historical data. Finalized synthetic INSPECT-SR histories still render and
+  actual pinned R outputs still qualify through the unchanged adapter.
+- **Required runtimes:** Empty executable search paths cause the actual required
+  R/Quarto tests to fail with zero skips; the acceptance checker rejects both.
+- **Gates:** Source head `3f2a291` passed all hosted lanes and downloaded artifact
+  checks. The correction/rollback revision needs its own delivered-head gates.
+  Live execution remains blocked; real human/source adjudication, criteria and
+  held-out medical qualification remain pending. No promotion or merge occurred.
+
+## 2026-10-06: Bind descriptive evaluation to released sources and every declared attempt
+
+- **Canonical boundary:** Export seven fixed R tables only from a completed, validated condition-release chain. Hash model-selected source versions for source-access comparison; the fuller human assessment bundle cannot make an upstream main-only condition matched. Preserve study units, partitions, profile tags, case-local references, assessment phases and all attempts. Unknown, literal NA, false and zero remain distinct.
+- **Attempt dependence:** Add explicit per-attempt/stage outcomes and retain all declared cross-condition attempt pairs within case/track/planned repetition. Keep the older artifact union separately labeled as a union, never as single-run performance. No best retry selection, independent-finding inference, pooled test or composite score. Failed/blocked/not-started usage remains observable, with unknown totals and currency boundaries intact.
+- **R execution:** Use the reviewed base-R driver and current R source bound to table preparation. Archive code/inputs and register produced outputs/logs, recording actual runtime/interpreter/input/output checksums and duration. No new package, scientific assumption or random calculation. Source/code/runtime drift or missing R retains failure, without publishing an eligible analysis or using a substitute.
+- **Reporting authority:** Build private evidence-linked Markdown and opt-in Quarto reports from the explicit completed analysis. A separate qualification record retains pending medical performance, no default enablement and no official assessment. Human free-text metric rules are not interpreted as executable qualification criteria. Source matching, descriptive execution and operator attestations do not establish live workflow fidelity, equal runtime, credentials, actual blinding or held-out success.
+- **Recovery correction:** A recovery run is already terminal when the plan's recovery-index publication occurs. If index publication fails, preserve that completed run and surface the publication error; do not attempt to rewrite its manifest as failed. This fixes a reproduced terminal-state exception without rewriting the original failed attempt or release receipt.
+
+## 2026-10-06: Separate human threshold approval from write-once condition release
+
+- **Definitions:** Leave the original plan's threshold field null. Freeze separate, explicit human criteria with units, denominator, aggregation, scope and direction. Preserve unknown values and zero. Approval requires the four ticket domains and finite supplied cutoffs; code does not choose scientific cutoffs or interpret free text as executable metric rules. No dependency or existing numerical contract changes.
+- **Authority:** Human identity, qualifications, date and prior blinding are operator attestations. Approval and release do not establish authenticated credentials, actual blinding, complete review coverage, medical performance or an INSPECT-SR judgment. Actual scientific criteria and qualification remain separately authorized human decisions.
+- **Release:** Require approved thresholds and source-adjudicated synthesis from the exact frozen reference/plan lineage. Publish one complete plan-scoped private receipt atomically with exclusive creation. Historical approvals stay readable; newly proposed approvals after release are refused. A different request cannot replace the release.
+- **Recovery:** Preserve raw input, code and parent/archive hashes. If publication succeeds before a later failure, retrying the identical request verifies the original receipt and creates a new recovery record; the failed/interrupted original is preserved. Concurrent publication fails rather than overwrites. The feature remains opt-in; R outcome analysis and qualification reporting remain required.
+
+## 2026-10-06: Require explicit synthesis membership and distinguish missing from empty stages
+
+- **Traceability:** Stage-paired human packets retain original finding content, summary/notes and global numerical caveats, with opaque input/output/attempt scopes. Existing candidate assessments remain unchanged. Group membership is supplied explicitly within one packet/attempt; every input/output item is accounted for and conflicting interpretations are preserved. The program does not infer semantic duplicates or independent evidence from agent agreement.
+- **Availability:** Missing synthesis cannot be treated as observed loss or zero loss. Whole-finding and caveat losses require a supplied, operator-declared completed pair, including when an item's general disposition is unresolved. A supplied empty synthesis can support an explicit human loss judgment, but never reassuring completed review coverage. Reported stage completeness is not an execution or qualified method receipt.
+- **Human judgments:** Record separate primary grouping decisions and adjudication, literal caveat quote anchors, source evidence, error-stage labels, unknown distortion, timing and assessor shortfalls. Literal occurrence is traceability rather than proof of semantic preservation; qualifications, source inspection and blinding remain operator attestations. Stage structure or style can reveal origin.
+- **Recovery and authority:** New private canonical records retain raw/code/parent/source bindings and same-scope immutable supersession. Failed preparation/input drift publishes no completed decision. All numerical/INSPECT-SR authority boundaries remain unchanged; no dependency, scientific threshold or default enablement changes. Threshold adoption, R analysis and medical qualification remain pending.
+
+## 2026-10-06: Separate blinded candidate assessment from medical qualification
+
+- **Source truth and access:** Human assessment packets include all supplied case sources for claim verification and counterevidence, while separately listing the model's source versions. This does not change the common-input model comparison or reinterpret supplement access as better reasoning. Case-local reference labels retain their case namespace.
+- **Blinding scope:** Remove administrative condition/runtime metadata, private benchmark annotations, prompts and finding ID/category/severity/confidence. Preserve substantive claims, caveats, proposed numerical checks and original outputs. Normalize known staged citation paths and consistently pseudonymize source-object IDs. Unmapped paths and stylistic clues remain; effective blinding requires human operational review and is not certified by metadata removal.
+- **Human authority:** Record private, source-linked primary judgments and adjudication, preserving disagreement and exact observation membership. Qualifications, independence, blinding, source inspection and per-view verification/revision times are operator attestations. Unknown timings remain null. Below two primary observations, retain an explicit shortfall; never convert candidate assessments to numerical receipts or INSPECT-SR decisions.
+- **Immutable history:** Explicit same-scope, same-adjudicator, later-date supersession creates a new private canonical run with raw/code/parent/source bindings; predecessors remain unchanged. Empty views retain unavailable coverage. Explicit synthesis loss/distortion accounting, thresholds, R analysis and medical qualification remain separate unfinished deliverables. No package, scientific threshold or default enablement changes.
+
+## 2026-10-06: Keep supplied evaluation candidates distinct from qualified live runs
+
+- **Offline boundary:** Bind candidate inputs to an explicit completed source-packet run. Preserve exact raw outputs, operator-reported runtime/usage, every declared attempt, and unreported packets. Ingestion invokes no backend or search and establishes no source-transmission permission, live execution, upstream-workflow fidelity, or medical performance.
+- **Source resolution:** Resolve exact staged citations through existing canonical evidence identities using only selected source versions. An annotated but unselected supplement cannot become exact evidence. Original bundles and raw model fields remain unchanged; exact anchoring is still a proposed transcription.
+- **Lossless accounting:** Preserve reviewer and synthesis findings independently, including failed/partial attempts. Do not infer semantic deduplication or synthesis membership; these require the later blinded source assessment. Repeated local imports are not independent model observations. Unknown usage remains null and failed-attempt reported costs remain available.
+- **Authority and recovery:** Reject forged model human/official fields and invalid output schemas into preserved failed attempts; no eligible candidate artifact is published. Valid candidates remain human-pending with empty qualified-result IDs and null official assessment. Registered raw/code/parent/source bindings govern reuse. Existing method receipts, INSPECT-SR stores and human workflows are untouched.
+- **Schema-less source leakage:** The upstream output contract has no schema-version field. A test-first regression reproduced staging a complete Reviewer output as an analysis source; reject its recognizable record vocabulary during bounded source privacy preflight, including nested copies. This adds no source-fidelity or arbitrary-prose confidentiality claim.
+- **Remaining:** Blinded candidate assessment/adjudication, pre-unblinding threshold adoption, R analysis and explicit qualification reporting remain engineering work. Clinical qualification needs authorized held-out evaluation and an approved decision.
+
+## 2026-10-06: Keep benchmark answers and unselected context out of source packets
+
+- **Source equivalence:** Stage all declared conditions/tracks/repetitions from a frozen reference ledger, with common manuscript-only input and identical adapted full-bundle source bytes. Preserve main-only upstream as unmatched where appropriate. Opaque packet IDs and the declared seed provide reproducible administrative ordering; execution remains not requested.
+- **Leakage boundary:** Reviewer roots contain exact sources, a minimal source index, and public instructions. Exclude private human/reference records, benchmark evidence annotations, original private paths, document-derived reconstruction and bundle override rationales. Adapted reviewers receive the same public questions/safeguards and reconstruct applicability from staged sources. Original-path aliases and condition/runtime mappings remain in the separate private administrative record; historical bundles and raw outputs are unchanged.
+- **Comparator fidelity:** Retain exact upstream reference files without introducing medical prompts or pretending those originals form a complete executable workflow. Original comparator execution stays blocked until its full pinned workflow, effective runtime and permissions are separately established.
+- **Mislabelled private inputs:** A valid bundle can still point an analysis-output role at a private record. Reject protected source-store locations and recognized private/control schemas in bounded JSON, including copied or nested records, before creating reviewer workspaces. This is a staging privacy floor; arbitrary prose/unknown formats still require operator corpus review and source-specific transmission approval. Existing bundles and historical records remain unchanged.
+- **Mixed aims:** Generic packet questions preserve the plan's declared initial-profile union, including comparison-level aims. A test-first trial-plus-prediction regression caught primary-profile-only narrowing and now protects the prediction module. Profile hints remain distinct from document-derived context or evidence.
+- **Enforcement scope:** Immutable private runs retain request/code/parent lineage and exact inventories. Files are read-only and non-executable; directories are read-only. Explicit byte/file/packet/JSON limits fail rather than truncate or change applicability. Copying drift preserves failure. File modes and a minimal workspace are not proof of a backend sandbox, no-egress enforcement, or successful assessor blinding; live backends remain blocked.
+- **Remaining:** Blinded candidate packets/adjudication, threshold adoption, R analysis, explicit qualification reporting and the full exit audit remain open. Synthetic staging tests establish no medical detection performance or independent human reference truth.
+
+## 2026-10-06: Preserve source-reference adjudication before candidate evaluation
+
+- **Reference boundary:** Add private, operator-attested source-reference inputs and frozen ledgers bound to an explicit completed evaluation plan. Preserve independent observations, disagreements, plausible-but-wrong concerns, unresolved issues and exact canonical evidence. Every assessor observation must have one explicit adjudication disposition; shared quotes do not cause automatic deduplication.
+- **Human limits:** Distinct private identities, domain qualifications, source-byte review and condition blinding are attestations, not authenticated credentials or proof of independence. A single-assessor shortfall requires an explicit reason and remains visible. Existing INSPECT-SR human contracts and stores are unchanged.
+- **Coverage:** Empty reviewed reference scopes retain missing required source groups and never claim universal cleanliness. The ledger bounds the reference universe; it does not establish sensitivity to every possible scientific defect, medical performance or an official assessment.
+- **Storage:** Canonical private runs preserve exact raw input, code and parent-plan manifest binding. Mid-freeze drift retains failed attempts; repeated freezing creates a new attempt. Registered artifact and semantic/source bindings govern reuse. Source/prompt changes require new dependent planning.
+- **Bounded artifacts:** Plan and ledger size guards cover the actual indented JSON, generated record identity and trailing newline. Test-first regressions reproduced both omissions. Refuse oversized output before publishing a completed stage; ordinary plan identities and scientific content remain unchanged.
+- **Remaining:** Model source packets and blinded candidate-adjudication packets, pre-unblinding threshold adoption, R analysis and explicit qualification reporting remain unfinished. No live evaluation or actual human reference adjudication was performed by synthetic acceptance tests.
+
+## 2026-10-06: Freeze evaluation inputs before preparing blinded comparisons
+
+- **Sequence:** WP4 source head `83e6252` passed the required hosted PR and push lanes. Start WP5 on a stacked branch without merging any earlier PR or implying operational/medical acceptance.
+- **Comparison boundary:** Preserve all three conditions. Common-input source access is identical; full-bundle access is identical for the single-reviewer and medical adaptation. The pinned unmodified Reviewer remains explicitly unmatched when main-only access lacks supplied supplements. An unsupported multi-document adapter is refused rather than invented. Runtime equality is declared planning metadata, not an observed or isolated architecture comparison.
+- **Dependence:** Bind declared groups, canonical study/report IDs and exact source bytes across versions/aliases. Prevent development/held-out partition crossings and relabeling analyzed/synthetic cases as held-out. These checks do not establish empirical novelty or independent study relationships.
+- **Authority:** The initial plan/freezing increment preserves raw inputs, prompts/configuration, upstream attribution and code under canonical private runs. No transmission, search, live comparator, assessor decision or threshold is authorized. Threshold adoption and qualification remain unfinished; the strong single-reviewer template uses the same clinical evidence responsibilities rather than a deliberately weak baseline.
+- **Delivery:** The full WP5 still requires blinded packets, source-ledger/adjudication tooling, pre-unblinding threshold adoption, actual R analysis and qualification reporting. Do not equate the planning stage's completion with medical performance evidence.
+
 ## 2026-10-06: Reject reassuring coverage with planned source gaps
 
 - **Audit finding:** Routing and imports retain missing required source groups as `required_source_gaps`, while the no-issue validator checked only `unresolved_required_sources`. A simulated completed declaration could therefore pass despite the actual plan's source gap. Existing imports remain unassessed/unverifiable; this gap did not qualify their coverage.

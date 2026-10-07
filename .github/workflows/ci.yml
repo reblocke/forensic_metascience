@@ -150,6 +150,7 @@ jobs:
             tests/test_inspect_sr_cli_workflow.py \
             tests/test_pipeline.py::test_randomization_report_renders_only_current_run_inputs \
             tests/medical_review/test_reporting.py \
+            tests/medical_review/test_evaluation_reporting.py \
             --junitxml="$FM_TEST_ARTIFACT_DIR/junit.xml"
       - name: Enforce report/review acceptance receipt
         if: always()
@@ -174,7 +175,12 @@ jobs:
           "$FM_TEST_ARTIFACT_DIR/medical-report-model.json" \
           "$FM_TEST_ARTIFACT_DIR/medical-native-review.html" \
           "$FM_TEST_ARTIFACT_DIR/medical-native-review.pdf" \
-          "$FM_TEST_ARTIFACT_DIR/medical-native-report-model.json"
+          "$FM_TEST_ARTIFACT_DIR/medical-native-report-model.json" \
+          "$FM_TEST_ARTIFACT_DIR/medical-evaluation.md" \
+          "$FM_TEST_ARTIFACT_DIR/medical-evaluation.html" \
+          "$FM_TEST_ARTIFACT_DIR/medical-evaluation.pdf" \
+          "$FM_TEST_ARTIFACT_DIR/medical-evaluation-report-model.json" \
+          "$FM_TEST_ARTIFACT_DIR/medical-evaluation-qualification.json"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
