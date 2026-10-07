@@ -1,5 +1,26 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-07: Merge the offline foundation and begin a development walkthrough
+
+- **Merge authority:** The user explicitly confirmed PR #13 after the initially
+  supplied PR number was resolved. Merge commit
+  `a26c2f4e45734861618d7f1bf53ec6d1eefb4ff4` has the same file tree as verified
+  integration head `0f3f8a0b6967ef4c02d47b03416a4b110ee4e7e3`. The merge preserves
+  the original branches and PR history. Earlier no-merge statements describe
+  their historical milestone; this decision supplies the later merge authority.
+- **Development scope:** Begin a local CRASH-3 source-intake and planning
+  walkthrough using licensed public documents. Keep it development-only, with
+  distinct publication identities, exact source hashes, missing representations
+  and amendment/registry gaps. A supplied role does not prove source completeness.
+- **Authority boundary:** No compatible Reviewer output is available locally.
+  Do not fabricate a payload, findings, human disposition or completed coverage.
+  A readiness report describes intake/planning only. Live execution and medical
+  qualification remain pending their separate operational/scientific gates.
+- **Workflow:** Record the sequential operator steps in
+  [MEDICAL_REVIEW_WALKTHROUGH.md](MEDICAL_REVIEW_WALKTHROUGH.md). Source bytes,
+  excerpts and diagnostic artifacts remain ignored; no dependency, scientific
+  assumption, production code, record schema or CLI interface changes.
+
 ## 2026-10-06: Correct comparison routing and label reconstructed report scopes
 
 - **Routing:** Treat an empty comparison `profile_ids` list as unspecified,
