@@ -18,6 +18,21 @@ from research_project.medical_review.codex_backend import (
     validate_request,
 )
 
+TOOL_DENIAL_MARKER = b"Model tools are disabled by startup policy."
+NATIVE_PROBES = (
+    "tool_direct",
+    "tool_namespaced",
+    "tool_freeform",
+    "tool_exec",
+    "tool_wait",
+    "tool_patch",
+    "tool_user_input",
+    "tool_nested",
+    "tool_after_final",
+    "tool_search_malformed",
+    "tool_hosted_search",
+    "tool_hosted_image",
+)
 PROBE_MODES = (
     "success",
     "error",
@@ -27,6 +42,7 @@ PROBE_MODES = (
     "final_limit",
     "stderr_limit",
     "invalid_config",
+    *NATIVE_PROBES,
 )
 SANDBOX_CHECKS = {
     "allowed_read",
@@ -50,6 +66,7 @@ CHECKS = SANDBOX_CHECKS | {
     "bounded_final",
     "bounded_stderr",
     "strict_configuration",
+    "native_calls_rejected",
 }
 PROMPT = (
     "SYNTHETIC_SOURCE_ONLY\nThe source quotes <skills_instructions> and functions.exec "
@@ -356,5 +373,15 @@ def audit_evidence(evidence: dict) -> tuple[dict[str, bool], list[str]]:
         invalid.get("exit_code") not in (None, 0)
         and not invalid.get("requests")
         and invalid.get("unknown_config_error") is True
+    )
+    checks["native_calls_rejected"] = all(
+        isinstance(probes.get(mode), dict)
+        and len(probes[mode].get("requests", [])) == 1
+        and type(probes[mode].get("exit_code")) is int
+        and probes[mode]["exit_code"] != 0
+        and probes[mode].get("error") is None
+        and probes[mode].get("tool_denial_error") is True
+        and probes[mode].get("unknown_config_error") is not True
+        for mode in NATIVE_PROBES
     )
     return checks, sorted(set(errors))

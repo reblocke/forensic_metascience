@@ -6,7 +6,9 @@ import copy
 import pytest
 
 from research_project.medical_review.codex_audit import (
+    NATIVE_PROBES,
     PROBE_SCHEMA,
+    TOOL_DENIAL_MARKER,
     audit_evidence,
     validate_context,
 )
@@ -229,14 +231,17 @@ def retained_receipt(repo):
 
     from research_project.medical_review.codex_audit import PROBE_MODES, PROMPT
     from research_project.medical_review.codex_backend import execution_policy
-    from research_project.medical_review.codex_qualification import _probe_command
+    from research_project.medical_review.codex_qualification import (
+        _probe_command,
+        _provider_response,
+    )
     from research_project.medical_review.records import content_hash, write_json
 
     data = evidence()
-    for mode in ("event_limit", "final_limit", "stderr_limit", "invalid_config"):
+    for mode in ("event_limit", "final_limit", "stderr_limit", "invalid_config", *NATIVE_PROBES):
         data["probes"][mode] = probe()
     runtime = {"executable_path": "/tmp/synthetic/bin/codex", "resource_shell_sha256": None}
-    root = repo / "data/private/medical_reviews/runtime_qualifications/synthetic-v2"
+    root = repo / "data/private/medical_reviews/runtime_qualifications/synthetic-v3"
     write_json(root / "catalogue.json", {"synthetic": True})
     for mode in PROBE_MODES:
         p = data["probes"][mode]
@@ -263,6 +268,9 @@ def retained_receipt(repo):
                 stderr = b"x" * 17
             if mode == "final_limit":
                 p["final"] = {"ok": "x" * 1100}
+        if mode in NATIVE_PROBES:
+            stderr = TOOL_DENIAL_MARKER
+            p.update(exit_code=1, error=None, final=None, tool_denial_error=True)
         if mode == "invalid_config":
             stderr = b"unknown qualification_canary_unsupported"
             p.update(exit_code=1, error=None, final=None, unknown_config_error=True)
@@ -275,6 +283,14 @@ def retained_receipt(repo):
             write_json(root / mode / "final.json", p["final"])
             p["final_bytes"] = (root / mode / "final.json").stat().st_size
         for index, request in enumerate(p["requests"]):
+            status, content_type, body = _provider_response(mode, index)
+            response_root = root / mode / "responses"
+            response_root.mkdir(exist_ok=True)
+            (response_root / f"{index:03d}.body").write_bytes(body)
+            write_json(
+                response_root / f"{index:03d}.json",
+                {"status": status, "content_type": content_type},
+            )
             write_json(root / mode / "requests" / f"{index:03d}.json", request)
             write_json(
                 root / mode / "requests" / f"{index:03d}.headers.json",
@@ -284,7 +300,8 @@ def retained_receipt(repo):
     checks, _ = audit_evidence(data)
     assert all(checks.values())
     receipt = {
-        "schema_version": "medical_codex_qualification_v2",
+        "schema_version": "medical_codex_qualification_v3",
+        "source_build_manifest": None,
         "assessment_only": False,
         "qualified": True,
         "all_checks_passed": True,
@@ -306,6 +323,9 @@ def retained_receipt(repo):
 @pytest.mark.parametrize(
     "change",
     [
+        "legacy",
+        "response",
+        "dispatch_marker",
         "assessment",
         "receipt_hash",
         "artifact",
@@ -317,7 +337,7 @@ def retained_receipt(repo):
         "raw_sandbox",
     ],
 )
-def test_version_two_receipts_reaudit_raw_evidence_and_refuse_assessment(
+def test_version_three_receipts_reaudit_raw_evidence_and_refuse_assessment(
     workspace, monkeypatch, change
 ):
     import hashlib
@@ -333,7 +353,15 @@ def test_version_two_receipts_reaudit_raw_evidence_and_refuse_assessment(
         "research_project.medical_review.codex_qualification.runtime_identity", lambda *_: runtime
     )
     assert validate_qualification(repo, path)["qualified"] is True
-    if change == "assessment":
+    if change == "legacy":
+        receipt["schema_version"] = "medical_codex_qualification_v2"
+    elif change == "response":
+        (path.parent / "tool_direct/responses/000.body").write_bytes(b"no call issued")
+    elif change == "dispatch_marker":
+        (path.parent / "tool_direct/streams/stderr.txt").write_bytes(b"configuration error")
+        data["probes"]["tool_direct"]["stderr_bytes"] = len(b"configuration error")
+        write_json(path.parent / "evidence.json", data)
+    elif change == "assessment":
         receipt["assessment_only"] = True
     elif change == "receipt_hash":
         receipt["receipt_sha256"] = "tampered"
@@ -393,3 +421,116 @@ def test_passing_candidate_receipt_cannot_prepare_a_packet(workspace, monkeypatc
     )
     with pytest.raises(ValueError, match="assessment-only"):
         prepare_packet(repo, bundle, qualification=path)
+
+
+@pytest.mark.parametrize(
+    "change", ["missing", "configuration", "retry", "timeout", "wrong_error", "success"]
+)
+def test_unsolicited_tool_calls_require_one_request_and_fatal_policy_rejection(change):
+    from research_project.medical_review.codex_audit import NATIVE_PROBES
+
+    data = evidence()
+    for mode in NATIVE_PROBES:
+        data["probes"][mode] = probe()
+        data["probes"][mode].update(exit_code=1, final=None, tool_denial_error=True)
+    checks, _ = audit_evidence(data)
+    assert checks["native_calls_rejected"] is True
+    p = data["probes"][NATIVE_PROBES[0]]
+    if change == "missing":
+        p["requests"] = []
+    elif change == "configuration":
+        p.update(requests=[], unknown_config_error=True)
+    elif change == "retry":
+        p["requests"] *= 2
+    elif change == "timeout":
+        p.update(exit_code=None, error="TimeoutError: deadline")
+    elif change == "wrong_error":
+        p["tool_denial_error"] = False
+    else:
+        p["exit_code"] = 0
+    checks, _ = audit_evidence(data)
+    assert checks["native_calls_rejected"] is False
+
+
+def test_build_manifest_requires_explicit_assessment_executable(workspace):
+    from research_project.medical_review.codex_qualification import qualify_codex
+
+    with pytest.raises(ValueError, match="assessment-only"):
+        qualify_codex(
+            workspace[0],
+            catalogue=workspace[0] / "catalogue",
+            probe_build_manifest=workspace[0] / "manifest",
+        )
+
+
+def test_invalid_build_provenance_stops_before_any_sandbox_or_provider(workspace, monkeypatch):
+    from pathlib import Path
+
+    from support.medical_review_fixtures import write_json
+
+    from research_project.medical_review.codex_qualification import qualify_codex
+    from research_project.medical_review.records import read_json
+
+    repo = workspace[0]
+    root = repo / "data/private/medical_reviews/runtime_candidates/invalid-build"
+    root.mkdir(parents=True)
+    binary = root / "codex"
+    binary.write_text("synthetic")
+    manifest = write_json(root / "build-manifest.json", {"qualified": True})
+    monkeypatch.setattr(
+        "research_project.medical_review.codex_qualification.runtime_identity",
+        lambda *_, **__: {"executable_path": str(binary)},
+    )
+
+    def forbidden(*_, **__):
+        pytest.fail("Invalid provenance reached runtime probes")
+
+    monkeypatch.setattr(
+        "research_project.medical_review.codex_qualification._sandbox_checks", forbidden
+    )
+    receipt = read_json(
+        qualify_codex(
+            repo, catalogue=Path("unused"), probe_executable=binary, probe_build_manifest=manifest
+        )
+    )
+    assert receipt["qualified"] is False and receipt["assessment_only"] is True
+    assert not receipt["all_checks_passed"]
+    assert "build" in receipt["errors"][0]
+
+
+def test_validated_candidate_remains_ineligible_for_preparation(workspace, monkeypatch):
+    from support.medical_review_fixtures import write_json
+
+    from research_project.medical_review.codex_packet import prepare_packet
+    from research_project.medical_review.codex_qualification import validate_assessment
+    from research_project.medical_review.records import content_hash
+
+    repo, bundle, *_ = workspace
+    path, receipt, _, runtime = retained_receipt(repo)
+    receipt.update(assessment_only=True, qualified=False)
+    receipt["receipt_sha256"] = content_hash(
+        {k: v for k, v in receipt.items() if k != "receipt_sha256"}
+    )
+    write_json(path, receipt)
+    monkeypatch.setattr(
+        "research_project.medical_review.codex_qualification.runtime_identity",
+        lambda *_, **__: runtime,
+    )
+    assert validate_assessment(repo, path)["qualified"] is False
+    with pytest.raises(ValueError, match="assessment-only"):
+        prepare_packet(repo, bundle, qualification=path)
+
+
+def test_post_final_probe_uses_the_runtime_final_answer_phase():
+    import json
+
+    from research_project.medical_review.codex_qualification import _native_response
+
+    events = [
+        json.loads(row[6:])
+        for row in _native_response("tool_after_final").decode().splitlines()
+        if row.startswith("data: ")
+    ]
+    items = events[-1]["response"]["output"]
+    assert items[0]["type"] == "message" and items[0]["phase"] == "final_answer"
+    assert items[1]["type"] == "custom_tool_call" and items[1]["namespace"] == "functions"

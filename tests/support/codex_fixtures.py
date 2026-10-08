@@ -30,7 +30,7 @@ def prepared_fixture(workspace, monkeypatch, *, comparisons=False):
         bundle["planned_checks"] = []
         write_json(bundle_path, bundle)
     qualification = {
-        "schema_version": "medical_codex_qualification_v2",
+        "schema_version": "medical_codex_qualification_v3",
         "qualified": True,
         "assessment_only": False,
         "all_checks_passed": True,

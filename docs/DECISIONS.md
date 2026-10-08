@@ -563,6 +563,54 @@ Record decisions that affect reproducibility and interpretation.
   remain separate. See [the operator workflow](MEDICAL_REVIEW_CODEX_BACKEND.md).
 
 
+## 2026-10-08 — Bind local native-tool assessments to build and dispatch evidence
+
+- **Scope:** Continue the approved synthetic assessment after the version-only
+  normalization. The preserved normalized baseline builds and still exposes model
+  tools on its actual wire request. Original source/lockfile bytes, historical
+  receipts and the installed CLI remain preserved.
+- **Assessment interface:** Add `--probe-build-manifest` only with an explicit
+  probe executable. Validate exact source/toolchain/lock/patch/build identities
+  before sandbox or provider probes. Only that path adds `tools.enabled=false`.
+  Default/live invocation and source-authorization contracts are unchanged.
+- **Evidence contract:** Qualification receipts advance to v3; retain issued fake
+  responses as well as requests and streams. Keep the 19 existing checks and add
+  mandatory fatal rejection of unsolicited native and hosted tool calls without
+  handlers or continuation. Recompute checks from raw evidence; old v1/v2 and
+  assessment-only receipts cannot authorize preparation or execution.
+- **Delivery boundary:** Source-patch compilation and full actual assessment are
+  pending at this checkpoint. Build provenance and mocked tests do not qualify a
+  runtime. No candidate installation/adoption, real sources, merge, dependencies
+  or scientific criteria changes are authorized by this assessment.
+- **Workspace correction:** An external-cache build was paused when the user
+  reported access prompts. The user clarified the drive is pre-authorized and
+  approved resumption there. The prompt cause remains unidentified; retain both
+  interruptions and the resumed success without treating either pause as a test.
+
+## 2026-10-08 — Stop the source-build assessment at the original-lockfile gate
+
+- **Approved scope:** Assess a narrowly patched CLI 0.161.0 in isolation, starting
+  with an unmodified baseline build pinned to official source commit
+  `979011409de0a60b52f179721948e65531d26144`, its original lockfile and Rust 1.95.0.
+  Candidate adoption and real-study transmission remain separate decisions.
+- **Observed blocker:** The baseline locked dependency fetch exits 101 before
+  compilation. The tagged manifests identify local packages as 0.161.0; the
+  original lockfile identifies those same packages as 0.0.0. Source bytes remain
+  unchanged and match Git. This is separate from the existing native-tool failure.
+- **Recovery proposal:** Retain the original lockfile and an unapplied, auditable
+  local-version-only normalization diff. Third-party package records are unchanged
+  in that proposal. Application requires a scope extension because the approved
+  plan explicitly pins the original lockfile and stops if the baseline cannot
+  build. A proposed diff does not establish that the normalized baseline builds.
+- **User-approved extension:** The user authorized applying only that normalization
+  in a separate build checkout, while retaining the original source and lockfile.
+  The normalized locked fetch passed without further changes. Native compilation
+  and runtime assessment remain separate evidence requirements.
+- **Authority at the original-lockfile checkpoint:** No tool-control implementation
+  or qualification v3 was added;
+  no candidate binary or passing assessment exists. Preserve negative evidence,
+  keep PR #15 draft, and never use build metadata as execution authorization.
+
 ## 2026-10-07 — Reaudit Codex isolation and retain unsupported-runtime boundary
 
 - **Decision:** Add explicit `agents.enabled=false`, bundled-skill/context suppression,

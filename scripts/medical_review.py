@@ -139,6 +139,14 @@ def parser() -> argparse.ArgumentParser:
         type=Path,
         help="Synthetic assessment only; cannot authorize preparation or live execution.",
     )
+    qualifying.add_argument(
+        "--probe-build-manifest",
+        type=Path,
+        help=(
+            "Pinned local source-build provenance; requires --probe-executable "
+            "and remains assessment-only."
+        ),
+    )
     preparing = commands.add_parser(
         "prepare-codex", help="Prepare an indexed offline source packet after qualification."
     )
@@ -293,7 +301,10 @@ def main() -> int:
             print(run)
         elif args.operation == "qualify-codex":
             receipt = qualify_codex(
-                ROOT, catalogue=args.catalogue, probe_executable=args.probe_executable
+                ROOT,
+                catalogue=args.catalogue,
+                probe_executable=args.probe_executable,
+                probe_build_manifest=args.probe_build_manifest,
             )
             result = read_json(receipt)
             print(

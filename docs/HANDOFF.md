@@ -1,5 +1,88 @@
 # Handoff (for multi-session work)
 
+## 2026-10-08 Native-tool candidate checkpoint; actual qualification pending
+
+The user approved version-only lockfile normalization and clarified that the
+external build cache is pre-authorized. The normalized 0.161.0 baseline built;
+its separately preserved executable has SHA-256
+`ec7ea1cd3076f5b37e77c6f01c2689951430fb3239b1bcdd5f7ac6e727ad4d55`.
+An actual synthetic request reproduced native tool exposure before production
+source edits. Original source remains clean and the installed 0.157.0 CLI hash
+remains unchanged.
+
+- Added assessment-only source-build manifest validation, v3 raw response/dispatch
+  evidence and candidate reauditing. Preparation/run reject candidate receipts.
+- Retained `tools/codex-no-tools/native-tools.patch`, version-only normalization,
+  build recipe/recorder and local upstream reproducer materials. No upstream post,
+  installation, candidate adoption or real study transmission occurred.
+- Test-first configuration regression failed against the baseline (false discarded,
+  serialized null), then passed with the patch. Core tests passed for omitted/true/
+  false configuration, empty-registry/worker behavior and fatal pre-handler calls;
+  the existing allowed-tool filtering test passed. Regenerated the actual schema.
+- Initial core compilation failed on five old fixture literals; their new field is
+  `None` and the failure is retained separately. Modified Rust files pass formatting
+  and source whitespace checks. Unified-diff artifacts preserve hashed context
+  spaces using a scoped attribute; source checks remain active.
+- Focused Python validation passed 126 tests with zero failures/errors/skips.
+  A later post-final phase correction and its regression passed focused qualification
+  tests. The candidate release build is still running; actual qualification, final
+  focused verification and fresh three-lane CI/artifact validation remain.
+
+Private state, command receipts and original logs:
+`data/private/medical_reviews/runtime_candidates/source-0.161.0/`.
+Use `assessment-state.json` to locate the current build attempt and external cache.
+Keep PR #15 draft. Actual runtime success may establish a passing assessment only;
+operational adoption and separate source-specific authorization remain later gates.
+
+## 2026-10-08 Isolated CLI source-build preflight; original lockfile blocks build
+
+Started the approved assessment-only CLI patch milestone from `e2fef42` on
+`codex/medical-review-codex-backend`. Cloned official 0.161.0 source at
+`979011409de0a60b52f179721948e65531d26144` and installed its prescribed Rust 1.95.0
+toolchain inside the ignored private candidate directory, with no PATH or user
+configuration changes. The upstream source checkout remains clean.
+
+The first required baseline command, `cargo fetch --locked --target
+aarch64-apple-darwin`, exited 101: Cargo requires a lockfile update. Read-only
+metadata inspection confirms every local workspace package has manifest version
+0.161.0 but original lockfile version 0.0.0. The original lockfile hash is
+`3206e2fdb53a3498758ce2f2972f19fae26beb261befd65cc0eb9e02efe23d52` and its bytes
+match the pinned Git source. No compilation, native-tool patch or candidate
+qualification ran. The installed CLI remains unchanged.
+
+Preserved logs, source/toolchain state, metadata, a structured build-blocker report
+and an unapplied normalization proposal beneath
+`data/private/medical_reviews/runtime_candidates/source-0.161.0/`. The proposal
+changes only local package versions, preserves all third-party lock entries and
+has SHA-256 `9b2995d1b406de9526a4db5b1360c872eaa459bbb5dea1bd2412f560befd36bc`.
+The user subsequently approved that scope extension. Applied the normalization
+in a separate build checkout, preserving the original checkout and lockfile.
+The normalized locked fetch passed without further lockfile changes. Baseline
+compilation was interrupted for internal-disk headroom, then resumed with its
+generated cache in a dedicated external directory. The user subsequently required
+all work to remain in pre-approved folders to prevent repeated access prompts.
+Stopped that build with SIGINT (exit 130); its process group is gone. The external
+cache was preserved in place. The user clarified that the external drive is
+pre-authorized and explicitly approved resuming there; the access-prompt cause
+remains unidentified. The build resumed with the same cache. Source, toolchain,
+drafts and logs remain inside the repository. The local disk had only 4.9 GiB
+available, so the dedicated external cache remains necessary. Both interruptions are operational
+pauses, not successful build or qualification evidence. Preserve all attempt logs
+and the private workspace-access-pause record. Stop again if the normalized
+lockfile requires any other change.
+
+Reproduction after locating the isolated toolchain and source:
+
+```bash
+RUSTUP_HOME="$MEDICAL_CODEX_BUILD_ROOT/rustup" CARGO_HOME="$MEDICAL_CODEX_BUILD_ROOT/cargo" "$MEDICAL_CODEX_BUILD_ROOT/cargo/bin/cargo" fetch --locked --target aarch64-apple-darwin --manifest-path "$MEDICAL_CODEX_BUILD_ROOT/source/codex-rs/Cargo.toml"
+```
+
+Expected exit is 101 against the original source/lockfile; use `build-source`
+instead of `source` for the approved normalized control. This is build evidence,
+not a runtime-qualification receipt. PR #15 remains draft; live execution,
+candidate adoption, real-source approval, merging and medical qualification remain
+separate gates. Earlier runtime and CI evidence remains preserved.
+
 ## 2026-10-07 Codex isolation corrections; no supported runtime qualifies
 
 Updated PR #15 on `codex/medical-review-codex-backend`; preserved its earlier

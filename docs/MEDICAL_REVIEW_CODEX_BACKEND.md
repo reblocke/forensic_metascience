@@ -7,10 +7,19 @@ is **blocked** for the inspected Codex CLI 0.157.0 and isolated official release
 0.161.0 and 0.160.0. Explicit skill/agent/instruction controls exclude inherited
 context, but actual loopback requests still expose the native `functions`
 namespace. The supported code-mode namespace exclusion setting also leaves that
-wrapper exposed. Each release passes 18 of 19 mandatory checks; none qualifies.
+wrapper exposed. Earlier v2 receipts recorded 18 of 19 mandatory checks for each
+release; none qualified.
 A failed qualification cannot enable
 preparation or execution through the CLI. No real study transmission is part of
 software acceptance, and no medical performance is established.
+
+The isolated 0.161.0 source assessment required a user-approved local-version-only
+lockfile normalization: upstream manifests use 0.161.0 while the original lockfile
+records 0.0.0 for workspace packages. Original bytes and all third-party pins are
+preserved. The normalized baseline now builds; a preserved actual synthetic
+request reproduces native-tool exposure. Native patch compilation and full
+assessment remain pending. No source-built runtime is adopted or operationally
+qualified. See [the source-assessment materials](../tools/codex-no-tools/README.md).
 
 The user selected `gpt-6-astra`, reasoning `max`, existing ChatGPT authentication,
 one concurrent session, a 600-second generation deadline and zero automatic
@@ -50,6 +59,28 @@ it does not replace the installed CLI. Candidate receipts have
 still requires the PATH-resolved pinned 0.157.0 runtime and a passing default
 qualification. Adopting another version requires a subsequent explicit decision.
 
+For the isolated patched source build, provide its retained build manifest:
+
+```bash
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py \
+  qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE" \
+  --probe-executable "$MEDICAL_CODEX_CANDIDATE" \
+  --probe-build-manifest "$MEDICAL_CODEX_BUILD_MANIFEST"
+```
+
+The manifest requires an explicit candidate executable. Before any runtime probe,
+validation binds the upstream commit, original and normalized lockfiles, toolchain,
+reviewed native patch, build command/log, source ledger and executable hash. Only
+this assessment path adds `tools.enabled=false`; ordinary/live invocation is
+unchanged. Invalid provenance cannot start a provider. The 19 existing checks and
+one aggregate native-dispatch check are all mandatory. Direct, namespaced, freeform,
+Code Mode, wait, patch, user-input, nested, post-final, malformed tool-search and
+hosted search/image probes require a fatal startup-policy error and exactly one
+request. Configuration errors, timeouts and parser errors cannot substitute for
+that evidence. Validation rechecks issued calls and raw rejection streams.
+`validate_assessment` reaudits a passing candidate while keeping `qualified: false`;
+source preparation and live execution still reject it.
+
 Obtain candidates from official release assets in an isolated directory, verify
 the archive against the publisher's SHA-256 digest before extracting/executing,
 and retain the release metadata, archive and executable hashes. An adjacent
@@ -73,8 +104,8 @@ code-mode host cannot execute them.
 Receipts bind the executable bytes, OS, Python/parser versions, pinned catalogue,
 entrypoint, medical/forensic code and effective policy. Live use copies the pinned
 catalogue into the dedicated runtime; it does not adopt later model discovery.
-Version-2 receipts bind the configuration and audit rules through policy/code
-hashes. They retain raw request bodies/headers, all probe streams and raw sandbox
+Version-3 receipts bind the configuration and audit rules through policy/code
+hashes. They retain raw request bodies/headers, issued fake-provider responses, all probe streams and raw sandbox
 return codes/stdout/stderr. Validation verifies every artifact, reconstructed
 invocation, source bytes and runtime metadata, then recomputes acceptance across
 every outgoing request, including errors and cancellation. Only explicit medical
@@ -82,7 +113,7 @@ instructions, the exact synthetic source and narrow temporary-workspace metadata
 are allowed. Source text mentioning tools remains source data. Complete prompt
 budgets include runtime context and the structured output contract.
 
-Changes require requalification. Historical version-1 receipts remain preserved
+Changes require requalification. Historical version-1 and version-2 receipts remain preserved
 but cannot authorize execution under this implementation. Changing booleans in a
 receipt cannot bypass reauditing the raw wire/context/sandbox evidence. Catalogue
 masking, tool-declaration removal or instructions not to call tools cannot prove

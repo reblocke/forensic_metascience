@@ -1,0 +1,363 @@
+diff --git a/codex-rs/config/src/config_toml.rs b/codex-rs/config/src/config_toml.rs
+index 3e5cc07..4b25b9a 100644
+--- a/codex-rs/config/src/config_toml.rs
++++ b/codex-rs/config/src/config_toml.rs
+@@ -693,6 +693,8 @@ pub struct RealtimeAudioToml {
+ #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, JsonSchema)]
+ #[schemars(deny_unknown_fields)]
+ pub struct ToolsToml {
++    /// Permit model tools. False installs an immutable deny-all startup ceiling.
++    pub enabled: Option<bool>,
+     #[serde(
+         default,
+         deserialize_with = "deserialize_optional_web_search_tool_config"
+@@ -1119,3 +1121,26 @@ command = "   "
+         );
+     }
+ }
++
++#[cfg(test)]
++mod model_tools_tests {
++    use super::ConfigToml;
++
++    #[test]
++    fn model_tools_toggle_is_explicit_and_preserves_nested_controls() {
++        for enabled in [false, true] {
++            let config: ConfigToml = toml::from_str(&format!(
++                "[tools]\nenabled = {enabled}\n[tools.update_plan]\nenabled = false\n"
++            ))
++            .expect("tools configuration parses");
++            let json = serde_json::to_value(config).expect("configuration serializes");
++            assert_eq!(json["tools"]["enabled"], serde_json::json!(enabled));
++            assert_eq!(
++                json["tools"]["update_plan"]["enabled"],
++                serde_json::json!(false)
++            );
++        }
++        let config: ConfigToml = toml::from_str("").expect("default configuration parses");
++        assert!(config.tools.is_none());
++    }
++}
+diff --git a/codex-rs/core/config.schema.json b/codex-rs/core/config.schema.json
+index fb42dd5..5f5647c 100644
+--- a/codex-rs/core/config.schema.json
++++ b/codex-rs/core/config.schema.json
+@@ -4403,6 +4403,10 @@
+     "ToolsToml": {
+       "additionalProperties": false,
+       "properties": {
++        "enabled": {
++          "description": "Permit model tools. False installs an immutable deny-all startup ceiling.",
++          "type": "boolean"
++        },
+         "experimental_request_user_input": {
+           "$ref": "#/definitions/ExperimentalRequestUserInput"
+         },
+diff --git a/codex-rs/core/src/config/config_tests.rs b/codex-rs/core/src/config/config_tests.rs
+index 79ab58e..416f91e 100644
+--- a/codex-rs/core/src/config/config_tests.rs
++++ b/codex-rs/core/src/config/config_tests.rs
+@@ -458,6 +458,7 @@ web_search = true
+     assert_eq!(
+         cfg.tools,
+         Some(ToolsToml {
++            enabled: None,
+             web_search: None,
+             experimental_request_user_input: None,
+             update_plan: None,
+@@ -478,6 +479,7 @@ web_search = false
+     assert_eq!(
+         cfg.tools,
+         Some(ToolsToml {
++            enabled: None,
+             web_search: None,
+             experimental_request_user_input: None,
+             update_plan: None,
+@@ -497,6 +499,7 @@ fn tools_experimental_request_user_input_defaults_to_enabled() {
+     assert_eq!(
+         cfg.tools,
+         Some(ToolsToml {
++            enabled: None,
+             web_search: None,
+             experimental_request_user_input: Some(ExperimentalRequestUserInput { enabled: true }),
+             update_plan: None,
+@@ -517,6 +520,7 @@ enabled = false
+     assert_eq!(
+         cfg.tools,
+         Some(ToolsToml {
++            enabled: None,
+             web_search: None,
+             experimental_request_user_input: Some(ExperimentalRequestUserInput { enabled: false }),
+             update_plan: None,
+@@ -530,6 +534,7 @@ async fn load_config_resolves_experimental_request_user_input_enabled() -> std::
+     let config = Config::load_from_base_config_with_overrides(
+         ConfigToml {
+             tools: Some(ToolsToml {
++                enabled: None,
+                 web_search: None,
+                 experimental_request_user_input: Some(ExperimentalRequestUserInput {
+                     enabled: false,
+@@ -13459,3 +13464,24 @@ fn sqlite_home_env_conflict_reports_an_override() -> std::io::Result<()> {
+ 
+     Ok(())
+ }
++
++#[tokio::test]
++async fn model_tools_disable_all_requires_explicit_false() -> std::io::Result<()> {
++    for (enabled, expected_disabled) in [(None, false), (Some(true), false), (Some(false), true)] {
++        let codex_home = tempdir()?;
++        let config = Config::load_from_base_config_with_overrides(
++            ConfigToml {
++                tools: Some(ToolsToml {
++                    enabled,
++                    ..Default::default()
++                }),
++                ..Default::default()
++            },
++            ConfigOverrides::default(),
++            codex_home.abs(),
++        )
++        .await?;
++        assert_eq!(config.tool_registry.disable_all_tools, expected_disabled);
++    }
++    Ok(())
++}
+diff --git a/codex-rs/core/src/config/mod.rs b/codex-rs/core/src/config/mod.rs
+index fe06279..e054bf0 100644
+--- a/codex-rs/core/src/config/mod.rs
++++ b/codex-rs/core/src/config/mod.rs
+@@ -1161,6 +1161,8 @@ pub struct Config {
+ 
+ #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+ pub struct ToolRegistryConfig {
++    /// Deny every model tool at startup, including catalogue-selected wrappers.
++    pub disable_all_tools: bool,
+     /// Fail the turn when multiple tools share the same effective name.
+     pub error_on_tool_collisions: bool,
+     /// Include authoritative tool information in per-turn request metadata.
+@@ -3782,6 +3784,7 @@ impl Config {
+             resolve_experimental_request_user_input_enabled(&cfg);
+         let update_plan_enabled = resolve_update_plan_enabled(&cfg);
+         let tool_registry = ToolRegistryConfig {
++            disable_all_tools: cfg.tools.as_ref().and_then(|tools| tools.enabled) == Some(false),
+             error_on_tool_collisions: cfg
+                 .features
+                 .as_ref()
+diff --git a/codex-rs/core/src/session/session.rs b/codex-rs/core/src/session/session.rs
+index 9452040..aac9522 100644
+--- a/codex-rs/core/src/session/session.rs
++++ b/codex-rs/core/src/session/session.rs
+@@ -1005,6 +1005,14 @@ impl Session {
+                     Arc::default()
+                 }
+             });
++        let tool_policy = if config.tool_registry.disable_all_tools {
++            let mut restricted = tool_policy.as_ref().clone();
++            restricted.allowed_tools = Some(Vec::new());
++            thread_extension_init.insert(restricted.clone());
++            Arc::new(restricted)
++        } else {
++            tool_policy
++        };
+         let mcp_thread_init = thread_extension_init.clone();
+         let thread_extension_data = codex_extension_api::ExtensionData::new_with_init(
+             thread_id.to_string(),
+diff --git a/codex-rs/core/src/stream_events_utils.rs b/codex-rs/core/src/stream_events_utils.rs
+index 20ea780..bd622b2 100644
+--- a/codex-rs/core/src/stream_events_utils.rs
++++ b/codex-rs/core/src/stream_events_utils.rs
+@@ -16,7 +16,6 @@ use crate::session::step_context::StepContext;
+ use crate::session::turn_context::TurnContext;
+ use crate::tools::call_trace;
+ use crate::tools::parallel::ToolCallRuntime;
+-use crate::tools::router::ToolRouter;
+ use codex_memories_read::citations::parse_memory_citation;
+ use codex_memories_read::citations::thread_ids_from_memory_citation;
+ use codex_protocol::error::CodexErr;
+@@ -320,7 +319,11 @@ pub(crate) async fn handle_output_item_done(
+     let mut output = OutputItemResult::default();
+     let plan_mode = ctx.step_context.turn.mode() == ModeKind::Plan;
+ 
+-    match ToolRouter::build_tool_call(item.clone()) {
++    match ctx
++        .step_context
++        .tool_router
++        .build_tool_call_with_policy(item.clone())
++    {
+         // The model emitted a tool call; log it, persist the item immediately, and queue the tool execution.
+         Ok(Some(call)) => {
+             call_trace::received(
+diff --git a/codex-rs/core/src/tools/registry.rs b/codex-rs/core/src/tools/registry.rs
+index 9ac7b76..94a3a96 100644
+--- a/codex-rs/core/src/tools/registry.rs
++++ b/codex-rs/core/src/tools/registry.rs
+@@ -528,6 +528,16 @@ impl ToolRegistry {
+         mut invocation: ToolInvocation,
+         call_state: Option<Arc<ToolCallState>>,
+     ) -> Result<AnyToolResult, FunctionCallError> {
++        if self
++            .tool_policy
++            .allowed_tools
++            .as_ref()
++            .is_some_and(Vec::is_empty)
++        {
++            return Err(FunctionCallError::Fatal(
++                "Model tools are disabled by startup policy.".to_string(),
++            ));
++        }
+         let tool_name = invocation.tool_name.clone();
+         let call_id_owned = invocation.call_id.clone();
+         let otel = invocation
+diff --git a/codex-rs/core/src/tools/registry_tests.rs b/codex-rs/core/src/tools/registry_tests.rs
+index 895d8d4..734b5a9 100644
+--- a/codex-rs/core/src/tools/registry_tests.rs
++++ b/codex-rs/core/src/tools/registry_tests.rs
+@@ -842,3 +842,53 @@ fn test_invocation(
+         },
+     }
+ }
++
++#[tokio::test]
++async fn model_tools_deny_all_fails_fatally_before_handlers() {
++    let (session, turn) = crate::session::tests::make_session_and_context().await;
++    let session = Arc::new(session);
++    let turn = Arc::new(turn);
++    let readiness = Arc::new(AtomicUsize::new(0));
++    let mut registry = ToolRegistry::with_tool_policy(Arc::new(codex_extension_api::ToolPolicy {
++        allowed_tools: Some(Vec::new()),
++        ..Default::default()
++    }));
++    registry.register_trusted(Arc::new(ReadinessTestHandler {
++        handler: TestHandler {
++            tool_name: codex_tools::ToolName::plain("exec"),
++        },
++        readiness_waits: Arc::clone(&readiness),
++    }));
++    assert!(registry.tool_names_for_test().is_empty());
++    for name in [
++        codex_tools::ToolName::plain("exec"),
++        codex_tools::ToolName::namespaced("functions", "wait"),
++        codex_tools::ToolName::plain("apply_patch"),
++        codex_tools::ToolName::namespaced("connector", "read"),
++    ] {
++        for custom in [false, true] {
++            let mut invocation = test_invocation(
++                Arc::clone(&session),
++                Arc::clone(&turn),
++                "denied-call",
++                name.clone(),
++            );
++            if custom {
++                invocation.payload = ToolPayload::Custom {
++                    input: "TOOL_EXECUTION_SENTINEL".to_string(),
++                };
++            }
++            let error = registry
++                .dispatch_any_with_state(invocation, None)
++                .await
++                .err();
++            assert_eq!(
++                error,
++                Some(FunctionCallError::Fatal(
++                    "Model tools are disabled by startup policy.".to_string()
++                ))
++            );
++        }
++    }
++    assert_eq!(readiness.load(Ordering::Relaxed), 0);
++}
+diff --git a/codex-rs/core/src/tools/router.rs b/codex-rs/core/src/tools/router.rs
+index fbf0e77..a72012e 100644
+--- a/codex-rs/core/src/tools/router.rs
++++ b/codex-rs/core/src/tools/router.rs
+@@ -144,7 +144,13 @@ impl ToolRouter {
+ 
+     /// Code Mode still needs its dispatcher when the nested tool set is empty.
+     pub(crate) fn requires_code_mode_worker(&self) -> bool {
+-        matches!(self.tool_mode, ToolMode::CodeMode | ToolMode::CodeModeOnly)
++        !self
++            .registry
++            .tool_policy
++            .allowed_tools
++            .as_ref()
++            .is_some_and(Vec::is_empty)
++            && matches!(self.tool_mode, ToolMode::CodeMode | ToolMode::CodeModeOnly)
+     }
+ 
+     /// The normalized nested identities chosen after exclusions and collisions.
+@@ -244,6 +250,34 @@ impl ToolRouter {
+         self.registry.tool(tool_name)
+     }
+ 
++    /// Enforce the startup ceiling before parsing or observing model tool output.
++    pub(crate) fn build_tool_call_with_policy(
++        &self,
++        item: ResponseItem,
++    ) -> Result<Option<ToolCall>, FunctionCallError> {
++        if self
++            .registry
++            .tool_policy
++            .allowed_tools
++            .as_ref()
++            .is_some_and(Vec::is_empty)
++            && matches!(
++                item,
++                ResponseItem::FunctionCall { .. }
++                    | ResponseItem::CustomToolCall { .. }
++                    | ResponseItem::LocalShellCall { .. }
++                    | ResponseItem::ToolSearchCall { .. }
++                    | ResponseItem::WebSearchCall { .. }
++                    | ResponseItem::ImageGenerationCall { .. }
++            )
++        {
++            return Err(FunctionCallError::Fatal(
++                "Model tools are disabled by startup policy.".to_string(),
++            ));
++        }
++        Self::build_tool_call(item)
++    }
++
+     #[instrument(level = "trace", skip_all, err)]
+     pub fn build_tool_call(item: ResponseItem) -> Result<Option<ToolCall>, FunctionCallError> {
+         match item {
+diff --git a/codex-rs/core/src/tools/spec_plan_tests.rs b/codex-rs/core/src/tools/spec_plan_tests.rs
+index 1518558..ff37d04 100644
+--- a/codex-rs/core/src/tools/spec_plan_tests.rs
++++ b/codex-rs/core/src/tools/spec_plan_tests.rs
+@@ -3409,3 +3409,36 @@ async fn hosted_web_search_and_standalone_image_generation_follow_runtime_gates(
+     bedrock_with_standalone_web_search.assert_visible_contains(&["web_search"]);
+     bedrock_with_standalone_web_search.assert_visible_lacks(&["web"]);
+ }
++
++#[tokio::test]
++async fn model_tools_deny_all_prevents_catalogue_code_mode_worker() {
++    use crate::tools::registry::ToolRegistry;
++    use codex_extension_api::ToolPolicy;
++    let (_, mut turn) = make_session_and_context().await;
++    update_turn_settings_for_test(&mut turn, |settings| {
++        Arc::make_mut(&mut settings.model_info).tool_mode = Some(ToolMode::CodeModeOnly);
++    });
++    let registry = ToolRegistry::with_tool_policy(Arc::new(ToolPolicy {
++        allowed_tools: Some(Vec::new()),
++        ..Default::default()
++    }));
++    let router = ToolRouter::from_registry(
++        &turn,
++        turn.model_info(),
++        registry,
++        Vec::new(),
++        &Default::default(),
++    );
++    assert!(router.model_visible_specs().is_empty());
++    assert!(!router.requires_code_mode_worker());
++    for value in [
++        serde_json::json!({"type": "tool_search_call", "call_id": "denied", "execution": "client", "arguments": {"invalid": true}}),
++        serde_json::json!({"type": "web_search_call", "status": "completed"}),
++        serde_json::json!({"type": "image_generation_call", "status": "completed", "result": "synthetic"}),
++    ] {
++        let item = serde_json::from_value(value).expect("valid response item shape");
++        assert!(matches!(router.build_tool_call_with_policy(item),
++            Err(crate::function_tool::FunctionCallError::Fatal(message))
++                if message == "Model tools are disabled by startup policy."));
++    }
++}
