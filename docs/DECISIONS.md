@@ -565,6 +565,14 @@ Record decisions that affect reproducibility and interpretation.
 
 ## 2026-10-08 — Bind local native-tool assessments to build and dispatch evidence
 
+- **Completed assessment:** The isolated patched 0.161.0 build passed all 20 actual
+  mandatory checks with unchanged Astra catalogue bytes. Reauditing its raw evidence
+  passed; operational receipt validation rejects it. Baseline and patched default
+  controls retain identical exposed tool declarations. The executable hash is
+  `8229baba8ad7387cbf2636b0116c8abd6d94cf87f503b327c78abc47b44c619a`.
+  This supersedes the pending status at the checkpoint below, not historical negative
+  receipts. A passing local assessment does not adopt a supported runtime or grant
+  source-transmission permission. Exact candidate adoption remains a separate decision.
 - **Scope:** Continue the approved synthetic assessment after the version-only
   normalization. The preserved normalized baseline builds and still exposes model
   tools on its actual wire request. Original source/lockfile bytes, historical

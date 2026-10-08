@@ -55,10 +55,14 @@ requests, dispatch probes and every existing isolation/limit/recovery check are
 required. A declaration filter or an instruction not to call tools is insufficient.
 
 The normalized baseline has built and its preserved synthetic request reproduces
-native tool exposure. The retained candidate patch and version-3 assessment
-interface remain unqualified until Rust checks and actual CLI probes complete. Source checkouts, toolchains, binaries, logs and
-raw evidence stay in ignored private locations. No passing candidate or operational
-qualification is asserted by these preparation artifacts.
+native tool exposure. The patched candidate built with Rust 1.95.0, passed the
+native regressions and all 20 mandatory actual CLI assessment checks, and passed
+raw-evidence reauditing. Baseline and patched omitted-setting controls expose
+identical declarations. The candidate executable SHA-256 is
+`8229baba8ad7387cbf2636b0116c8abd6d94cf87f503b327c78abc47b44c619a`.
+Source checkouts, toolchains, binaries, logs and raw evidence stay in ignored private
+locations. The passing receipt is assessment-only: no operational runtime adoption,
+installation or source-transmission authorization follows from this result.
 
 
 ## Build the candidate and retain provenance

@@ -1,5 +1,49 @@
 # Handoff (for multi-session work)
 
+## 2026-10-08 Native-tool source candidate passes synthetic assessment
+
+Resumed the isolated build using the pre-authorized external cache. The candidate
+release build and retained build-manifest validation succeeded. Its executable
+SHA-256 is `8229baba8ad7387cbf2636b0116c8abd6d94cf87f503b327c78abc47b44c619a`;
+the reviewed native patch is
+`b2eea02447ba2bb4ed8d9a4ca902d5e2de0c612926209214cde8056879819086`.
+All 20 mandatory actual CLI checks passed against the adapter at `3abc669`:
+tool-free requests, inherited-context exclusion, sandbox positive/negative controls,
+zero retries, cancellation, bounded outputs and fatal rejection of all 12 unsolicited
+tool-call cases. Raw requests, issued responses, streams and sandbox results were
+retained and independently reaudited. The passing receipt remains assessment-only
+and is refused by operational qualification validation.
+
+Private receipt:
+`data/private/medical_reviews/runtime_qualifications/24f790fdcbf3435b9c938ce9d4511dca/qualification.json`.
+Private build state/provenance/control evidence:
+`data/private/medical_reviews/runtime_candidates/source-0.161.0/assessment-state.json`.
+The immutable Astra catalogue was used unchanged. The normalized baseline and
+patched omitted-setting controls both complete one synthetic request and expose
+identical tool declarations; only the explicit startup restriction disables them.
+One control-comparison script assumed top-level declarations and raised `KeyError`;
+its raw request was retained, and the corrected comparison includes nested declarations.
+
+Final focused Python verification passed 127 tests, zero failures/errors/skips:
+
+```bash
+PYTHONPATH=src uv run --offline --locked pytest -q tests/medical_review/test_codex_backend.py tests/medical_review/test_codex_qualification.py tests/medical_review/test_codex_source_build.py tests/medical_review/test_codex_packet.py tests/medical_review/test_codex_execution.py tests/medical_review/test_execution.py tests/medical_review/test_reporting.py -m 'not native_r and not report_integration' --junitxml=reports/diagnostics/medical_review_codex_source_build/focused-final.xml
+```
+
+Actual isolated Rust configuration/core regressions, existing tool-policy regression,
+schema generation, release build, modified-source formatting and whitespace checks
+passed. See `tools/codex-no-tools/README.md` for reproduction commands, including
+the actual CLI assessment command. Ruff and Git whitespace checks are required
+again on the final documentation commit, followed by fresh Python/native-R/report
+CI and downloaded artifact verification; final receipts belong in PR #15.
+
+Focused review found no actionable defect in the startup ceiling, dispatch checks,
+assessment-only gate or retained-evidence validation. Keep PR #15 draft: this local
+patched build is not an adopted supported runtime. Next requires an explicit decision
+on that exact candidate, implementation of its operational binding and fresh live-eligible
+qualification. New packet preparation and source-specific human authorization follow
+that gate. No installation, real study transmission, upstream post or merge occurred.
+
 ## 2026-10-08 Native-tool candidate checkpoint; actual qualification pending
 
 The user approved version-only lockfile normalization and clarified that the

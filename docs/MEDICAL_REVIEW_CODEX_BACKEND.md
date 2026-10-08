@@ -17,9 +17,16 @@ The isolated 0.161.0 source assessment required a user-approved local-version-on
 lockfile normalization: upstream manifests use 0.161.0 while the original lockfile
 records 0.0.0 for workspace packages. Original bytes and all third-party pins are
 preserved. The normalized baseline now builds; a preserved actual synthetic
-request reproduces native-tool exposure. Native patch compilation and full
-assessment remain pending. No source-built runtime is adopted or operationally
-qualified. See [the source-assessment materials](../tools/codex-no-tools/README.md).
+request reproduces native-tool exposure. The isolated native patch now builds and
+passes all 20 mandatory actual CLI assessment checks, including rejection of 12
+unsolicited tool-call cases. Retained evidence reauditing passes; baseline and patched
+default controls retain identical tool declarations. The passing executable hash is
+`8229baba8ad7387cbf2636b0116c8abd6d94cf87f503b327c78abc47b44c619a`.
+Its receipt remains assessment-only and cannot prepare sources or authorize a run.
+No source-built runtime is adopted or operationally qualified. An explicit decision
+on the exact patched candidate, operational binding and fresh eligible qualification
+are required before packet preparation and separate source-specific authorization.
+See [the source-assessment materials](../tools/codex-no-tools/README.md).
 
 The user selected `gpt-6-astra`, reasoning `max`, existing ChatGPT authentication,
 one concurrent session, a 600-second generation deadline and zero automatic
