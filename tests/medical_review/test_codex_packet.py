@@ -94,3 +94,35 @@ def test_preparation_preserves_unresolved_protocol_and_unsupported_routing(works
         assert packet["routing"]["routing_status"] == "unresolved"
     if profiles in (["protocol"], ["other"]):
         assert any(c["check_id"] == "trial.assignment" for c in packet["checks"])
+
+
+def test_complete_prompt_reserve_includes_wire_escaping_and_runtime_context(workspace):
+    from research_project.medical_review.codex_backend import INSTRUCTIONS, execution_policy
+    from research_project.medical_review.codex_generation import output_schema
+    from research_project.medical_review.codex_packet import _prompt_bytes
+
+    raw = json.dumps({"source": '"' * 2000}).encode()
+    visible = {
+        "input": [
+            {
+                "type": "message",
+                "role": "user",
+                "content": [{"type": "input_text", "text": raw.decode()}],
+            }
+        ],
+        "text": {
+            "format": {
+                "name": "codex_output_schema",
+                "schema": output_schema(workspace[0]),
+                "strict": True,
+                "type": "json_schema",
+            },
+            "verbosity": "low",
+        },
+    }
+    expected = (
+        len(json.dumps(visible, ensure_ascii=False).encode())
+        + len(INSTRUCTIONS.encode())
+        + execution_policy()["max_runtime_context_bytes"]
+    )
+    assert _prompt_bytes(workspace[0], raw) >= expected

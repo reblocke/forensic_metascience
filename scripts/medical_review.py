@@ -134,6 +134,11 @@ def parser() -> argparse.ArgumentParser:
         type=Path,
         help="Local Codex model catalogue; no provider discovery.",
     )
+    qualifying.add_argument(
+        "--probe-executable",
+        type=Path,
+        help="Synthetic assessment only; cannot authorize preparation or live execution.",
+    )
     preparing = commands.add_parser(
         "prepare-codex", help="Prepare an indexed offline source packet after qualification."
     )
@@ -287,19 +292,23 @@ def main() -> int:
             )
             print(run)
         elif args.operation == "qualify-codex":
-            receipt = qualify_codex(ROOT, catalogue=args.catalogue)
+            receipt = qualify_codex(
+                ROOT, catalogue=args.catalogue, probe_executable=args.probe_executable
+            )
             result = read_json(receipt)
             print(
                 json.dumps(
                     {
                         "receipt": str(receipt),
                         "qualified": result["qualified"],
+                        "assessment_only": result["assessment_only"],
+                        "all_checks_passed": result["all_checks_passed"],
                         "checks": result["checks"],
                     },
                     sort_keys=True,
                 )
             )
-            return 0 if result["qualified"] else 3
+            return 0 if result["all_checks_passed"] else 3
         elif args.operation == "prepare-codex":
             result = prepare_packet(
                 ROOT, args.bundle, qualification=args.qualification, profiles=args.profile

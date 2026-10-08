@@ -136,7 +136,7 @@ def test_failed_qualification_never_becomes_valid_by_relabeling_checks(workspace
     monkeypatch.setattr(
         "research_project.medical_review.codex_qualification.runtime_identity", lambda *_: runtime
     )
-    with pytest.raises(ValueError, match="tools"):
+    with pytest.raises(ValueError, match="unsupported"):
         validate_qualification(repo, path)
 
 
@@ -146,7 +146,7 @@ def test_unsupported_runtime_produces_failed_offline_receipt(workspace, monkeypa
     from research_project.medical_review.codex_qualification import qualify_codex
     from research_project.medical_review.records import read_json
 
-    def unsupported(*_):
+    def unsupported(*_, **__):
         raise ValueError("Unsupported runtime")
 
     monkeypatch.setattr(
@@ -216,3 +216,49 @@ def test_controller_crash_kills_orphan_and_releases_lock_after_cleanup(tmp_path)
         if parent.poll() is None:
             parent.kill()
             parent.wait(timeout=5)
+
+
+def test_exited_macos_group_is_reaped_before_treating_permission_error_as_gone(monkeypatch):
+    import signal
+
+    from research_project.medical_review.codex_process import _terminate
+
+    class Exited:
+        pid = 12345
+
+        def poll(self):
+            return 1
+
+        def wait(self, **_):
+            return 1
+
+    calls = []
+
+    def kill(group, sig):
+        calls.append((group, sig))
+        if sig == 0:
+            raise ProcessLookupError()
+        raise PermissionError()
+
+    monkeypatch.setattr("os.killpg", kill)
+    _terminate(Exited())
+    assert calls == [(12345, signal.SIGTERM), (12345, 0)]
+
+
+def test_live_group_permission_failure_is_not_silently_accepted(monkeypatch):
+    import subprocess
+
+    from research_project.medical_review.codex_process import _terminate
+
+    class Live:
+        pid = 12345
+
+        def wait(self, **_):
+            raise subprocess.TimeoutExpired("synthetic", 0.5)
+
+    def kill(*_):
+        raise PermissionError()
+
+    monkeypatch.setattr("os.killpg", kill)
+    with pytest.raises(PermissionError):
+        _terminate(Live())

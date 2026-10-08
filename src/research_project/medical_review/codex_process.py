@@ -35,6 +35,18 @@ def _terminate(process: subprocess.Popen) -> None:
         os.killpg(process.pid, signal.SIGTERM)
     except ProcessLookupError:
         pass
+    except PermissionError:
+        # macOS may deny signaling an exited, unreaped sandbox group. Reap only
+        # an exited leader, then require the group itself to be absent.
+        try:
+            process.wait(timeout=0.5)
+        except subprocess.TimeoutExpired:
+            raise PermissionError("Cannot terminate a live Codex process group.") from None
+        try:
+            os.killpg(process.pid, 0)
+        except ProcessLookupError:
+            return
+        raise
     try:
         process.wait(timeout=0.5)
     except subprocess.TimeoutExpired:

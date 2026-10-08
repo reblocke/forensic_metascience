@@ -561,3 +561,41 @@ Record decisions that affect reproducibility and interpretation.
   software separately from the failed live gate. No existing acceptance receipt was
   rewritten. Merge, real source authorization/smoke testing and medical qualification
   remain separate. See [the operator workflow](MEDICAL_REVIEW_CODEX_BACKEND.md).
+
+
+## 2026-10-07 — Reaudit Codex isolation and retain unsupported-runtime boundary
+
+- **Decision:** Add explicit `agents.enabled=false`, bundled-skill/context suppression,
+  app/collaboration/permission instruction suppression, `tools.update_plan.enabled=false`
+  and disabled analytics. These controls are supported by the tested strict runtimes
+  and the [official configuration schema](https://learn.chatgpt.com/docs/config-schema.json).
+  Preserve Astra/max, authentication, session/deadline/retry limits and source authority.
+- **Qualification v2:** Retain original request bodies/headers and all probe streams;
+  audit every request across successful, server-error, context-error, cancellation
+  and bounded-output modes. Allow only explicit instructions, exact source data and
+  narrow temporary metadata. Recompute sandbox acceptance from raw return codes and
+  stdout/stderr. Reject absent requests, inherited messages, nested native tools,
+  configuration failures as denial evidence, altered artifacts/configuration and
+  relabeled checks. Old receipts remain immutable but cannot authorize revised code.
+  Complete-prompt preflight now counts source JSON escaping, output schema and the
+  runtime-context reserve; oversize packets still fail before transmission.
+- **Cancellation correction:** macOS can refuse a group signal while a sandbox leader
+  is becoming a zombie. On that error, reap the exited leader within the existing
+  cleanup interval, then require the process group to be absent. A surviving group
+  or unreapable live process still fails; no live termination error is suppressed.
+- **Candidate scope:** `--probe-executable` is synthetic assessment only. Even a passing
+  candidate receipt cannot prepare sources or start a provider. Official 0.161.0,
+  then 0.160.0 were downloaded separately with publisher digest verification and
+  dedicated synthetic runtime homes. Installed CLI, PATH, user configuration and
+  app remain unchanged. Original Astra catalogue bytes are identical throughout.
+- **Observed blocker:** All three releases exclude inherited skill/agent context and
+  pass 18/19 mandatory checks, but still expose `functions` native tools. Supported
+  `features.code_mode.excluded_tool_namespaces` does not remove that wrapper. No
+  fully passing candidate exists in this assessment. Do not mask the catalogue,
+  rewrite wire declarations, substitute models or weaken the tool-free policy.
+- **Acceptance:** Focused tests/lint/format/diff checks and fresh final-head Python,
+  native-R and actual Quarto report CI are recorded separately in PR #15. Keep it
+  draft while operational qualification is blocked. No source transmission, new
+  dependency, scientific qualification or merge occurs. Next is a supported upstream
+  runtime/configuration that passes every mandatory check, then separate exact-source
+  preparation/authorization. Historical acceptance evidence is not rewritten.

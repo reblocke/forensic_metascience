@@ -3,9 +3,12 @@
 ## Current status
 
 The opt-in `codex_cli` software path is implemented. Live operational acceptance
-is **blocked** for the inspected Codex CLI 0.157.0: the actual loopback request
-still exposes model tools and contains CLI-generated skill/agent instructions
-after the selected switches are disabled. A failed qualification cannot enable
+is **blocked** for the inspected Codex CLI 0.157.0 and isolated official releases
+0.161.0 and 0.160.0. Explicit skill/agent/instruction controls exclude inherited
+context, but actual loopback requests still expose the native `functions`
+namespace. The supported code-mode namespace exclusion setting also leaves that
+wrapper exposed. Each release passes 18 of 19 mandatory checks; none qualifies.
+A failed qualification cannot enable
 preparation or execution through the CLI. No real study transmission is part of
 software acceptance, and no medical performance is established.
 
@@ -29,23 +32,61 @@ It uses synthetic source/context canaries, synthetic ChatGPT tokens and a local
 fake provider. The entire probe controller's network access is restricted to its
 loopback server. It does not read the operator's authentication file or use a real
 provider. Receipt JSON, wire requests and received streams are retained beneath
-the ignored private runtime-qualification boundary. Exit 0 means qualified;
-exit 3 means failed qualification, never reassuring coverage.
+the ignored private runtime-qualification boundary. For the default executable,
+exit 0 means qualified; exit 3 means failed qualification, never reassuring coverage.
+
+Synthetic candidate assessment is explicit:
+
+```bash
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py \
+  qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE" \
+  --probe-executable "$MEDICAL_CODEX_CANDIDATE"
+```
+
+The optional path permits assessment of 0.157.0, 0.161.0 or 0.160.0 on macOS;
+it does not replace the installed CLI. Candidate receipts have
+`assessment_only: true` and `qualified: false` even if `all_checks_passed: true`
+(exit 0). They cannot prepare a packet or authorize execution. CLI preparation/run
+still requires the PATH-resolved pinned 0.157.0 runtime and a passing default
+qualification. Adopting another version requires a subsequent explicit decision.
+
+Obtain candidates from official release assets in an isolated directory, verify
+the archive against the publisher's SHA-256 digest before extracting/executing,
+and retain the release metadata, archive and executable hashes. An adjacent
+`distribution.json` (one directory above the executable's directory) is retained
+in the candidate receipt when supplied. It records operator intake provenance;
+assessment does not certify arbitrary supplied executables as official releases.
+Keep the catalogue bytes identical across comparisons. Do not change global
+installation, PATH, user configuration or app settings.
 
 Checks include an allowed-read positive control and denied outside/symlink reads,
 source/workspace writes and network access. A reachable unsandboxed socket is the
 network positive control. Actual wire data must show Astra/max, no top-level or
 nested tools, no inherited skill/agent/operator context and synthetic ChatGPT
 authentication. Successful completion, server errors, context-length errors and
-cancellation exercise real CLI transport. Configuration errors are failures,
+cancellation exercise real CLI transport. Reduced event/final/stderr caps exercise
+bounded-output failures. A deliberate unknown configuration key must fail before
+any provider request. Configuration errors are failures,
 not successful denials. The qualification rejects exposed tools even when the
 code-mode host cannot execute them.
 
 Receipts bind the executable bytes, OS, Python/parser versions, pinned catalogue,
 entrypoint, medical/forensic code and effective policy. Live use copies the pinned
 catalogue into the dedicated runtime; it does not adopt later model discovery.
-Changes require requalification. Changing booleans in a receipt cannot bypass
-reauditing its retained wire tool definitions. Receipts are local trusted operator
+Version-2 receipts bind the configuration and audit rules through policy/code
+hashes. They retain raw request bodies/headers, all probe streams and raw sandbox
+return codes/stdout/stderr. Validation verifies every artifact, reconstructed
+invocation, source bytes and runtime metadata, then recomputes acceptance across
+every outgoing request, including errors and cancellation. Only explicit medical
+instructions, the exact synthetic source and narrow temporary-workspace metadata
+are allowed. Source text mentioning tools remains source data. Complete prompt
+budgets include runtime context and the structured output contract.
+
+Changes require requalification. Historical version-1 receipts remain preserved
+but cannot authorize execution under this implementation. Changing booleans in a
+receipt cannot bypass reauditing the raw wire/context/sandbox evidence. Catalogue
+masking, tool-declaration removal or instructions not to call tools cannot prove
+isolation. Receipts are local trusted operator
 artifacts, not cryptographic protection against an operator who rewrites code.
 
 The [Codex execution documentation](https://learn.chatgpt.com/docs/non-interactive-mode)

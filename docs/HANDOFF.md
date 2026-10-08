@@ -1,5 +1,50 @@
 # Handoff (for multi-session work)
 
+## 2026-10-07 Codex isolation corrections; no supported runtime qualifies
+
+Updated PR #15 on `codex/medical-review-codex-backend`; preserved its earlier
+commits, receipts, branches and PR history. No merge or real source run occurred.
+
+- Added explicit supported skill/agent/instruction controls and strict all-request
+  tool/context auditing. Qualification receipts are v2; validation reconstructs
+  configuration, checks raw artifacts and recomputes sandbox/wire acceptance.
+- Added assessment-only executable probes, raw request/header/stream retention,
+  output-cap and unknown-configuration probes, candidate misuse/tamper/context
+  regressions, complete-prompt JSON escaping/reserve checks and a conservative
+  macOS zombie-group cleanup correction.
+- Actual pinned 0.157.0 and sequential isolated official 0.161.0/0.160.0 probes
+  pass 18/19 checks. The remaining failure is native `functions` exposure. Supported
+  code-mode namespace exclusion still leaves the wrapper visible. Catalogue bytes
+  are identical; original distributions/digests and negative receipts are retained
+  under ignored private boundaries. Installed CLI, PATH, user config and app remain
+  unchanged. No passing candidate is recommended for adoption.
+- Final software validation and artifact hashes are recorded on the final commit in
+  PR #15, independently of operational failure. Keep the PR draft. Earlier receipts
+  do not clear this revised implementation. The feature remains opt-in; numerical
+  proposals, human-pending status and incomplete coverage are unchanged.
+
+Reproduce (catalogue and candidate paths are supplied locally):
+
+```bash
+PYTHONPATH=src uv run --offline --locked pytest -q tests/medical_review/test_codex_backend.py tests/medical_review/test_codex_qualification.py tests/medical_review/test_codex_packet.py tests/medical_review/test_codex_execution.py tests/medical_review/test_execution.py tests/medical_review/test_reporting.py -m 'not native_r and not report_integration'
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE"
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE" --probe-executable "$MEDICAL_CODEX_CANDIDATE"
+uv run --offline --locked ruff check .
+uv run --offline --locked ruff format . --check
+git diff --check
+```
+
+Expected qualification exit is 3 for each tested executable. Private diagnostics:
+`reports/diagnostics/medical_review_codex_isolation/`; immutable qualification and
+candidate-intake artifacts: `data/private/medical_reviews/runtime_qualifications/`
+and `runtime_candidates/`. See [the operator workflow](MEDICAL_REVIEW_CODEX_BACKEND.md)
+for assessment eligibility, evidence rules, resource limits and recovery. Resume
+only with an exact supported configuration/runtime that removes native tool
+exposure and passes actual qualification. Any candidate adoption requires a
+separate explicit decision. After qualification succeeds, prepare a new packet
+and obtain separate source-specific authorization. Medical evaluation remains later.
+
+
 ## 2026-10-07 Codex backend implementation; live qualification blocked
 
 Implemented the approved Codex CLI path on `codex/medical-review-codex-backend`,

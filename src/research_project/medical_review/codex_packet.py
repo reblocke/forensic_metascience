@@ -34,9 +34,35 @@ def _prompt_bytes(repo: Path, raw: bytes) -> int:
     # Bound the packet, explicit instructions, output contract and qualified CLI
     # context together. Never use a byte budget as a token-context guarantee.
     return (
-        len(raw)
+        len(
+            json.dumps(
+                {
+                    "input": [
+                        {
+                            "type": "message",
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": raw.decode("utf-8"),
+                                }
+                            ],
+                        }
+                    ],
+                    "text": {
+                        "format": {
+                            "name": "codex_output_schema",
+                            "schema": output_schema(repo),
+                            "strict": True,
+                            "type": "json_schema",
+                        },
+                        "verbosity": "low",
+                    },
+                },
+                ensure_ascii=False,
+            ).encode()
+        )
         + len(INSTRUCTIONS.encode())
-        + len(_encoded(output_schema(repo)))
         + execution_policy()["max_runtime_context_bytes"]
     )
 

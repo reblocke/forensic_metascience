@@ -20,6 +20,13 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from research_project.medical_review.codex_audit import (
+    CHECKS,
+    PROBE_MODES,
+    PROBE_SCHEMA,
+    PROMPT,
+    audit_evidence,
+)
 from research_project.medical_review.codex_backend import (
     INSTRUCTIONS,
     MODEL,
@@ -27,7 +34,6 @@ from research_project.medical_review.codex_backend import (
     codex_command,
     execution_policy,
     runtime_identity,
-    validate_request,
 )
 from research_project.medical_review.codex_process import bounded_process
 from research_project.medical_review.records import (
@@ -39,23 +45,6 @@ from research_project.medical_review.records import (
 )
 
 QUALIFICATIONS = PRIVATE_SOURCES / "runtime_qualifications"
-CHECKS = {
-    "one_request_on_context_failure",
-    "context_budget",
-    "wire_model_reasoning",
-    "no_model_tools",
-    "no_inherited_context",
-    "no_auth_fallback",
-    "one_request_on_error",
-    "successful_response",
-    "allowed_read",
-    "outside_denied",
-    "symlink_denied",
-    "source_write_denied",
-    "workspace_write_denied",
-    "network_denied",
-    "cancellation",
-}
 
 
 def _synthetic_auth(path: Path) -> None:
@@ -122,6 +111,25 @@ def _response(final: str) -> bytes:
     return "".join("data: " + json.dumps(row) + "\n\n" for row in items).encode()
 
 
+def _probe_command(executable: str, root: Path, port: int, mode: str) -> list[str]:
+    command = codex_command(
+        executable,
+        root / "workspace",
+        root / "instructions.txt",
+        root / "schema.json",
+        root / "final.json",
+        provider_url=f"http://127.0.0.1:{port}/v1",
+    )
+    if mode in {"stderr_limit", "invalid_config"}:
+        command[-1:-1] = ["-c", "qualification_canary_unsupported=true"]
+    # Contain the entire controller's probe egress, including telemetry/auth refresh.
+    seatbelt = (
+        "(version 1)(allow default)(deny network*)"
+        f'(allow network-outbound (remote tcp "localhost:{port}"))'
+    )
+    return ["/usr/bin/sandbox-exec", "-p", seatbelt, *command]
+
+
 def _probe_cli(executable: str, catalogue: Path, root: Path, mode: str) -> dict[str, Any]:
     home, workspace = root / "runtime", root / "workspace"
     home.mkdir()
@@ -134,17 +142,12 @@ def _probe_cli(executable: str, catalogue: Path, root: Path, mode: str) -> dict[
     instructions = root / "instructions.txt"
     instructions.write_text(INSTRUCTIONS, encoding="utf-8")
     schema = root / "schema.json"
-    write_json(
-        schema,
-        {
-            "type": "object",
-            "properties": {"ok": {"type": "string"}},
-            "required": ["ok"],
-            "additionalProperties": False,
-        },
-    )
+    write_json(schema, PROBE_SCHEMA)
     requests: list[dict[str, Any]] = []
     authentication: list[bool] = []
+    request_errors: list[str] = []
+    wire = root / "requests"
+    wire.mkdir()
     cancel = threading.Event()
 
     class Handler(BaseHTTPRequestHandler):
@@ -152,22 +155,42 @@ def _probe_cli(executable: str, catalogue: Path, root: Path, mode: str) -> dict[
             pass
 
         def do_POST(self):
-            raw = self.rfile.read(int(self.headers.get("Content-Length", 0)))
-            requests.append(json.loads(raw))
+            length = int(self.headers.get("Content-Length", 0))
+            if length > 1024 * 1024:
+                request_errors.append("Outgoing request exceeds capture limit.")
+                self.send_error(413)
+                return
+            raw = self.rfile.read(length)
+            index = len(authentication)
+            (wire / f"{index:03d}.json").write_bytes(raw)
+            write_json(wire / f"{index:03d}.headers.json", dict(self.headers.items()))
+            try:
+                requests.append(json.loads(raw))
+            except (ValueError, UnicodeError) as exc:
+                request_errors.append(str(exc))
             authentication.append(self.headers.get("Authorization") == "Bearer synthetic-only")
             if mode == "cancel":
                 cancel.wait(5)
             body = (
-                _response('{"ok":"synthetic"}')
-                if mode == "success"
+                _response(json.dumps({"ok": "x" * 4096 if mode == "final_limit" else "synthetic"}))
+                if mode in {"success", "event_limit", "final_limit"}
                 else b'{"error":{"message":"maximum context length exceeded",'
                 b'"type":"invalid_request_error","code":"context_length_exceeded"}}'
                 if mode == "context"
                 else b'{"error":{"message":"synthetic failure"}}'
             )
-            self.send_response(200 if mode == "success" else 400 if mode == "context" else 503)
+            self.send_response(
+                200
+                if mode in {"success", "event_limit", "final_limit"}
+                else 400
+                if mode == "context"
+                else 503
+            )
             self.send_header(
-                "Content-Type", "text/event-stream" if mode == "success" else "application/json"
+                "Content-Type",
+                "text/event-stream"
+                if mode in {"success", "event_limit", "final_limit"}
+                else "application/json",
             )
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
@@ -181,33 +204,20 @@ def _probe_cli(executable: str, catalogue: Path, root: Path, mode: str) -> dict[
     thread.start()
     port = server.server_port
     final = root / "final.json"
-    command = codex_command(
-        executable,
-        workspace,
-        instructions,
-        schema,
-        final,
-        provider_url=f"http://127.0.0.1:{port}/v1",
-    )
-    # Contain the entire controller's probe egress, including telemetry/auth refresh.
-    seatbelt = (
-        "(version 1)(allow default)(deny network*)"
-        f'(allow network-outbound (remote tcp "localhost:{port}"))'
-    )
-    command = ["/usr/bin/sandbox-exec", "-p", seatbelt, *command]
+    command = _probe_command(executable, root, port, mode)
     error, code = None, None
     try:
         code = bounded_process(
             command,
             cwd=workspace,
             env=clean_environment(home),
-            prompt=b"SYNTHETIC_SOURCE_ONLY",
+            prompt=PROMPT.encode(),
             output=root / "streams",
             final=final,
             duration=1.5 if mode == "cancel" else 30,
-            event_bytes=8 * 1024 * 1024,
-            stderr_bytes=1024 * 1024,
-            final_bytes=2 * 1024 * 1024,
+            event_bytes=64 if mode == "event_limit" else 8 * 1024 * 1024,
+            stderr_bytes=16 if mode == "stderr_limit" else 1024 * 1024,
+            final_bytes=1024 if mode == "final_limit" else 2 * 1024 * 1024,
         )
     except (Exception, KeyboardInterrupt) as exc:
         error = type(exc).__name__ + ": " + str(exc)
@@ -216,18 +226,41 @@ def _probe_cli(executable: str, catalogue: Path, root: Path, mode: str) -> dict[
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+    final_value = None
+    if final.is_file():
+        try:
+            final_value = json.loads(final.read_bytes())
+        except (ValueError, UnicodeError):
+            pass  # Malformed bytes remain retained, never accepted.
+    shell = Path(executable).resolve().parents[1] / "codex-resources/zsh/bin/zsh"
+    streams = root / "streams"
+    stderr = (streams / "stderr.txt").read_bytes()
     return {
         "requests": requests,
         "authentication": authentication,
+        "request_errors": request_errors,
         "exit_code": code,
         "error": error,
-        "final": json.loads(final.read_text()) if final.is_file() else None,
+        "final": final_value,
+        "prompt": PROMPT,
+        "command": command,
+        "workspace": str(workspace),
+        "runtime_home": str(home),
+        "resource_shell": str(shell) if shell.is_file() else None,
+        "provider_port": port,
+        "event_bytes": (streams / "events.jsonl").stat().st_size,
+        "stderr_bytes": len(stderr),
+        "final_bytes": final.stat().st_size if final.is_file() else 0,
+        "unknown_config_error": b"qualification_canary_unsupported" in stderr
+        and b"unknown" in stderr.lower(),
     }
 
 
-def _sandbox_checks(executable: str, root: Path) -> dict[str, bool]:
+def _sandbox_checks(executable: str, root: Path) -> dict[str, Any]:
     workspace = root / "sandbox"
     workspace.mkdir()
+    home = root / "sandbox-runtime"
+    home.mkdir()
     allowed, outside = workspace / "source.txt", root / "outside.txt"
     allowed.write_text("ALLOWED_SENTINEL")
     outside.write_text("PRIVATE_SENTINEL")
@@ -268,91 +301,64 @@ def _sandbox_checks(executable: str, root: Path) -> dict[str, bool]:
                 [executable, "sandbox", *settings, "--", *args],
                 capture_output=True,
                 timeout=10,
-                env={"PATH": "/usr/bin:/bin"},
+                env=clean_environment(home),
             )
-            results[name] = (
-                result.returncode == 0 and result.stdout == b"ALLOWED_SENTINEL"
-                if name == "allowed_read"
-                else result.returncode == 7
-                if name == "network_denied"
-                else result.returncode == 1 and b"Operation not permitted" in result.stderr
-            )
+            results[name] = {
+                "command": [executable, "sandbox", *settings, "--", *args],
+                "returncode": result.returncode,
+                "stdout": base64.b64encode(result.stdout).decode(),
+                "stderr": base64.b64encode(result.stderr).decode(),
+            }
+        accepted = False
         listener.settimeout(0.05)
         try:
             connection, _ = listener.accept()
             connection.close()
-            results["network_denied"] = False
+            accepted = True
         except TimeoutError:
             pass
-    return results
+    return {"results": results, "network_positive": True, "network_accepted": accepted}
 
 
-def qualify_codex(repo: Path, *, catalogue: Path) -> Path:
-    """Write one immutable private receipt, preserving negative qualification evidence."""
+def qualify_codex(repo: Path, *, catalogue: Path, probe_executable: Path | None = None) -> Path:
+    """Write immutable evidence. Explicit executable probes can never authorize live use."""
     output = private_path(repo, QUALIFICATIONS / uuid4().hex, QUALIFICATIONS)
     output.mkdir(parents=True)
-    checks, probes, errors, runtime = {}, {}, [], None
+    evidence, errors, runtime = {"sandbox": {}, "probes": {}}, [], None
     try:
-        runtime = runtime_identity(catalogue)
+        runtime = runtime_identity(catalogue, probe_executable=probe_executable)
         shutil.copyfile(catalogue, output / "catalogue.json")
+        if probe_executable is not None:
+            provenance = Path(runtime["executable_path"]).parent.parent / "distribution.json"
+            if provenance.is_file():
+                shutil.copyfile(provenance, output / "distribution.json")
         with tempfile.TemporaryDirectory(prefix="medical-codex-qualification-") as directory:
             root = Path(directory)
-            executable = shutil.which("codex")
-            checks.update(_sandbox_checks(executable, root))
-            for mode in ("success", "error", "context", "cancel"):
+            executable = runtime["executable_path"]
+            evidence["sandbox"] = _sandbox_checks(executable, root)
+            for mode in PROBE_MODES:
                 destination = root / mode
                 destination.mkdir()
-                probes[mode] = _probe_cli(executable, catalogue, destination, mode)
-                shutil.copytree(destination / "streams", output / mode)
-            requests = probes["success"]["requests"]
-            checks["successful_response"] = (
-                probes["success"]["exit_code"] == 0
-                and probes["success"]["final"] == {"ok": "synthetic"}
-                and len(requests) == 1
-            )
-            checks["wire_model_reasoning"] = bool(requests) and all(
-                r.get("model") == MODEL and r.get("reasoning", {}).get("effort") == "max"
-                for r in requests
-            )
-            checks["no_model_tools"] = bool(requests)
-            for request in requests:
-                try:
-                    validate_request(request)
-                except ValueError as error:
-                    checks["no_model_tools"] = False
-                    errors.append(str(error))
-            context = json.dumps([r.get("input") for r in requests])
-            checks["context_budget"] = (
-                bool(requests)
-                and len(context.encode()) <= execution_policy()["max_runtime_context_bytes"]
-            )
-            checks["no_inherited_context"] = bool(requests) and not any(
-                marker in context
-                for marker in (
-                    "PRIVATE_CONTEXT_SENTINEL",
-                    "PRIVATE_CONFIG_SENTINEL",
-                    "<skills_instructions>",
-                    "<multi_agent_role>",
-                )
-            )
-            checks["no_auth_fallback"] = all(
-                p["authentication"] and all(p["authentication"]) for p in probes.values()
-            )
-            checks["one_request_on_error"] = len(probes["error"]["requests"]) == 1
-            checks["one_request_on_context_failure"] = len(probes["context"]["requests"]) == 1
-            checks["cancellation"] = len(probes["cancel"]["requests"]) == 1 and (
-                probes["cancel"]["error"] or ""
-            ).startswith("TimeoutError:")
+                evidence["probes"][mode] = _probe_cli(executable, catalogue, destination, mode)
+                retained = output / mode
+                shutil.copytree(destination / "streams", retained / "streams")
+                shutil.copytree(destination / "requests", retained / "requests")
+                if (destination / "final.json").is_file():
+                    shutil.copyfile(destination / "final.json", retained / "final.json")
     except (Exception, KeyboardInterrupt) as error:
         errors.append(type(error).__name__ + ": " + str(error))
-    write_json(output / "probes.json", probes)
+    checks, audit_errors = audit_evidence(evidence)
+    write_json(output / "evidence.json", evidence)
+    passing = all(checks.values())
     receipt = {
-        "schema_version": "medical_codex_qualification_v1",
+        "schema_version": "medical_codex_qualification_v2",
+        "assessment_only": probe_executable is not None,
+        "all_checks_passed": passing,
         "runtime": runtime,
         "policy": execution_policy(),
-        "checks": {k: checks.get(k, False) for k in sorted(CHECKS)},
-        "qualified": CHECKS <= checks.keys() and all(checks.values()),
-        "errors": errors,
+        "checks": checks,
+        "qualified": passing and probe_executable is None,
+        "errors": errors + audit_errors,
         "created_at": datetime.now(UTC).isoformat(),
         "artifacts": {
             p.relative_to(output).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
@@ -365,21 +371,101 @@ def qualify_codex(repo: Path, *, catalogue: Path) -> Path:
     return output / "qualification.json"
 
 
+def _validate_evidence_files(root: Path, evidence: dict, runtime: dict) -> None:
+    """Bind derived observations back to preserved raw bytes, including failed probes."""
+    if set(evidence.get("probes", {})) != set(PROBE_MODES):
+        raise ValueError("Codex qualification lacks complete probe evidence.")
+    for mode, probe in evidence["probes"].items():
+        retained = root / mode
+        temporary = Path(probe["runtime_home"]).parent
+        if (
+            not temporary.is_absolute()
+            or ".." in temporary.parts
+            or probe["workspace"] != str(temporary / "workspace")
+            or probe["runtime_home"] != str(temporary / "runtime")
+        ):
+            raise ValueError("Codex qualification workspace metadata changed.")
+        shell = Path(runtime["executable_path"]).parents[1] / "codex-resources/zsh/bin/zsh"
+        if probe["resource_shell"] != (
+            str(shell) if runtime["resource_shell_sha256"] is not None else None
+        ):
+            raise ValueError("Codex qualification runtime resource metadata changed.")
+        if (
+            type(probe["provider_port"]) is not int
+            or not 0 < probe["provider_port"] < 65536
+            or probe["command"]
+            != _probe_command(runtime["executable_path"], temporary, probe["provider_port"], mode)
+        ):
+            raise ValueError("Codex qualification effective configuration changed.")
+        if (retained / "streams/stdin.txt").read_bytes() != PROMPT.encode() or probe[
+            "prompt"
+        ] != PROMPT:
+            raise ValueError("Codex qualification source context changed.")
+        requests = [
+            json.loads(p.read_bytes())
+            for p in sorted((retained / "requests").glob("[0-9][0-9][0-9].json"))
+        ]
+        headers = [read_json(p) for p in sorted((retained / "requests").glob("*.headers.json"))]
+        if (
+            len(headers) != len(requests)
+            or [
+                {k.lower(): v for k, v in h.items()}.get("authorization") == "Bearer synthetic-only"
+                for h in headers
+            ]
+            != probe["authentication"]
+        ):
+            raise ValueError("Codex qualification raw authentication evidence changed.")
+        if requests != probe["requests"]:
+            raise ValueError("Codex qualification raw wire evidence changed.")
+        for field, relative in (
+            ("event_bytes", "streams/events.jsonl"),
+            ("stderr_bytes", "streams/stderr.txt"),
+            ("final_bytes", "final.json"),
+        ):
+            artifact = retained / relative
+            if probe[field] != (artifact.stat().st_size if artifact.is_file() else 0):
+                raise ValueError("Codex qualification raw stream sizes changed.")
+        final = retained / "final.json"
+        if probe["final"] != (json.loads(final.read_bytes()) if final.is_file() else None):
+            raise ValueError("Codex qualification final bytes changed.")
+        stderr = (retained / "streams/stderr.txt").read_bytes()
+        unknown = b"qualification_canary_unsupported" in stderr and b"unknown" in stderr.lower()
+        if unknown != probe["unknown_config_error"]:
+            raise ValueError("Codex qualification configuration evidence changed.")
+
+
 def validate_qualification(repo: Path, path: Path) -> dict[str, Any]:
-    """Fail closed on any failed check, changed dependency or altered probe artifact."""
+    """Recompute acceptance; old, assessment-only, relabeled or changed receipts fail."""
     path = private_path(repo, path, QUALIFICATIONS)
     receipt = read_json(path)
     if (
-        receipt.get("schema_version") != "medical_codex_qualification_v1"
+        receipt.get("schema_version") != "medical_codex_qualification_v2"
+        or receipt.get("assessment_only") is not False
         or receipt.get("receipt_sha256")
         != content_hash({k: v for k, v in receipt.items() if k != "receipt_sha256"})
         or receipt.get("qualified") is not True
+        or receipt.get("all_checks_passed") is not True
         or set(receipt.get("checks", {})) != CHECKS
         or any(value is not True for value in receipt["checks"].values())
         or receipt.get("policy") != execution_policy()
     ):
-        raise ValueError("Codex runtime qualification failed or is unsupported.")
-    for relative, digest in receipt["artifacts"].items():
+        raise ValueError(
+            "Codex runtime qualification failed, is assessment-only, or is unsupported."
+        )
+    artifacts = receipt.get("artifacts", {})
+    required = {"catalogue.json", "evidence.json"} | {
+        f"{mode}/streams/{name}"
+        for mode in PROBE_MODES
+        for name in ("stdin.txt", "events.jsonl", "stderr.txt")
+    }
+    present = {
+        p.relative_to(path.parent).as_posix()
+        for p in path.parent.rglob("*")
+        if p.is_file() and p != path
+    }
+    if not required <= artifacts.keys() or set(artifacts) != present:
+        raise ValueError("Codex qualification lacks complete raw artifacts.")
+    for relative, digest in artifacts.items():
         artifact = private_path(repo, path.parent / relative, QUALIFICATIONS)
         if (
             path.parent not in artifact.parents
@@ -388,10 +474,12 @@ def validate_qualification(repo: Path, path: Path) -> dict[str, Any]:
             raise ValueError("Codex qualification artifacts changed.")
     if receipt["runtime"] != runtime_identity(path.parent / "catalogue.json"):
         raise ValueError("Codex runtime/code/catalogue/policy changed; requalification required.")
-    # Reaudit actual wire data; an edited boolean cannot qualify exposed tools.
-    probes = read_json(path.parent / "probes.json")
-    if not probes.get("success", {}).get("requests"):
-        raise ValueError("Codex qualification lacks actual wire evidence.")
-    for request in probes["success"]["requests"]:
-        validate_request(request)
+    try:
+        evidence = read_json(path.parent / "evidence.json")
+        _validate_evidence_files(path.parent, evidence, receipt["runtime"])
+        checks, _ = audit_evidence(evidence)
+    except (KeyError, OSError, TypeError, ValueError) as error:
+        raise ValueError("Codex qualification raw evidence is invalid.") from error
+    if checks != receipt["checks"] or not all(checks.values()):
+        raise ValueError("Codex qualification tools/context/sandbox evidence does not pass.")
     return receipt
