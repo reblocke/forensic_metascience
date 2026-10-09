@@ -1,5 +1,78 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-08: Adopt the exact patched runtime through fresh operational qualification
+
+- **Decision:** The user selected and approved adoption of the passing local build
+  as `codex-cli-0.161.0-medical-no-tools-v1`, limited to this backend. Pin macOS
+  ARM64, executable hash `8229baba8ad7387cbf2636b0116c8abd6d94cf87f503b327c78abc47b44c619a`,
+  source commit and reviewed native patch. Do not change global installation, PATH,
+  the app or user configuration; different bytes need a new adoption decision.
+- **Interface:** Operational qualification requires paired `--runtime-executable`
+  and `--runtime-build-manifest`, exclusive with assessment arguments. Validate
+  runtime/provenance before probes. Retained construction manifests keep their
+  historical classification; receipt v4 records operational adoption separately.
+  No v1/v2/v3 receipt or relabeled assessment receipt authorizes revised code.
+- **Execution:** Policy v3 requires the tool ceiling in the canonical production
+  command. Default-tool comparisons are loopback-only assessment controls. Launch
+  uses the receipt's executable for login and generation and revalidates inside
+  the lock before credentials, then again before accepting output. Dependency
+  changes preserve failed attempts without import, retry or fallback.
+- **Authorization:** Reprepare from original bundles under the new policy and
+  qualification hashes. Authorization v2 remains unchanged, with fresh source-
+  specific approval required. A valid runtime receipt supplies neither human
+  source permission nor scientific qualification. No real study run is included.
+- **Acceptance:** The nine test-first adoption regressions failed against the
+  preceding code and pass after implementation. Actual operational qualification
+  passed all 20 checks; synthetic preparation preserved the original bundle and
+  its unapproved authorization produced a blocked attempt with zero model calls.
+  Focused verification passed 145 tests with zero failures/errors/skips. Fresh
+  final-commit three-lane CI and artifact hashes remain required before PR #15
+  becomes ready for review; record those final receipts in the PR without rewriting
+  earlier acceptance evidence.
+
+## 2026-10-07: Accept offline intake and prepare one backend contract
+
+- **Checkpoint:** The user's instruction to consider the preceding work done
+  accepts offline intake/planning. It does not supply human verification or
+  dispositions, execute a review, authorize source transmission or establish
+  medical qualification. PR #14 is ready for review with verified hosted receipts;
+  it is not merged by this checkpoint.
+- **Next implementation:** Prepare the concrete sequential plan in
+  [MEDICAL_REVIEW_LIVE_BACKEND_PLAN.md](MEDICAL_REVIEW_LIVE_BACKEND_PLAN.md).
+  Select exactly one backend before changing the intentionally blocked live path.
+  Backend choice and source-specific authorization remain distinct decisions.
+- **Enforcement evidence:** The installed Codex command sandbox passed a small
+  synthetic read/write/escape probe after correcting rejected override syntax.
+  A local listener received no sandboxed connection. Preserve both attempts;
+  neither proves complete harness/tool isolation, model availability or an
+  enforceable monetary ceiling. Refuse unsupported restrictions rather than
+  inherit broader user configuration or silently change runtime.
+- **Scope:** Initial bounded generation tests the backend and development
+  walkthrough. It does not establish full specialist orchestration, comparator
+  fidelity or scientific performance. No production code, dependency, CLI,
+  numerical contract or historical evidence changes at this planning step.
+
+## 2026-10-07: Merge the offline foundation and begin a development walkthrough
+
+- **Merge authority:** The user explicitly confirmed PR #13 after the initially
+  supplied PR number was resolved. Merge commit
+  `a26c2f4e45734861618d7f1bf53ec6d1eefb4ff4` has the same file tree as verified
+  integration head `0f3f8a0b6967ef4c02d47b03416a4b110ee4e7e3`. The merge preserves
+  the original branches and PR history. Earlier no-merge statements describe
+  their historical milestone; this decision supplies the later merge authority.
+- **Development scope:** Begin a local CRASH-3 source-intake and planning
+  walkthrough using licensed public documents. Keep it development-only, with
+  distinct publication identities, exact source hashes, missing representations
+  and amendment/registry gaps. A supplied role does not prove source completeness.
+- **Authority boundary:** No compatible Reviewer output is available locally.
+  Do not fabricate a payload, findings, human disposition or completed coverage.
+  A readiness report describes intake/planning only. Live execution and medical
+  qualification remain pending their separate operational/scientific gates.
+- **Workflow:** Record the sequential operator steps in
+  [MEDICAL_REVIEW_WALKTHROUGH.md](MEDICAL_REVIEW_WALKTHROUGH.md). Source bytes,
+  excerpts and diagnostic artifacts remain ignored; no dependency, scientific
+  assumption, production code, record schema or CLI interface changes.
+
 ## 2026-10-06: Correct comparison routing and label reconstructed report scopes
 
 - **Routing:** Treat an empty comparison `profile_ids` list as unspecified,
@@ -486,3 +559,129 @@ Record decisions that affect reproducibility and interpretation.
 - **Integration configuration:** CI now has a locked Python fast job, a required native-R job that asserts exact package versions and positive method coverage, and a Quarto job that renders synthetic current-run HTML/PDF reports. Tests remain offline after package/runtime preparation. A required native job fails if R or a pinned method is missing; Python-lane skips are not treated as gate passes.
 - **Verification:** On the final code head, `PYTHONPATH=src uv run pytest -q -o addopts='' -ra` passed (114 passed, 2 expected native-package skips, 67.28s). With isolated pinned packages, `FORENSICS_REQUIRE_R_INTEGRATION=1 R_LIBS_USER=/tmp/fm-inspect-r.locked-library PYTHONPATH=src uv run pytest -q -o addopts='' -ra tests/test_r_integration.py` passed (3, 5.58s). Synthetic report tests passed (7, 43.72s, including HTML and PDF). `uv run ruff check .`, `uv run ruff format . --check`, shell syntax, R script parsing, guidance checksums, package-lock JSON, workflow YAML parsing, `uv sync --locked --dev`, and `git diff --check` passed. No source-paper analysis was run.
 - **Open status:** FM-01–FM-12 implementation and local verification are complete; FM-13 remains deferred. The configured GitHub Actions jobs still need to run on the eventual committed head. Transitive R dependencies are not pinned independently, and human reviewer identities, ambiguous trial/report mappings, and review-specific synthesis policy remain explicit human inputs. No deployment or historical-results rewrite is authorized.
+
+## 2026-10-07 — Codex reading policy and failed live qualification
+
+- **Approved choice:** Implement opt-in `codex_cli` with `gpt-6-astra`, max reasoning,
+  file-backed ChatGPT authentication, one concurrent session, a 600-second worker
+  deadline and zero automatic retries/fallback. No new dependency or scientific
+  criterion was added. Existing replay keeps its 120-second default and v1 records.
+- **Qualification is behavioral:** An actual CLI loopback probe uses synthetic
+  credentials/sources, audits nested wire tool definitions and model context, and
+  exercises successful/error/context-error responses and cancellation. Filesystem
+  and network tests require functioning positive controls. macOS, CLI bytes/version,
+  catalogue, code, entrypoint, parser/Python versions and policy are bound to receipts.
+- **Observed boundary:** CLI 0.157.0 passes the command sandbox and transport checks,
+  but still exposes tools and emits skill/agent instructions with those features
+  disabled. Its qualification is failed; source approval cannot override it. No
+  real model/provider call or study transmission is approved or executed here.
+- **Source/proposal authority:** Offline packet preparation creates a new indexed
+  bundle revision with unverified exact text units and public review questions.
+  V2 approval binds packet/policy hashes and leaves human approval fields unset in
+  templates. Original generations/imports remain immutable; a registered scoped
+  layer labels Codex origin without claiming original-Reviewer execution. Unknown
+  runtime model identity/request count/cost stay unknown; empty findings remain
+  incomplete coverage. Human dispositions reference the scoped layer, and numerical
+  proposals cannot become qualified forensic receipts or INSPECT-SR judgments.
+- **Recovery:** Bounded output/deadline failures retain partial bytes and terminate
+  the process group. A guardian retains the concurrency lock and stops orphaned
+  workers/cleans temporary credentials after controller death. Failed attempts need
+  a new explicit attempt; success reuse requires identical validated dependencies.
+- **Delivery gate:** Fresh Python, native-R and report CI plus artifact hashes verify
+  software separately from the failed live gate. No existing acceptance receipt was
+  rewritten. Merge, real source authorization/smoke testing and medical qualification
+  remain separate. See [the operator workflow](MEDICAL_REVIEW_CODEX_BACKEND.md).
+
+
+## 2026-10-08 — Bind local native-tool assessments to build and dispatch evidence
+
+- **Completed assessment:** The isolated patched 0.161.0 build passed all 20 actual
+  mandatory checks with unchanged Astra catalogue bytes. Reauditing its raw evidence
+  passed; operational receipt validation rejects it. Baseline and patched default
+  controls retain identical exposed tool declarations. The executable hash is
+  `8229baba8ad7387cbf2636b0116c8abd6d94cf87f503b327c78abc47b44c619a`.
+  This supersedes the pending status at the checkpoint below, not historical negative
+  receipts. A passing local assessment does not adopt a supported runtime or grant
+  source-transmission permission. Exact candidate adoption remains a separate decision.
+- **Scope:** Continue the approved synthetic assessment after the version-only
+  normalization. The preserved normalized baseline builds and still exposes model
+  tools on its actual wire request. Original source/lockfile bytes, historical
+  receipts and the installed CLI remain preserved.
+- **Assessment interface:** Add `--probe-build-manifest` only with an explicit
+  probe executable. Validate exact source/toolchain/lock/patch/build identities
+  before sandbox or provider probes. Only that path adds `tools.enabled=false`.
+  Default/live invocation and source-authorization contracts are unchanged.
+- **Evidence contract:** Qualification receipts advance to v3; retain issued fake
+  responses as well as requests and streams. Keep the 19 existing checks and add
+  mandatory fatal rejection of unsolicited native and hosted tool calls without
+  handlers or continuation. Recompute checks from raw evidence; old v1/v2 and
+  assessment-only receipts cannot authorize preparation or execution.
+- **Delivery boundary:** Source-patch compilation and full actual assessment are
+  pending at this checkpoint. Build provenance and mocked tests do not qualify a
+  runtime. No candidate installation/adoption, real sources, merge, dependencies
+  or scientific criteria changes are authorized by this assessment.
+- **Workspace correction:** An external-cache build was paused when the user
+  reported access prompts. The user clarified the drive is pre-authorized and
+  approved resumption there. The prompt cause remains unidentified; retain both
+  interruptions and the resumed success without treating either pause as a test.
+
+## 2026-10-08 — Stop the source-build assessment at the original-lockfile gate
+
+- **Approved scope:** Assess a narrowly patched CLI 0.161.0 in isolation, starting
+  with an unmodified baseline build pinned to official source commit
+  `979011409de0a60b52f179721948e65531d26144`, its original lockfile and Rust 1.95.0.
+  Candidate adoption and real-study transmission remain separate decisions.
+- **Observed blocker:** The baseline locked dependency fetch exits 101 before
+  compilation. The tagged manifests identify local packages as 0.161.0; the
+  original lockfile identifies those same packages as 0.0.0. Source bytes remain
+  unchanged and match Git. This is separate from the existing native-tool failure.
+- **Recovery proposal:** Retain the original lockfile and an unapplied, auditable
+  local-version-only normalization diff. Third-party package records are unchanged
+  in that proposal. Application requires a scope extension because the approved
+  plan explicitly pins the original lockfile and stops if the baseline cannot
+  build. A proposed diff does not establish that the normalized baseline builds.
+- **User-approved extension:** The user authorized applying only that normalization
+  in a separate build checkout, while retaining the original source and lockfile.
+  The normalized locked fetch passed without further changes. Native compilation
+  and runtime assessment remain separate evidence requirements.
+- **Authority at the original-lockfile checkpoint:** No tool-control implementation
+  or qualification v3 was added;
+  no candidate binary or passing assessment exists. Preserve negative evidence,
+  keep PR #15 draft, and never use build metadata as execution authorization.
+
+## 2026-10-07 — Reaudit Codex isolation and retain unsupported-runtime boundary
+
+- **Decision:** Add explicit `agents.enabled=false`, bundled-skill/context suppression,
+  app/collaboration/permission instruction suppression, `tools.update_plan.enabled=false`
+  and disabled analytics. These controls are supported by the tested strict runtimes
+  and the [official configuration schema](https://learn.chatgpt.com/docs/config-schema.json).
+  Preserve Astra/max, authentication, session/deadline/retry limits and source authority.
+- **Qualification v2:** Retain original request bodies/headers and all probe streams;
+  audit every request across successful, server-error, context-error, cancellation
+  and bounded-output modes. Allow only explicit instructions, exact source data and
+  narrow temporary metadata. Recompute sandbox acceptance from raw return codes and
+  stdout/stderr. Reject absent requests, inherited messages, nested native tools,
+  configuration failures as denial evidence, altered artifacts/configuration and
+  relabeled checks. Old receipts remain immutable but cannot authorize revised code.
+  Complete-prompt preflight now counts source JSON escaping, output schema and the
+  runtime-context reserve; oversize packets still fail before transmission.
+- **Cancellation correction:** macOS can refuse a group signal while a sandbox leader
+  is becoming a zombie. On that error, reap the exited leader within the existing
+  cleanup interval, then require the process group to be absent. A surviving group
+  or unreapable live process still fails; no live termination error is suppressed.
+- **Candidate scope:** `--probe-executable` is synthetic assessment only. Even a passing
+  candidate receipt cannot prepare sources or start a provider. Official 0.161.0,
+  then 0.160.0 were downloaded separately with publisher digest verification and
+  dedicated synthetic runtime homes. Installed CLI, PATH, user configuration and
+  app remain unchanged. Original Astra catalogue bytes are identical throughout.
+- **Observed blocker:** All three releases exclude inherited skill/agent context and
+  pass 18/19 mandatory checks, but still expose `functions` native tools. Supported
+  `features.code_mode.excluded_tool_namespaces` does not remove that wrapper. No
+  fully passing candidate exists in this assessment. Do not mask the catalogue,
+  rewrite wire declarations, substitute models or weaken the tool-free policy.
+- **Acceptance:** Focused tests/lint/format/diff checks and fresh final-head Python,
+  native-R and actual Quarto report CI are recorded separately in PR #15. Keep it
+  draft while operational qualification is blocked. No source transmission, new
+  dependency, scientific qualification or merge occurs. Next is a supported upstream
+  runtime/configuration that passes every mandatory check, then separate exact-source
+  preparation/authorization. Historical acceptance evidence is not rewritten.

@@ -1,5 +1,406 @@
 # Handoff (for multi-session work)
 
+## 2026-10-08 Exact patched runtime adopted and operationally qualified
+
+Implemented the approved adoption of `codex-cli-0.161.0-medical-no-tools-v1` for
+this backend only. Pin macOS ARM64, the existing executable SHA-256
+`8229baba8ad7387cbf2636b0116c8abd6d94cf87f503b327c78abc47b44c619a`, source commit
+and native patch; no rebuild, global installation, PATH or app changes occurred.
+Operational qualification takes paired `--runtime-executable` and
+`--runtime-build-manifest`, exclusive with assessment arguments. Policy v3 requires
+the tool ceiling in production; receipts advance to v4 and preserve adoption
+separately from historical source-build construction records. Old receipts and
+assessment receipts cannot authorize revised preparation or execution.
+
+The launcher uses the receipt's executable for login and generation, revalidates
+inside the lock before credentials and again before accepting output. Tests cover
+wrong bytes/platform/architecture/provenance, assessment promotion, stale/error
+receipts, loopback controls, PATH substitution and runtime changes before/during
+execution with failed-output preservation and lock release.
+
+Actual CLI operational qualification passed all 20 checks with the unchanged
+Astra catalogue and synthetic loopback provider. Receipt:
+`data/private/medical_reviews/runtime_qualifications/28c2914b1140491a8ac066dd1d594c63/qualification.json`.
+Raw requests/responses/streams and build/sandbox evidence are retained and reaudited.
+No real provider or study transmission was used for qualification.
+
+```bash
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE" --runtime-executable "$MEDICAL_CODEX_ADOPTED_EXECUTABLE" --runtime-build-manifest "$MEDICAL_CODEX_BUILD_MANIFEST"
+PYTHONPATH=src uv run --offline --locked pytest -q tests/medical_review/test_codex_backend.py tests/medical_review/test_codex_qualification.py tests/medical_review/test_codex_source_build.py tests/medical_review/test_codex_adoption.py tests/medical_review/test_codex_packet.py tests/medical_review/test_codex_execution.py tests/medical_review/test_execution.py tests/medical_review/test_reporting.py -m 'not native_r and not report_integration' --junitxml=reports/diagnostics/medical_review_codex_adoption/focused-final.xml
+uv run --offline --locked ruff check .
+uv run --offline --locked ruff format . --check
+git diff --check
+```
+
+Focused verification passed 145 tests, zero failures/errors/skips. Ruff check and
+format check (133 files) and whitespace checks passed. The initial nine adoption
+regressions failed against the previous code, then passed after implementation.
+An import-order lint finding was corrected and checks repeated.
+
+Actual CLI preparation accepted the operational receipt for a new synthetic bundle,
+preserving original bytes and leaving approval fields unset. Copying the unchanged
+template into the study's dedicated authorizations directory produced a recorded
+blocked attempt: exit 3, zero model calls and no generation/import. The first attempt
+using the packet-template location was refused at the path boundary; both outputs
+are preserved. Checking scripts initially assumed exit 0/plain-path output; the
+recorded exit 3/JSON response was correctly validated without another attempt.
+Private smoke state and exact commands/results:
+`reports/diagnostics/medical_review_codex_adoption/synthetic-smoke-state.json`.
+
+Focused review found no actionable issue in the adoption/provenance gate,
+canonical invocation, launch selection or recovery behavior. Freeze these adapter
+bytes and require fresh final-commit Python/native-R/report CI and verified artifact
+hashes before marking PR #15 ready; final acceptance receipts belong in that PR.
+Real source authorization, merge, development-study transmission, original-Reviewer
+execution and medical qualification remain separate subsequent gates. Rollback
+disables/reverts this opt-in adoption while retaining all historical records.
+
+## 2026-10-08 Native-tool source candidate passes synthetic assessment
+
+Resumed the isolated build using the pre-authorized external cache. The candidate
+release build and retained build-manifest validation succeeded. Its executable
+SHA-256 is `8229baba8ad7387cbf2636b0116c8abd6d94cf87f503b327c78abc47b44c619a`;
+the reviewed native patch is
+`b2eea02447ba2bb4ed8d9a4ca902d5e2de0c612926209214cde8056879819086`.
+All 20 mandatory actual CLI checks passed against the adapter at `3abc669`:
+tool-free requests, inherited-context exclusion, sandbox positive/negative controls,
+zero retries, cancellation, bounded outputs and fatal rejection of all 12 unsolicited
+tool-call cases. Raw requests, issued responses, streams and sandbox results were
+retained and independently reaudited. The passing receipt remains assessment-only
+and is refused by operational qualification validation.
+
+Private receipt:
+`data/private/medical_reviews/runtime_qualifications/24f790fdcbf3435b9c938ce9d4511dca/qualification.json`.
+Private build state/provenance/control evidence:
+`data/private/medical_reviews/runtime_candidates/source-0.161.0/assessment-state.json`.
+The immutable Astra catalogue was used unchanged. The normalized baseline and
+patched omitted-setting controls both complete one synthetic request and expose
+identical tool declarations; only the explicit startup restriction disables them.
+One control-comparison script assumed top-level declarations and raised `KeyError`;
+its raw request was retained, and the corrected comparison includes nested declarations.
+
+Final focused Python verification passed 127 tests, zero failures/errors/skips:
+
+```bash
+PYTHONPATH=src uv run --offline --locked pytest -q tests/medical_review/test_codex_backend.py tests/medical_review/test_codex_qualification.py tests/medical_review/test_codex_source_build.py tests/medical_review/test_codex_packet.py tests/medical_review/test_codex_execution.py tests/medical_review/test_execution.py tests/medical_review/test_reporting.py -m 'not native_r and not report_integration' --junitxml=reports/diagnostics/medical_review_codex_source_build/focused-final.xml
+```
+
+Actual isolated Rust configuration/core regressions, existing tool-policy regression,
+schema generation, release build, modified-source formatting and whitespace checks
+passed. See `tools/codex-no-tools/README.md` for reproduction commands, including
+the actual CLI assessment command. Ruff and Git whitespace checks are required
+again on the final documentation commit, followed by fresh Python/native-R/report
+CI and downloaded artifact verification; final receipts belong in PR #15.
+
+Focused review found no actionable defect in the startup ceiling, dispatch checks,
+assessment-only gate or retained-evidence validation. Keep PR #15 draft: this local
+patched build is not an adopted supported runtime. Next requires an explicit decision
+on that exact candidate, implementation of its operational binding and fresh live-eligible
+qualification. New packet preparation and source-specific human authorization follow
+that gate. No installation, real study transmission, upstream post or merge occurred.
+
+## 2026-10-08 Native-tool candidate checkpoint; actual qualification pending
+
+The user approved version-only lockfile normalization and clarified that the
+external build cache is pre-authorized. The normalized 0.161.0 baseline built;
+its separately preserved executable has SHA-256
+`ec7ea1cd3076f5b37e77c6f01c2689951430fb3239b1bcdd5f7ac6e727ad4d55`.
+An actual synthetic request reproduced native tool exposure before production
+source edits. Original source remains clean and the installed 0.157.0 CLI hash
+remains unchanged.
+
+- Added assessment-only source-build manifest validation, v3 raw response/dispatch
+  evidence and candidate reauditing. Preparation/run reject candidate receipts.
+- Retained `tools/codex-no-tools/native-tools.patch`, version-only normalization,
+  build recipe/recorder and local upstream reproducer materials. No upstream post,
+  installation, candidate adoption or real study transmission occurred.
+- Test-first configuration regression failed against the baseline (false discarded,
+  serialized null), then passed with the patch. Core tests passed for omitted/true/
+  false configuration, empty-registry/worker behavior and fatal pre-handler calls;
+  the existing allowed-tool filtering test passed. Regenerated the actual schema.
+- Initial core compilation failed on five old fixture literals; their new field is
+  `None` and the failure is retained separately. Modified Rust files pass formatting
+  and source whitespace checks. Unified-diff artifacts preserve hashed context
+  spaces using a scoped attribute; source checks remain active.
+- Focused Python validation passed 126 tests with zero failures/errors/skips.
+  A later post-final phase correction and its regression passed focused qualification
+  tests. The candidate release build is still running; actual qualification, final
+  focused verification and fresh three-lane CI/artifact validation remain.
+
+Private state, command receipts and original logs:
+`data/private/medical_reviews/runtime_candidates/source-0.161.0/`.
+Use `assessment-state.json` to locate the current build attempt and external cache.
+Keep PR #15 draft. Actual runtime success may establish a passing assessment only;
+operational adoption and separate source-specific authorization remain later gates.
+
+## 2026-10-08 Isolated CLI source-build preflight; original lockfile blocks build
+
+Started the approved assessment-only CLI patch milestone from `e2fef42` on
+`codex/medical-review-codex-backend`. Cloned official 0.161.0 source at
+`979011409de0a60b52f179721948e65531d26144` and installed its prescribed Rust 1.95.0
+toolchain inside the ignored private candidate directory, with no PATH or user
+configuration changes. The upstream source checkout remains clean.
+
+The first required baseline command, `cargo fetch --locked --target
+aarch64-apple-darwin`, exited 101: Cargo requires a lockfile update. Read-only
+metadata inspection confirms every local workspace package has manifest version
+0.161.0 but original lockfile version 0.0.0. The original lockfile hash is
+`3206e2fdb53a3498758ce2f2972f19fae26beb261befd65cc0eb9e02efe23d52` and its bytes
+match the pinned Git source. No compilation, native-tool patch or candidate
+qualification ran. The installed CLI remains unchanged.
+
+Preserved logs, source/toolchain state, metadata, a structured build-blocker report
+and an unapplied normalization proposal beneath
+`data/private/medical_reviews/runtime_candidates/source-0.161.0/`. The proposal
+changes only local package versions, preserves all third-party lock entries and
+has SHA-256 `9b2995d1b406de9526a4db5b1360c872eaa459bbb5dea1bd2412f560befd36bc`.
+The user subsequently approved that scope extension. Applied the normalization
+in a separate build checkout, preserving the original checkout and lockfile.
+The normalized locked fetch passed without further lockfile changes. Baseline
+compilation was interrupted for internal-disk headroom, then resumed with its
+generated cache in a dedicated external directory. The user subsequently required
+all work to remain in pre-approved folders to prevent repeated access prompts.
+Stopped that build with SIGINT (exit 130); its process group is gone. The external
+cache was preserved in place. The user clarified that the external drive is
+pre-authorized and explicitly approved resuming there; the access-prompt cause
+remains unidentified. The build resumed with the same cache. Source, toolchain,
+drafts and logs remain inside the repository. The local disk had only 4.9 GiB
+available, so the dedicated external cache remains necessary. Both interruptions are operational
+pauses, not successful build or qualification evidence. Preserve all attempt logs
+and the private workspace-access-pause record. Stop again if the normalized
+lockfile requires any other change.
+
+Reproduction after locating the isolated toolchain and source:
+
+```bash
+RUSTUP_HOME="$MEDICAL_CODEX_BUILD_ROOT/rustup" CARGO_HOME="$MEDICAL_CODEX_BUILD_ROOT/cargo" "$MEDICAL_CODEX_BUILD_ROOT/cargo/bin/cargo" fetch --locked --target aarch64-apple-darwin --manifest-path "$MEDICAL_CODEX_BUILD_ROOT/source/codex-rs/Cargo.toml"
+```
+
+Expected exit is 101 against the original source/lockfile; use `build-source`
+instead of `source` for the approved normalized control. This is build evidence,
+not a runtime-qualification receipt. PR #15 remains draft; live execution,
+candidate adoption, real-source approval, merging and medical qualification remain
+separate gates. Earlier runtime and CI evidence remains preserved.
+
+## 2026-10-07 Codex isolation corrections; no supported runtime qualifies
+
+Updated PR #15 on `codex/medical-review-codex-backend`; preserved its earlier
+commits, receipts, branches and PR history. No merge or real source run occurred.
+
+- Added explicit supported skill/agent/instruction controls and strict all-request
+  tool/context auditing. Qualification receipts are v2; validation reconstructs
+  configuration, checks raw artifacts and recomputes sandbox/wire acceptance.
+- Added assessment-only executable probes, raw request/header/stream retention,
+  output-cap and unknown-configuration probes, candidate misuse/tamper/context
+  regressions, complete-prompt JSON escaping/reserve checks and a conservative
+  macOS zombie-group cleanup correction.
+- Actual pinned 0.157.0 and sequential isolated official 0.161.0/0.160.0 probes
+  pass 18/19 checks. The remaining failure is native `functions` exposure. Supported
+  code-mode namespace exclusion still leaves the wrapper visible. Catalogue bytes
+  are identical; original distributions/digests and negative receipts are retained
+  under ignored private boundaries. Installed CLI, PATH, user config and app remain
+  unchanged. No passing candidate is recommended for adoption.
+- Final software validation and artifact hashes are recorded on the final commit in
+  PR #15, independently of operational failure. Keep the PR draft. Earlier receipts
+  do not clear this revised implementation. The feature remains opt-in; numerical
+  proposals, human-pending status and incomplete coverage are unchanged.
+
+Reproduce (catalogue and candidate paths are supplied locally):
+
+```bash
+PYTHONPATH=src uv run --offline --locked pytest -q tests/medical_review/test_codex_backend.py tests/medical_review/test_codex_qualification.py tests/medical_review/test_codex_packet.py tests/medical_review/test_codex_execution.py tests/medical_review/test_execution.py tests/medical_review/test_reporting.py -m 'not native_r and not report_integration'
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE"
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE" --probe-executable "$MEDICAL_CODEX_CANDIDATE"
+uv run --offline --locked ruff check .
+uv run --offline --locked ruff format . --check
+git diff --check
+```
+
+Expected qualification exit is 3 for each tested executable. Private diagnostics:
+`reports/diagnostics/medical_review_codex_isolation/`; immutable qualification and
+candidate-intake artifacts: `data/private/medical_reviews/runtime_qualifications/`
+and `runtime_candidates/`. See [the operator workflow](MEDICAL_REVIEW_CODEX_BACKEND.md)
+for assessment eligibility, evidence rules, resource limits and recovery. Resume
+only with an exact supported configuration/runtime that removes native tool
+exposure and passes actual qualification. Any candidate adoption requires a
+separate explicit decision. After qualification succeeds, prepare a new packet
+and obtain separate source-specific authorization. Medical evaluation remains later.
+
+
+## 2026-10-07 Codex backend implementation; live qualification blocked
+
+Implemented the approved Codex CLI path on `codex/medical-review-codex-backend`,
+starting from preserved planning commit `86411d1`. The branch retains PR #14's
+walkthrough and all previous branch/PR history; no merge was performed.
+
+- Added deterministic private packet/index preparation, source authorization v2,
+  strict Astra/max invocation, actual offline CLI qualification, bounded streams,
+  kernel concurrency locking and orphan/deadline guardians.
+- Retained original generation envelopes and derived imports with transformation
+  hashes. A registered scoped layer preserves Codex provenance without rewriting
+  historical proposals. Dossiers, verification, human decisions and Markdown/Quarto
+  reports preserve that layer and incomplete coverage.
+- Added test coverage for blocked provider starts, malformed authority, unknown
+  citations, scope, empty findings, timeouts/child termination, controller-crash
+  recovery, success-only reuse and human-decision provenance. Report CI requires
+  four new synthetic generation/import artifacts and their companion hashes.
+- Focused tests passed 94 selections before the final printed-page-label safeguard;
+  fresh hosted CI on the committed head is the delivery acceptance gate. Printed
+  PDF page labels are left unknown; physical indices/pages retain their conventions.
+- Actual synthetic CLI qualification reached its loopback provider using synthetic
+  ChatGPT credentials. Allowed reads, denied outside/symlink reads/writes/network,
+  Astra/max, context byte reserve, zero retry on server/context errors, successful
+  response and cancellation passed. Tool definitions and injected skill/agent
+  instructions remained visible: **qualification failed** and live use is blocked.
+  Failed configuration attempts and all later negative receipts are retained privately.
+- Actual synthetic Quarto HTML/PDF render passed after selecting the existing
+  isolated R library and Quarto's bundled Pandoc. Default R lacked report packages;
+  default Pandoc was an incompatible Intel executable. No dependencies were added.
+  Visually inspected the new provenance/runtime/source-link PDF pages (3 and 4 of
+  13); no clipping or overlap was observed. New CI verifies the final model again.
+- Ruff check, Ruff format check and `git diff --check` passed. No real provider/model
+  execution, study transmission, medical adjudication or medical qualification ran.
+- Initial PR CI run 37657166909 passed 477 Python, 24 native-R and 9 report tests,
+  with zero failures/skips and 25 verified companion hashes. The parallel push
+  exposed a crash-recovery test race: credential removal happens just before
+  guardian exit releases its lock. The test now waits for actual lock release
+  within its original deadline; controller behavior and qualification policy are
+  unchanged. Fresh receipts on the corrected final commit remain required.
+
+Reproduction (operator supplies the local model catalogue):
+
+```bash
+PYTHONPATH=src uv run --offline --locked pytest -q tests/medical_review/test_codex_backend.py tests/medical_review/test_codex_packet.py tests/medical_review/test_codex_execution.py tests/medical_review/test_execution.py tests/medical_review/test_planning.py tests/medical_review/test_reporting.py -m 'not native_r and not report_integration'
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE"
+R_LIBS_USER=/tmp/fm-med-r-library PATH=/Applications/quarto/bin/tools:$PATH RSTUDIO_PANDOC=/Applications/quarto/bin/tools FORENSICS_REQUIRE_REPORT_INTEGRATION=1 PYTHONPATH=src uv run --offline --locked pytest -q tests/medical_review/test_reporting.py::test_codex_generation_import_lineage_renders_html_pdf
+uv run --offline --locked ruff check .
+uv run --offline --locked ruff format . --check
+git diff --check
+```
+
+Private local diagnostics are under
+`reports/diagnostics/medical_review_codex_qualification/`; runtime qualification
+receipts are in the fixed ignored private runtime boundary. The qualification
+command's expected current exit is 3. See
+[MEDICAL_REVIEW_CODEX_BACKEND.md](MEDICAL_REVIEW_CODEX_BACKEND.md) for contracts,
+limits, authorization, recovery and rollback. Remaining gates: fresh final-commit
+CI/artifact receipts, review of this PR, an enforceable CLI capability/context
+configuration with requalification, separate source approval/smoke testing and
+medical performance validation. Do not waive the failed live gate.
+
+
+## 2026-10-07 Accepted offline checkpoint and next backend plan
+
+The user said to consider the preceding checkpoint done and continue. This accepts
+the offline intake/planning checkpoint; no model execution, source-semantic human
+verification, human disposition or medical qualification was performed or inferred.
+Documentation PR #14 is now ready for review at
+`7eae29cfcab86c168b87d5561cbac871a96e7b22`; it has not been merged. Both push and PR
+checks passed. Downloaded PR-run 37586746980 receipts confirm 446 Python, 24
+native-R and 8 report tests, zero skips/errors/failures, required regressions,
+pinned source hashes and 21 companion hashes. Ignored acceptance evidence is in
+`reports/diagnostics/medical_review_walkthrough_hosted/`.
+
+Continue from [MEDICAL_REVIEW_LIVE_BACKEND_PLAN.md](MEDICAL_REVIEW_LIVE_BACKEND_PLAN.md).
+It defines the next backend contract, source packet, adapter, controlled runner,
+recovery/import/report path, file map and test gates. A backend-selection question
+is pending: Codex CLI with existing account access, or a tool-free Responses API
+adapter. No backend/model, runtime or transmission approval is inferred. Core
+implementation awaits the concrete choice; no dependency or CLI change is proposed.
+
+Read-only CLI help/version and official documentation inspection found
+`codex-cli 0.157.0`, named permission profiles and separate search/capability
+controls. A synthetic command-sandbox probe used temporary files only. Its first
+attempt failed configuration parsing and is preserved separately; corrected TOML
+overrides allowed an approved text read while blocking an outside read, symlink
+escape, source modification and workspace modification. A listening local TCP
+socket observed no sandboxed connection. No model process or study input was used.
+This is command-sandbox evidence only; complete live-backend isolation and spending
+controls are unqualified. The probe and both receipts remain ignored in
+`reports/diagnostics/medical_review_backend_preflight/`.
+
+Executed verification commands for these receipts:
+
+```bash
+gh run download 37586746980 --dir reports/diagnostics/medical_review_walkthrough_hosted
+PYTHONPATH=src uv run --offline --locked python reports/diagnostics/medical_review_walkthrough_hosted/verify_pr.py
+uv run --offline --locked python reports/diagnostics/medical_review_backend_preflight/isolation_probe.py
+```
+
+The next plan preserves the original Reviewer comparator as a separate fidelity
+gate, and requires exact source/model/runtime authorization before any real smoke
+test. Human source adjudication, frozen evaluation criteria and untouched held-out
+medical evidence remain pending. Historical acceptance records were not rewritten.
+
+## 2026-10-07 Merge completed and development intake checkpoint
+
+The user explicitly authorized merging PR #13 and proceeding. GitHub reports
+it merged at `2026-10-07T07:03:59Z`, with merge commit
+`a26c2f4e45734861618d7f1bf53ec6d1eefb4ff4`. Local `main` fast-forwarded to the
+same commit as `origin/main`; its tree matches the verified integration head
+`0f3f8a0b6967ef4c02d47b03416a4b110ee4e7e3`. All five original branch tips and
+the integration branch were retained. GitHub automatically marked ancestor PR #8
+merged two seconds after #13; #9–#12 remain open drafts. Fresh main CI is
+[run 37585070132](https://github.com/reblocke/forensic_metascience/actions/runs/37585070132);
+its terminal receipts are retained separately once available, rather than
+repeatedly creating documentation commits to record CI.
+
+The next branch, `codex/medical-review-development-walkthrough`, records operator
+instructions and this checkpoint. Production code/configuration are unchanged.
+The selected CRASH-3 case is development data, ineligible for untouched held-out
+qualification. The ignored `data/private/medical_reviews/crash3-development/`
+contains the real bundle, original XML snapshots, cloud metadata, four supplied
+source representations and parsed evidence. Separate DOI-derived report IDs
+identify the main publication, 2012 protocol and revised analysis plan.
+
+Direct PDF requests returned 403; the discontinued PMC OA API returned 404.
+These attempts remain recorded. NLM's current supported cloud dataset supplied
+licensed manuscript text, supplement, protocol PDF and version-2 analysis-plan
+PDF. All four match metadata MD5 checksums and recorded SHA-256 hashes. The
+publisher manuscript PDF, later protocol v2.2 and registry snapshot/history are
+explicitly unavailable. Correction searching was not performed.
+
+Bounded `pdf-inspector==0.2.6` routing passed for all 39 PDF pages. Five selected
+pages were rendered and visually inspected: supplement 2/7, protocol 9, SAP 3/4.
+Table flattening and multi-column extraction remain semantic limitations. The
+supplement's sparse final page is a genuine abbreviation-only continuation.
+Eight source-reported reconstruction fields are evidence-linked to inspected
+SAP pages; independent human semantic verification remains pending. Other
+reconstruction fields stay unknown.
+
+The actual offline CLI plan ran twice with identical output: 23 comparison-scoped
+checks, zero model calls, unexecuted coverage and `status=incomplete`. The supplied
+roles satisfy the plan's role groups; this does not certify amendment completeness,
+registry history or source fidelity. There is no compatible Reviewer output here,
+so no import, model execution, verification/adjudication or standard medical-review
+report was fabricated. The local readiness report is explicitly intake/planning
+only. Its actual render/QC and hash receipts are retained with the diagnostics.
+HTML and four-page PDF renders succeeded; all four report pages were visually
+inspected without observed clipping or overlap. Source targets/page labels and
+six companion artifact hashes were checked. PDF viewer page-jump behavior was
+not tested. Two auxiliary assertions were corrected to account for PDF line
+wrapping and GoToR remote-file annotations; the rendered artifact was unchanged.
+Whole-repository Ruff check/format and Git diff checks passed.
+
+Reproduction with already prepared environments and retained immutable inputs:
+
+```bash
+PYTHONPATH=src uv run --offline --locked python reports/diagnostics/medical_review_crash3_walkthrough/prepare_case.py
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py plan --bundle data/private/medical_reviews/crash3-development/bundle.json --profile clinical_trial --dry-run --offline
+uv run --offline --script /Users/reblocke/.codex/skills/pdf/scripts/pdf_route_extract.py data/private/medical_reviews/crash3-development/sources/supplement.pdf --mode pages --output-dir reports/diagnostics/medical_review_crash3_walkthrough/pdf-routing/supplement --max-pages 100 --max-file-mb 10 --max-output-mb 10 --timeout-seconds 45
+quarto render reports/diagnostics/medical_review_crash3_walkthrough/walkthrough.qmd --to html
+quarto render reports/diagnostics/medical_review_crash3_walkthrough/walkthrough.qmd --to pdf
+```
+
+The skill path records the actual local verification tool, not production config.
+The ignored `reports/diagnostics/medical_review_crash3_walkthrough/` retains
+retrieval failures/successes, cloud metadata, immutable-source preparation code,
+bounded extraction receipts, page images, deterministic plan and verification
+receipt, and readiness Markdown/Quarto artifacts. The remaining walkthrough needs
+a genuine compatible Reviewer output or an explicitly selected, implemented and
+qualified live backend, followed by real human review. See
+[MEDICAL_REVIEW_WALKTHROUGH.md](MEDICAL_REVIEW_WALKTHROUGH.md).
+
 ## 2026-10-06 Integration review fixes and merge readiness
 
 The user approved one integration PR against `main`, retaining draft PRs #8–#12
