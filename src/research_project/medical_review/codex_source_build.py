@@ -1,4 +1,4 @@
-"""Strict provenance binding for an isolated, assessment-only source-built CLI."""
+"""Retained source-build provenance; runtime eligibility is qualified separately."""
 
 from __future__ import annotations
 

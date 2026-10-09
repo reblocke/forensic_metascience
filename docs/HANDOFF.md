@@ -1,5 +1,60 @@
 # Handoff (for multi-session work)
 
+## 2026-10-08 Exact patched runtime adopted and operationally qualified
+
+Implemented the approved adoption of `codex-cli-0.161.0-medical-no-tools-v1` for
+this backend only. Pin macOS ARM64, the existing executable SHA-256
+`8229baba8ad7387cbf2636b0116c8abd6d94cf87f503b327c78abc47b44c619a`, source commit
+and native patch; no rebuild, global installation, PATH or app changes occurred.
+Operational qualification takes paired `--runtime-executable` and
+`--runtime-build-manifest`, exclusive with assessment arguments. Policy v3 requires
+the tool ceiling in production; receipts advance to v4 and preserve adoption
+separately from historical source-build construction records. Old receipts and
+assessment receipts cannot authorize revised preparation or execution.
+
+The launcher uses the receipt's executable for login and generation, revalidates
+inside the lock before credentials and again before accepting output. Tests cover
+wrong bytes/platform/architecture/provenance, assessment promotion, stale/error
+receipts, loopback controls, PATH substitution and runtime changes before/during
+execution with failed-output preservation and lock release.
+
+Actual CLI operational qualification passed all 20 checks with the unchanged
+Astra catalogue and synthetic loopback provider. Receipt:
+`data/private/medical_reviews/runtime_qualifications/28c2914b1140491a8ac066dd1d594c63/qualification.json`.
+Raw requests/responses/streams and build/sandbox evidence are retained and reaudited.
+No real provider or study transmission was used for qualification.
+
+```bash
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE" --runtime-executable "$MEDICAL_CODEX_ADOPTED_EXECUTABLE" --runtime-build-manifest "$MEDICAL_CODEX_BUILD_MANIFEST"
+PYTHONPATH=src uv run --offline --locked pytest -q tests/medical_review/test_codex_backend.py tests/medical_review/test_codex_qualification.py tests/medical_review/test_codex_source_build.py tests/medical_review/test_codex_adoption.py tests/medical_review/test_codex_packet.py tests/medical_review/test_codex_execution.py tests/medical_review/test_execution.py tests/medical_review/test_reporting.py -m 'not native_r and not report_integration' --junitxml=reports/diagnostics/medical_review_codex_adoption/focused-final.xml
+uv run --offline --locked ruff check .
+uv run --offline --locked ruff format . --check
+git diff --check
+```
+
+Focused verification passed 145 tests, zero failures/errors/skips. Ruff check and
+format check (133 files) and whitespace checks passed. The initial nine adoption
+regressions failed against the previous code, then passed after implementation.
+An import-order lint finding was corrected and checks repeated.
+
+Actual CLI preparation accepted the operational receipt for a new synthetic bundle,
+preserving original bytes and leaving approval fields unset. Copying the unchanged
+template into the study's dedicated authorizations directory produced a recorded
+blocked attempt: exit 3, zero model calls and no generation/import. The first attempt
+using the packet-template location was refused at the path boundary; both outputs
+are preserved. Checking scripts initially assumed exit 0/plain-path output; the
+recorded exit 3/JSON response was correctly validated without another attempt.
+Private smoke state and exact commands/results:
+`reports/diagnostics/medical_review_codex_adoption/synthetic-smoke-state.json`.
+
+Focused review found no actionable issue in the adoption/provenance gate,
+canonical invocation, launch selection or recovery behavior. Freeze these adapter
+bytes and require fresh final-commit Python/native-R/report CI and verified artifact
+hashes before marking PR #15 ready; final acceptance receipts belong in that PR.
+Real source authorization, merge, development-study transmission, original-Reviewer
+execution and medical qualification remain separate subsequent gates. Rollback
+disables/reverts this opt-in adoption while retaining all historical records.
+
 ## 2026-10-08 Native-tool source candidate passes synthetic assessment
 
 Resumed the isolated build using the pre-authorized external cache. The candidate

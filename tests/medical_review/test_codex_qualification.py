@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import copy
+import json
 
 import pytest
 
@@ -224,13 +225,13 @@ def test_only_narrow_runtime_metadata_is_permitted(change):
         validate_context(req, **kwargs)
 
 
-def retained_receipt(repo):
+def retained_receipt(repo, *, assessment=False):
     """Complete synthetic observations for testing receipt validation, never CLI evidence."""
     import hashlib
     from pathlib import Path
 
     from research_project.medical_review.codex_audit import PROBE_MODES, PROMPT
-    from research_project.medical_review.codex_backend import execution_policy
+    from research_project.medical_review.codex_backend import ADOPTED_RUNTIME, execution_policy
     from research_project.medical_review.codex_qualification import (
         _probe_command,
         _provider_response,
@@ -240,9 +241,23 @@ def retained_receipt(repo):
     data = evidence()
     for mode in ("event_limit", "final_limit", "stderr_limit", "invalid_config", *NATIVE_PROBES):
         data["probes"][mode] = probe()
-    runtime = {"executable_path": "/tmp/synthetic/bin/codex", "resource_shell_sha256": None}
+    runtime = {
+        "executable_path": "/tmp/synthetic/bin/codex",
+        "resource_shell_sha256": None,
+        "adopted_runtime": None if assessment else ADOPTED_RUNTIME.copy(),
+    }
     root = repo / "data/private/medical_reviews/runtime_qualifications/synthetic-v3"
     write_json(root / "catalogue.json", {"synthetic": True})
+    if not assessment:
+        write_json(
+            root / "source-build/build-manifest.json",
+            {
+                "source": {"commit": ADOPTED_RUNTIME["source_commit"]},
+                "target": ADOPTED_RUNTIME["target"],
+                "executable_sha256": ADOPTED_RUNTIME["executable_sha256"],
+                "artifacts": {"native_patch": {"sha256": ADOPTED_RUNTIME["native_patch_sha256"]}},
+            },
+        )
     for mode in PROBE_MODES:
         p = data["probes"][mode]
         p["prompt"] = PROMPT
@@ -250,7 +265,13 @@ def retained_receipt(repo):
             request["input"][-1] = message("user", PROMPT)
         p.update(
             provider_port=12345,
-            command=_probe_command(runtime["executable_path"], Path("/tmp/synthetic"), 12345, mode),
+            command=_probe_command(
+                runtime["executable_path"],
+                Path("/tmp/synthetic"),
+                12345,
+                mode,
+                disable_tools=not assessment,
+            ),
             unknown_config_error=False,
             event_bytes=0,
             stderr_bytes=0,
@@ -300,11 +321,13 @@ def retained_receipt(repo):
     checks, _ = audit_evidence(data)
     assert all(checks.values())
     receipt = {
-        "schema_version": "medical_codex_qualification_v3",
-        "source_build_manifest": None,
-        "assessment_only": False,
-        "qualified": True,
+        "schema_version": "medical_codex_qualification_v4",
+        "runtime_adoption": None if assessment else ADOPTED_RUNTIME.copy(),
+        "source_build_manifest": None if assessment else "source-build/build-manifest.json",
+        "assessment_only": assessment,
+        "qualified": not assessment,
         "all_checks_passed": True,
+        "errors": [],
         "checks": checks,
         "policy": execution_policy(),
         "runtime": runtime,
@@ -324,6 +347,9 @@ def retained_receipt(repo):
     "change",
     [
         "legacy",
+        "legacy_v3",
+        "errors",
+        "adoption",
         "response",
         "dispatch_marker",
         "assessment",
@@ -337,7 +363,7 @@ def retained_receipt(repo):
         "raw_sandbox",
     ],
 )
-def test_version_three_receipts_reaudit_raw_evidence_and_refuse_assessment(
+def test_version_four_receipts_reaudit_raw_evidence_and_refuse_assessment(
     workspace, monkeypatch, change
 ):
     import hashlib
@@ -350,11 +376,22 @@ def test_version_three_receipts_reaudit_raw_evidence_and_refuse_assessment(
     repo = workspace[0]
     path, receipt, data, runtime = retained_receipt(repo)
     monkeypatch.setattr(
-        "research_project.medical_review.codex_qualification.runtime_identity", lambda *_: runtime
+        "research_project.medical_review.codex_qualification.runtime_identity",
+        lambda *_, **__: runtime,
+    )
+    monkeypatch.setattr(
+        "research_project.medical_review.codex_qualification.validate_build_manifest",
+        lambda path, _: json.loads(path.read_text()),
     )
     assert validate_qualification(repo, path)["qualified"] is True
     if change == "legacy":
         receipt["schema_version"] = "medical_codex_qualification_v2"
+    elif change == "legacy_v3":
+        receipt["schema_version"] = "medical_codex_qualification_v3"
+    elif change == "errors":
+        receipt["errors"] = ["Configuration failure"]
+    elif change == "adoption":
+        receipt["runtime_adoption"] = None
     elif change == "response":
         (path.parent / "tool_direct/responses/000.body").write_bytes(b"no call issued")
     elif change == "dispatch_marker":
@@ -410,14 +447,15 @@ def test_passing_candidate_receipt_cannot_prepare_a_packet(workspace, monkeypatc
     from research_project.medical_review.records import content_hash
 
     repo, bundle, *_ = workspace
-    path, receipt, _, runtime = retained_receipt(repo)
+    path, receipt, _, runtime = retained_receipt(repo, assessment=True)
     receipt["assessment_only"] = True
     receipt["receipt_sha256"] = content_hash(
         {k: v for k, v in receipt.items() if k != "receipt_sha256"}
     )
     write_json(path, receipt)
     monkeypatch.setattr(
-        "research_project.medical_review.codex_qualification.runtime_identity", lambda *_: runtime
+        "research_project.medical_review.codex_qualification.runtime_identity",
+        lambda *_, **__: runtime,
     )
     with pytest.raises(ValueError, match="assessment-only"):
         prepare_packet(repo, bundle, qualification=path)
@@ -506,7 +544,7 @@ def test_validated_candidate_remains_ineligible_for_preparation(workspace, monke
     from research_project.medical_review.records import content_hash
 
     repo, bundle, *_ = workspace
-    path, receipt, _, runtime = retained_receipt(repo)
+    path, receipt, _, runtime = retained_receipt(repo, assessment=True)
     receipt.update(assessment_only=True, qualified=False)
     receipt["receipt_sha256"] = content_hash(
         {k: v for k, v in receipt.items() if k != "receipt_sha256"}
@@ -534,3 +572,20 @@ def test_post_final_probe_uses_the_runtime_final_answer_phase():
     items = events[-1]["response"]["output"]
     assert items[0]["type"] == "message" and items[0]["phase"] == "final_answer"
     assert items[1]["type"] == "custom_tool_call" and items[1]["namespace"] == "functions"
+
+
+def test_assessment_flags_cannot_be_promoted_to_operational_receipt(workspace):
+    from support.medical_review_fixtures import write_json
+
+    from research_project.medical_review.codex_qualification import validate_qualification
+    from research_project.medical_review.records import content_hash
+
+    repo = workspace[0]
+    path, receipt, _, _ = retained_receipt(repo, assessment=True)
+    receipt.update(assessment_only=False, qualified=True)
+    receipt["receipt_sha256"] = content_hash(
+        {k: v for k, v in receipt.items() if k != "receipt_sha256"}
+    )
+    write_json(path, receipt)
+    with pytest.raises(ValueError, match="qualification"):
+        validate_qualification(repo, path)

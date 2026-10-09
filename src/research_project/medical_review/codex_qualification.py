@@ -30,6 +30,7 @@ from research_project.medical_review.codex_audit import (
     audit_evidence,
 )
 from research_project.medical_review.codex_backend import (
+    ADOPTED_RUNTIME,
     INSTRUCTIONS,
     MODEL,
     clean_environment,
@@ -245,9 +246,8 @@ def _probe_command(
         root / "schema.json",
         root / "final.json",
         provider_url=f"http://127.0.0.1:{port}/v1",
+        disable_tools=disable_tools,
     )
-    if disable_tools:
-        command[-1:-1] = ["-c", "tools.enabled=false"]
     if mode in {"stderr_limit", "invalid_config"}:
         command[-1:-1] = ["-c", "qualification_canary_unsupported=true"]
     # Contain the entire controller's probe egress, including telemetry/auth refresh.
@@ -446,27 +446,44 @@ def qualify_codex(
     catalogue: Path,
     probe_executable: Path | None = None,
     probe_build_manifest: Path | None = None,
+    runtime_executable: Path | None = None,
+    runtime_build_manifest: Path | None = None,
 ) -> Path:
-    """Write immutable evidence. Explicit executable probes can never authorize live use."""
+    """Write fresh evidence; assessment and operational selection remain distinct."""
+    if (runtime_executable is None) != (runtime_build_manifest is None):
+        raise ValueError("Operational executable and build manifest must be supplied together.")
+    if runtime_executable is not None and (
+        probe_executable is not None or probe_build_manifest is not None
+    ):
+        raise ValueError("Operational and assessment runtime arguments are exclusive.")
     if probe_build_manifest is not None and probe_executable is None:
         raise ValueError("A source build manifest requires an assessment-only probe executable.")
     output = private_path(repo, QUALIFICATIONS / uuid4().hex, QUALIFICATIONS)
     output.mkdir(parents=True)
     evidence, errors, runtime = {"sandbox": {}, "probes": {}}, [], None
+    manifest_path = probe_build_manifest if probe_executable is not None else runtime_build_manifest
     try:
-        runtime = runtime_identity(catalogue, probe_executable=probe_executable)
-        if probe_build_manifest is not None:
-            probe_build_manifest = private_path(
-                repo, probe_build_manifest, PRIVATE_SOURCES / "runtime_candidates"
+        runtime = runtime_identity(
+            catalogue, probe_executable=probe_executable, runtime_executable=runtime_executable
+        )
+        if probe_executable is None and manifest_path is None:
+            raise ValueError(
+                "Operational qualification requires an explicit retained build manifest."
             )
-            build = validate_build_manifest(probe_build_manifest, Path(runtime["executable_path"]))
+        if manifest_path is not None:
+            manifest_path = private_path(
+                repo, manifest_path, PRIVATE_SOURCES / "runtime_candidates"
+            )
+            build = validate_build_manifest(manifest_path, Path(runtime["executable_path"]))
+            if probe_executable is None:
+                _validate_adopted_build(build)
             retained_build = output / "source-build"
             retained_build.mkdir()
-            shutil.copyfile(probe_build_manifest, retained_build / "build-manifest.json")
+            shutil.copyfile(manifest_path, retained_build / "build-manifest.json")
             for artifact in build["artifacts"].values():
                 destination = retained_build / artifact["path"]
                 destination.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(probe_build_manifest.parent / artifact["path"], destination)
+                shutil.copyfile(manifest_path.parent / artifact["path"], destination)
         shutil.copyfile(catalogue, output / "catalogue.json")
         if probe_executable is not None:
             provenance = Path(runtime["executable_path"]).parent.parent / "distribution.json"
@@ -484,7 +501,7 @@ def qualify_codex(
                     catalogue,
                     destination,
                     mode,
-                    disable_tools=probe_build_manifest is not None,
+                    disable_tools=manifest_path is not None,
                 )
                 retained = output / mode
                 shutil.copytree(destination / "streams", retained / "streams")
@@ -498,9 +515,10 @@ def qualify_codex(
     write_json(output / "evidence.json", evidence)
     passing = all(checks.values()) and not errors and not audit_errors
     receipt = {
-        "schema_version": "medical_codex_qualification_v3",
+        "schema_version": "medical_codex_qualification_v4",
+        "runtime_adoption": ADOPTED_RUNTIME.copy() if probe_executable is None else None,
         "source_build_manifest": "source-build/build-manifest.json"
-        if probe_build_manifest is not None
+        if manifest_path is not None
         else None,
         "assessment_only": probe_executable is not None,
         "all_checks_passed": passing,
@@ -519,6 +537,17 @@ def qualify_codex(
     receipt["receipt_sha256"] = content_hash(receipt)
     write_json(output / "qualification.json", receipt)
     return output / "qualification.json"
+
+
+def _validate_adopted_build(build: dict) -> None:
+    if (
+        build.get("source", {}).get("commit") != ADOPTED_RUNTIME["source_commit"]
+        or build.get("target") != ADOPTED_RUNTIME["target"]
+        or build.get("executable_sha256") != ADOPTED_RUNTIME["executable_sha256"]
+        or build.get("artifacts", {}).get("native_patch", {}).get("sha256")
+        != ADOPTED_RUNTIME["native_patch_sha256"]
+    ):
+        raise ValueError("Codex build does not match the adopted runtime provenance.")
 
 
 def _validate_evidence_files(
@@ -625,12 +654,15 @@ def _validate_receipt(repo: Path, path: Path, *, assessment: bool) -> dict[str, 
     receipt = read_json(path)
     if (
         "source_build_manifest" not in receipt
-        or receipt.get("schema_version") != "medical_codex_qualification_v3"
+        or receipt.get("schema_version") != "medical_codex_qualification_v4"
+        or "runtime_adoption" not in receipt
+        or receipt["runtime_adoption"] != (None if assessment else ADOPTED_RUNTIME)
         or receipt.get("assessment_only") is not assessment
         or receipt.get("receipt_sha256")
         != content_hash({k: v for k, v in receipt.items() if k != "receipt_sha256"})
         or receipt.get("qualified") is not (not assessment)
         or receipt.get("all_checks_passed") is not True
+        or receipt.get("errors") != []
         or set(receipt.get("checks", {})) != CHECKS
         or any(value is not True for value in receipt["checks"].values())
         or receipt.get("policy") != execution_policy()
@@ -661,15 +693,23 @@ def _validate_receipt(repo: Path, path: Path, *, assessment: bool) -> dict[str, 
     manifest = receipt.get("source_build_manifest")
     if (
         manifest not in (None, "source-build/build-manifest.json")
-        or manifest is not None
-        and not assessment
+        or not assessment
+        and manifest is None
     ):
-        raise ValueError("Codex source build receipts are assessment-only.")
+        raise ValueError("Codex operational qualification requires adopted build provenance.")
     if manifest is not None:
-        validate_build_manifest(path.parent / manifest, Path(receipt["runtime"]["executable_path"]))
+        build = validate_build_manifest(
+            path.parent / manifest, Path(receipt["runtime"]["executable_path"])
+        )
+        if not assessment:
+            _validate_adopted_build(build)
     current = runtime_identity(
         path.parent / "catalogue.json",
-        **({"probe_executable": Path(receipt["runtime"]["executable_path"])} if assessment else {}),
+        **{
+            "probe_executable" if assessment else "runtime_executable": Path(
+                receipt["runtime"]["executable_path"]
+            )
+        },
     )
     if receipt["runtime"] != current:
         raise ValueError("Codex runtime/code/catalogue/policy changed; requalification required.")

@@ -147,6 +147,16 @@ def parser() -> argparse.ArgumentParser:
             "and remains assessment-only."
         ),
     )
+    qualifying.add_argument(
+        "--runtime-executable",
+        type=Path,
+        help="Exact adopted executable for operational qualification.",
+    )
+    qualifying.add_argument(
+        "--runtime-build-manifest",
+        type=Path,
+        help="Retained provenance for the adopted executable.",
+    )
     preparing = commands.add_parser(
         "prepare-codex", help="Prepare an indexed offline source packet after qualification."
     )
@@ -305,6 +315,8 @@ def main() -> int:
                 catalogue=args.catalogue,
                 probe_executable=args.probe_executable,
                 probe_build_manifest=args.probe_build_manifest,
+                runtime_executable=args.runtime_executable,
+                runtime_build_manifest=args.runtime_build_manifest,
             )
             result = read_json(receipt)
             print(

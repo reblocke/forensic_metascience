@@ -2,9 +2,10 @@
 
 ## Current status
 
-The opt-in `codex_cli` software path is implemented. Live operational acceptance
-is **blocked** for the inspected Codex CLI 0.157.0 and isolated official releases
-0.161.0 and 0.160.0. Explicit skill/agent/instruction controls exclude inherited
+The opt-in `codex_cli` software path is implemented. The inspected official CLI
+0.157.0 and isolated official releases
+0.161.0 and 0.160.0 remain **unsupported** for live reading. Explicit
+skill/agent/instruction controls exclude inherited
 context, but actual loopback requests still expose the native `functions`
 namespace. The supported code-mode namespace exclusion setting also leaves that
 wrapper exposed. Earlier v2 receipts recorded 18 of 19 mandatory checks for each
@@ -22,10 +23,15 @@ passes all 20 mandatory actual CLI assessment checks, including rejection of 12
 unsolicited tool-call cases. Retained evidence reauditing passes; baseline and patched
 default controls retain identical tool declarations. The passing executable hash is
 `8229baba8ad7387cbf2636b0116c8abd6d94cf87f503b327c78abc47b44c619a`.
-Its receipt remains assessment-only and cannot prepare sources or authorize a run.
-No source-built runtime is adopted or operationally qualified. An explicit decision
-on the exact patched candidate, operational binding and fresh eligible qualification
-are required before packet preparation and separate source-specific authorization.
+Its historical receipt remains assessment-only and cannot prepare sources or authorize
+a run. The user subsequently adopted that exact executable as
+`codex-cli-0.161.0-medical-no-tools-v1`, a locally patched macOS ARM64 build.
+A fresh operational v4 receipt is required; it must pass all 20 checks on the current
+adapter before preparation. Separate source-specific authorization remains required
+for transmission. The installed CLI, PATH, app and user configuration remain unchanged.
+The adopted runtime has passed fresh operational qualification with all 20 checks;
+the synthetic preparation/blocked-run proof also passed. This establishes software
+eligibility, not permission to transmit any particular study or medical performance.
 See [the source-assessment materials](../tools/codex-no-tools/README.md).
 
 The user selected `gpt-6-astra`, reasoning `max`, existing ChatGPT authentication,
@@ -38,17 +44,21 @@ that comparator remains a separate fidelity gate.
 
 ```bash
 PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py \
-  qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE"
+  qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE" \
+  --runtime-executable "$MEDICAL_CODEX_ADOPTED_EXECUTABLE" \
+  --runtime-build-manifest "$MEDICAL_CODEX_BUILD_MANIFEST"
 ```
 
 `MEDICAL_CODEX_CATALOGUE` names the operator's local Codex model catalogue JSON.
-The command resolves `codex` through PATH. It initially supports macOS and
-`codex-cli 0.157.0`; other versions or platforms produce failed private receipts.
+Operational selection requires both explicit runtime arguments. The executable must
+match the adopted SHA-256 and macOS ARM64 target; retained provenance must match
+the source commit, normalization and native patch. Version strings alone are
+insufficient. The default installed CLI cannot qualify, and there is no fallback.
 It uses synthetic source/context canaries, synthetic ChatGPT tokens and a local
 fake provider. The entire probe controller's network access is restricted to its
 loopback server. It does not read the operator's authentication file or use a real
 provider. Receipt JSON, wire requests and received streams are retained beneath
-the ignored private runtime-qualification boundary. For the default executable,
+the ignored private runtime-qualification boundary. For operational selection,
 exit 0 means qualified; exit 3 means failed qualification, never reassuring coverage.
 
 Synthetic candidate assessment is explicit:
@@ -62,9 +72,9 @@ PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py \
 The optional path permits assessment of 0.157.0, 0.161.0 or 0.160.0 on macOS;
 it does not replace the installed CLI. Candidate receipts have
 `assessment_only: true` and `qualified: false` even if `all_checks_passed: true`
-(exit 0). They cannot prepare a packet or authorize execution. CLI preparation/run
-still requires the PATH-resolved pinned 0.157.0 runtime and a passing default
-qualification. Adopting another version requires a subsequent explicit decision.
+(exit 0). They cannot prepare a packet or authorize execution. Operational and assessment arguments are mutually exclusive. CLI preparation/run
+require a fresh operational receipt for the exact adopted runtime; assessment labels
+cannot be promoted. Adopting different bytes requires a subsequent explicit decision.
 
 For the isolated patched source build, provide its retained build manifest:
 
@@ -77,9 +87,9 @@ PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py \
 
 The manifest requires an explicit candidate executable. Before any runtime probe,
 validation binds the upstream commit, original and normalized lockfiles, toolchain,
-reviewed native patch, build command/log, source ledger and executable hash. Only
-this assessment path adds `tools.enabled=false`; ordinary/live invocation is
-unchanged. Invalid provenance cannot start a provider. The 19 existing checks and
+reviewed native patch, build command/log, source ledger and executable hash. Both adopted operational qualification and production invocation require
+`tools.enabled=false`. Unpatched/default-tool controls are restricted to offline
+loopback assessment. Invalid provenance cannot start a provider. The 19 existing checks and
 one aggregate native-dispatch check are all mandatory. Direct, namespaced, freeform,
 Code Mode, wait, patch, user-input, nested, post-final, malformed tool-search and
 hosted search/image probes require a fatal startup-policy error and exactly one
@@ -111,8 +121,9 @@ code-mode host cannot execute them.
 Receipts bind the executable bytes, OS, Python/parser versions, pinned catalogue,
 entrypoint, medical/forensic code and effective policy. Live use copies the pinned
 catalogue into the dedicated runtime; it does not adopt later model discovery.
-Version-3 receipts bind the configuration and audit rules through policy/code
-hashes. They retain raw request bodies/headers, issued fake-provider responses, all probe streams and raw sandbox
+Version-4 receipts bind the adopted runtime, policy v3, configuration and audit
+rules through policy/code hashes. Historical v1/v2/v3 receipts remain preserved
+but cannot authorize current preparation or execution. They retain raw request bodies/headers, issued fake-provider responses, all probe streams and raw sandbox
 return codes/stdout/stderr. Validation verifies every artifact, reconstructed
 invocation, source bytes and runtime metadata, then recomputes acceptance across
 every outgoing request, including errors and cancellation. Only explicit medical
@@ -250,3 +261,25 @@ Rollback means stop new Codex attempts and retain their private original outputs
 imports, manifests, approvals and human records. Existing offline replay/import,
 qualified forensic method receipts and historical reports remain available.
 Merging, real-study smoke testing and medical qualification are separate gates.
+
+## Adopted-runtime lifecycle and rollback
+
+Preparation and execution consume the operational qualification receipt. Login
+status and generation use its validated executable path, never a new PATH lookup.
+Runtime/provenance/catalogue/code/policy are rechecked inside the session lock before
+credentials or generation and again before accepting output. Moving or changing the
+executable, updating the OS or changing any bound dependency requires qualification
+again. Failed attempts preserve partial output and release the lock without retry.
+
+The retained source-build manifest keeps its historical assessment classification;
+the new qualification receipt records adoption separately. It is not an official
+OpenAI distribution. Source construction evidence does not itself authorize a run.
+
+Fresh policy hashes invalidate old prepared packets and source approvals for this
+backend. Reprepare from the preserved original bundle; authorization v2 remains the
+contract, with human approval fields initially unset. An operational receipt does
+not supply source permission, numerical qualification or medical performance.
+
+Rollback by disabling this opt-in backend or reverting its adoption changes. Preserve
+all qualification receipts, packets, attempts and dispositions; never select an
+unsupported official CLI as a fallback. No global CLI installation was changed.

@@ -30,13 +30,16 @@ def prepared_fixture(workspace, monkeypatch, *, comparisons=False):
         bundle["planned_checks"] = []
         write_json(bundle_path, bundle)
     qualification = {
-        "schema_version": "medical_codex_qualification_v3",
+        "schema_version": "medical_codex_qualification_v4",
         "qualified": True,
         "assessment_only": False,
         "all_checks_passed": True,
         "checks": {k: True for k in CHECKS},
         "policy": execution_policy(),
-        "runtime": {"synthetic_transport_substitution": True},
+        "runtime": {
+            "synthetic_transport_substitution": True,
+            "executable_path": "/synthetic/transport-substitution/codex",
+        },
         "receipt_sha256": "synthetic-test-only",
     }
     qpath = write_json(
@@ -110,7 +113,8 @@ def execute_fixture(workspace, monkeypatch, *, envelope=None, comparisons=False)
         repo / "data/private/medical_reviews/synthetic/synthetic-provider.json", envelope
     )
 
-    def launch(packet, catalogue, generated, schema, limits, lock_fd):
+    def launch(packet, catalogue, generated, schema, limits, lock_fd, *, executable):
+        assert executable == "/synthetic/transport-substitution/codex"
         final = generated / "raw/generation.json"
         final.parent.mkdir(parents=True)
         script = (

@@ -138,9 +138,10 @@ def _launch(
     schema: dict[str, Any],
     limits: dict[str, Any],
     lock_fd: int,
+    *,
+    executable: str,
 ) -> None:
     """Only the trusted controller handles authentication; reviewer workspace has no credentials."""
-    executable = shutil.which("codex")
     auth_home = Path.home() / ".codex"
     # Do not inherit an alternate CODEX_HOME or API-key based provider from the environment.
     auth_file = auth_home / "auth.json"
@@ -373,7 +374,7 @@ def run_codex_review(
                 private_path(repo, PRIVATE_SOURCES / "codex_session.lock", PRIVATE_SOURCES)
             ) as lock_fd:
                 # Recheck inside the lock, before handling credentials or launching.
-                validate_qualification(repo, qualification_path)
+                qualification = validate_qualification(repo, qualification_path)
                 validate_packet(repo, bundle_path)
                 validate_authorization(
                     auth,
@@ -396,6 +397,7 @@ def run_codex_review(
                     output_schema(repo),
                     limits,
                     lock_fd,
+                    executable=qualification["runtime"]["executable_path"],
                 )
                 runtime = observed_metadata(generated / "streams/events.jsonl")
                 if (generated / "raw/generation.json").stat().st_size > execution_policy()[

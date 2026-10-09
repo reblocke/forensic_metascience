@@ -11,12 +11,21 @@ import subprocess
 from importlib.metadata import version as package_version
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from research_project.medical_review.records import content_hash
 
 MODEL = "gpt-6-astra"
-CLI_VERSION = "codex-cli 0.157.0"
-CANDIDATE_VERSIONS = ("codex-cli 0.161.0", "codex-cli 0.160.0")
+CLI_VERSION = "codex-cli 0.161.0"
+CANDIDATE_VERSIONS = ("codex-cli 0.157.0", "codex-cli 0.160.0")
+ADOPTED_RUNTIME = {
+    "runtime_id": "codex-cli-0.161.0-medical-no-tools-v1",
+    "classification": "locally_patched_build",
+    "target": "aarch64-apple-darwin",
+    "source_commit": "979011409de0a60b52f179721948e65531d26144",
+    "native_patch_sha256": "b2eea02447ba2bb4ed8d9a4ca902d5e2de0c612926209214cde8056879819086",
+    "executable_sha256": "8229baba8ad7387cbf2636b0116c8abd6d94cf87f503b327c78abc47b44c619a",
+}
 CONTEXT_CONTROLS = {
     "agents.enabled": "false",
     "skills.bundled.enabled": "false",
@@ -73,8 +82,9 @@ DISABLED_FEATURES = (
 def execution_policy() -> dict[str, Any]:
     """The single supported live policy; no fallback or spend guarantee."""
     return {
-        "schema_version": "medical_codex_policy_v2",
+        "schema_version": "medical_codex_policy_v3",
         "cli_version": CLI_VERSION,
+        "adopted_runtime": ADOPTED_RUNTIME.copy(),
         "provider": "openai",
         "backend": "codex_cli",
         "model": MODEL,
@@ -119,12 +129,29 @@ def validate_request(request: dict[str, Any]) -> None:
         raise ValueError("Codex model/reasoning does not match the fixed policy.")
 
 
-def runtime_identity(catalogue: Path, *, probe_executable: Path | None = None) -> dict[str, Any]:
+def runtime_identity(
+    catalogue: Path,
+    *,
+    probe_executable: Path | None = None,
+    runtime_executable: Path | None = None,
+) -> dict[str, Any]:
     """Bind qualification to exact local executable, OS, code and catalogue bytes."""
-    executable = str(probe_executable) if probe_executable is not None else shutil.which("codex")
+    if probe_executable is not None and runtime_executable is not None:
+        raise ValueError("Operational and assessment executable selection are exclusive.")
+    selected_executable = probe_executable if probe_executable is not None else runtime_executable
+    executable = (
+        str(selected_executable) if selected_executable is not None else shutil.which("codex")
+    )
     if executable is None:
         raise ValueError("Codex CLI is unavailable.")
     binary = Path(executable).resolve(strict=True)
+    digest = hashlib.sha256(binary.read_bytes()).hexdigest()
+    if probe_executable is None and (
+        platform.system() != "Darwin"
+        or platform.machine() != "arm64"
+        or digest != ADOPTED_RUNTIME["executable_sha256"]
+    ):
+        raise ValueError("Codex executable is not the exact adopted macOS ARM64 runtime.")
     version = subprocess.run(
         [str(binary), "--version"], capture_output=True, text=True, check=True, timeout=10
     ).stdout.strip()
@@ -132,7 +159,7 @@ def runtime_identity(catalogue: Path, *, probe_executable: Path | None = None) -
         (CLI_VERSION, *CANDIDATE_VERSIONS) if probe_executable is not None else (CLI_VERSION,)
     )
     if platform.system() != "Darwin" or version not in supported:
-        raise ValueError("Codex backend requires macOS and codex-cli 0.157.0.")
+        raise ValueError("Codex runtime version or platform is unsupported.")
     raw = catalogue.read_bytes()
     models = json.loads(raw).get("models", [])
     selected = [m for m in models if m.get("slug") == MODEL]
@@ -148,7 +175,8 @@ def runtime_identity(catalogue: Path, *, probe_executable: Path | None = None) -
         "resource_shell_sha256": hashlib.sha256(resource_shell.read_bytes()).hexdigest()
         if resource_shell.is_file()
         else None,
-        "executable_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
+        "adopted_runtime": ADOPTED_RUNTIME.copy() if probe_executable is None else None,
+        "executable_sha256": digest,
         "executable_path": str(binary),
         "cli_version": version,
         "os": platform.platform(),
@@ -177,8 +205,24 @@ def codex_command(
     final: Path,
     *,
     provider_url: str | None = None,
+    disable_tools: bool = True,
 ) -> list[str]:
     """One ephemeral strict invocation. URL override is only for the offline probe."""
+    if provider_url is not None:
+        url = urlsplit(provider_url)
+        if (
+            url.scheme != "http"
+            or url.hostname != "127.0.0.1"
+            or url.port is None
+            or url.username is not None
+            or url.password is not None
+            or url.path != "/v1"
+            or url.query
+            or url.fragment
+        ):
+            raise ValueError("Provider override is restricted to offline loopback assessment.")
+    if not disable_tools and provider_url is None:
+        raise ValueError("Default-tool controls are restricted to offline loopback assessment.")
     provider = {
         "name": "OpenAI medical reading",
         "requires_openai_auth": True,
@@ -211,6 +255,8 @@ def codex_command(
         "default_permissions": '"medical_reading"',
     }
     settings["forced_login_method"] = '"chatgpt"'
+    if disable_tools:
+        settings["tools.enabled"] = "false"
     settings.update(CONTEXT_CONTROLS)
     command = [
         executable,

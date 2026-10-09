@@ -1,5 +1,35 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-08: Adopt the exact patched runtime through fresh operational qualification
+
+- **Decision:** The user selected and approved adoption of the passing local build
+  as `codex-cli-0.161.0-medical-no-tools-v1`, limited to this backend. Pin macOS
+  ARM64, executable hash `8229baba8ad7387cbf2636b0116c8abd6d94cf87f503b327c78abc47b44c619a`,
+  source commit and reviewed native patch. Do not change global installation, PATH,
+  the app or user configuration; different bytes need a new adoption decision.
+- **Interface:** Operational qualification requires paired `--runtime-executable`
+  and `--runtime-build-manifest`, exclusive with assessment arguments. Validate
+  runtime/provenance before probes. Retained construction manifests keep their
+  historical classification; receipt v4 records operational adoption separately.
+  No v1/v2/v3 receipt or relabeled assessment receipt authorizes revised code.
+- **Execution:** Policy v3 requires the tool ceiling in the canonical production
+  command. Default-tool comparisons are loopback-only assessment controls. Launch
+  uses the receipt's executable for login and generation and revalidates inside
+  the lock before credentials, then again before accepting output. Dependency
+  changes preserve failed attempts without import, retry or fallback.
+- **Authorization:** Reprepare from original bundles under the new policy and
+  qualification hashes. Authorization v2 remains unchanged, with fresh source-
+  specific approval required. A valid runtime receipt supplies neither human
+  source permission nor scientific qualification. No real study run is included.
+- **Acceptance:** The nine test-first adoption regressions failed against the
+  preceding code and pass after implementation. Actual operational qualification
+  passed all 20 checks; synthetic preparation preserved the original bundle and
+  its unapproved authorization produced a blocked attempt with zero model calls.
+  Focused verification passed 145 tests with zero failures/errors/skips. Fresh
+  final-commit three-lane CI and artifact hashes remain required before PR #15
+  becomes ready for review; record those final receipts in the PR without rewriting
+  earlier acceptance evidence.
+
 ## 2026-10-07: Accept offline intake and prepare one backend contract
 
 - **Checkpoint:** The user's instruction to consider the preceding work done

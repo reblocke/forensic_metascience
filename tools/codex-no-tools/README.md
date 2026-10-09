@@ -4,6 +4,12 @@ These materials support a synthetic assessment of a local source-built Codex
 candidate. They do not install a CLI or authorize medical source preparation or
 transmission. Candidate adoption requires a separate decision.
 
+The user subsequently adopted the exact passing build for the medical backend.
+These source materials and historical assessment receipts do not grant operational
+eligibility: use the paired runtime arguments and fresh qualification described in
+[the operator workflow](../../docs/MEDICAL_REVIEW_CODEX_BACKEND.md). The global
+CLI remains unchanged.
+
 ## Source baseline
 
 `baseline.json` pins official `rust-v0.161.0`, commit
