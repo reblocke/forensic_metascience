@@ -1,5 +1,54 @@
 # Handoff (for multi-session work)
 
+## 2026-10-11 Consolidation and dependency monitoring
+
+The user approved completing PR #15, publishing the human-facing README and
+medical guides, restoring alerts/security-fix proposals, and consolidating onto
+`main`. Branch protection remains unchanged by explicit choice; automatic merging
+remains disabled. A verified Git bundle, working diff and file-hashed archive of
+working/private material are retained on the external drive before any changes.
+Historical acceptance records below are preserved.
+
+GitHub now confirms dependency alerts and security-fix proposals enabled. Its
+dependency graph discovered the Python manifests and workflow, then populated the
+locked dependency inventory. The completed initial scan surfaced vulnerabilities
+in pypdf, cryptography, Pillow, pytest and Pygments; security fixes require reviewed
+PRs and fresh acceptance. An initial zero-alert response before graph population
+was not treated as coverage. One graph query timed out; a later query succeeded.
+
+Actual offline operational qualification passed all 20 mandatory checks against
+the unchanged adopted executable and current adapter/dependency bytes. The first
+attempt used the receipt's retained build-manifest copy and was refused at the
+runtime-candidate path boundary before probes; its failed receipt is preserved.
+The new attempt used the byte-identical original build manifest and passed. Raw
+loopback requests, sandbox controls and streams are retained in the private
+qualification store. No real provider or study transmission occurred. Updating
+pypdf invalidates this receipt and requires another fresh qualification.
+
+Ruff check, Ruff format check, whitespace checks and documentation-link/anchor
+checks passed. The published pipeline and private-review dry runs reported no
+output creation or registry network access. Full local Python testing, final
+three-lane CI, independent review, security remediation and merge acceptance are
+in progress; exact final-head and merged-main receipts belong in PR #15 and the
+subsequent security/acceptance PRs.
+
+Reproduction commands:
+
+```bash
+PYTHONPATH=src uv run --offline --locked pytest -q -m 'not native_r and not report_integration'
+uv run --offline --locked ruff check .
+uv run --offline --locked ruff format . --check
+git diff --check
+bash scripts/run_pipeline.sh --study-id lungtime --forensics all --offline --dry-run
+bash scripts/run_pipeline.sh --study-id lungtime --forensics numeric --offline --dry-run
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE" --runtime-executable "$MEDICAL_CODEX_ADOPTED_EXECUTABLE" --runtime-build-manifest "$MEDICAL_CODEX_BUILD_MANIFEST"
+```
+
+Use the original retained runtime-candidate build manifest for qualification.
+Keep sources, human records and operational diagnostics private. Real-source
+authorization, medical-performance qualification and changes to scientific pins
+or runtime adoption remain separate gates.
+
 ## 2026-10-09 Human-facing README and workflow inventory
 
 Reviewed the current scripts, Python/R interfaces, study configurations, pinned
