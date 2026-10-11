@@ -26,8 +26,11 @@ coverage. An incorrectly named profile and out-of-bound authorization-template
 location were refused first, then corrected without weakening validation.
 Offline pipeline dry-run and 39 local documentation links passed.
 
-Final adoption review and exact-head Python/native-R/report CI are required before
-merge. Merged-main CI, artifact hash validation and receipt revalidation are
+The focused adoption review found no remaining issues after correcting a premature
+receipt claim. Holistic integration review then identified a stale execution-guide
+sentence describing the historical v1 failure as current; it now distinguishes v1
+from the freshly qualified v2 build. Exact-head Python/native-R/report CI is required
+before merge. Merged-main CI, artifact hash validation and receipt revalidation are
 required before consolidation is complete. Final acceptance SHAs and receipts are
 to be recorded in [PR #15](https://github.com/reblocke/forensic_metascience/pull/15)
 before declaring consolidation complete, including merged-main verification. Close #14 only after containment, preserve

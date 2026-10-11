@@ -199,7 +199,8 @@ beyond the requested generation deadline plus a 30-second startup margin;
 otherwise the attempt fails before either CLI process starts. Refresh the operator
 login separately, then request a new explicit attempt. Provider authentication
 failure must preserve the failed attempt without refresh, retry or fallback;
-the current runtime fails the one-request qualification and cannot authorize use.
+the approved v2 runtime passes the one-request qualification. The historical v1
+build fails that check and cannot authorize use under the current policy.
 
 The source-byte cap is 64 MiB. The 512 KiB complete-input budget includes packet,
 medical instructions, output schema and a qualified 64 KiB CLI-context reserve.
