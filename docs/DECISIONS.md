@@ -1,5 +1,25 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-11: Restore dependency monitoring and repair surfaced vulnerabilities
+
+- GitHub confirmed alerts/security proposals disabled, with no documented rationale.
+  Enabled both; verified the graph discovers Python manifests, the lockfile and
+  workflows. An initially empty graph/scan was not treated as reassuring coverage.
+- Weekly uv/Actions configuration uses `open-pull-requests-limit: 0`, allowing
+  security proposals while suppressing routine version updates. Automatic merging
+  remains disabled and branch-protection settings remain unchanged by user choice.
+- Incorporate Dependabot #16/#17 history and update existing helper dependencies:
+  pypdf 6.19.0, cryptography 50.0.0, Pillow 12.3.0, pytest 9.0.3 and Pygments 2.20.0.
+  Raise pypdf's minimum to its security-fixed version. Add no packages and preserve
+  every other locked package record, custom R method pins and scientific criteria.
+- PR #15 remains separate and draft: its new authentication-error qualification
+  probe found retries in the unchanged adopted Codex executable. Security updates
+  do not accept that runtime, authorize source transmission or establish medical
+  performance. Requalify any future Codex adapter against its final dependencies.
+- Treat each surfaced alert as pending until GitHub confirms its patched version
+  on merged main; record any remaining alerts explicitly. R archives and external
+  runtime dependencies require separate monitoring, review and qualification.
+
 ## 2026-10-06: Correct comparison routing and label reconstructed report scopes
 
 - **Routing:** Treat an empty comparison `profile_ids` list as unspecified,
