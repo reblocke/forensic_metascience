@@ -173,6 +173,10 @@ jobs:
           "$FM_TEST_ARTIFACT_DIR/medical-review.html" \
           "$FM_TEST_ARTIFACT_DIR/medical-review.pdf" \
           "$FM_TEST_ARTIFACT_DIR/medical-report-model.json" \
+          "$FM_TEST_ARTIFACT_DIR/medical-codex-reading.md" \
+          "$FM_TEST_ARTIFACT_DIR/medical-codex-reading.html" \
+          "$FM_TEST_ARTIFACT_DIR/medical-codex-reading.pdf" \
+          "$FM_TEST_ARTIFACT_DIR/medical-codex-report-model.json" \
           "$FM_TEST_ARTIFACT_DIR/medical-native-review.html" \
           "$FM_TEST_ARTIFACT_DIR/medical-native-review.pdf" \
           "$FM_TEST_ARTIFACT_DIR/medical-native-report-model.json" \

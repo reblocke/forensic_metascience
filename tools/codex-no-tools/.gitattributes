@@ -1,0 +1,2 @@
+# Unified diffs encode blank context lines as a space; preserve the hashed bytes.
+*.patch whitespace=-blank-at-eol

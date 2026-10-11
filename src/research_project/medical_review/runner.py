@@ -47,6 +47,8 @@ def validate_authorization(
     provider: str | None,
     model: str | None,
     allow_web_search: bool,
+    packet_sha256: str | None = None,
+    execution_policy_sha256: str | None = None,
 ) -> None:
     """Validate source approval separately from backend qualification."""
     fields = {
@@ -64,10 +66,29 @@ def validate_authorization(
         "approver",
         "rationale",
     }
+    version = record.get("schema_version") if isinstance(record, dict) else None
+    if backend == "codex_cli":
+        fields |= {"packet_sha256", "execution_policy_sha256"}
+        if version != "medical_source_authorization_v2":
+            raise ValueError("Codex authorization requires version 2 packet/policy approval.")
     if not isinstance(record, dict) or set(record) != fields:
         raise ValueError("Authorization requires the exact source-specific contract.")
-    if record["schema_version"] != "medical_source_authorization_v1":
+    if version != (
+        "medical_source_authorization_v2"
+        if backend == "codex_cli"
+        else "medical_source_authorization_v1"
+    ):
         raise ValueError("Unsupported authorization schema.")
+    if backend == "codex_cli" and (
+        not packet_sha256
+        or not execution_policy_sha256
+        or record["packet_sha256"] != packet_sha256
+        or record["execution_policy_sha256"] != execution_policy_sha256
+        or record["tools"] != []
+        or record["allow_web_search"] is not False
+        or allow_web_search
+    ):
+        raise ValueError("Codex authorization packet/policy mismatch or unsupported tools/search.")
     expected = [
         {
             "source_version_id": d["source_version_id"],
@@ -251,12 +272,32 @@ def run_review(
     resume_run: Path | None = None,
     output_root: Path | None = None,
     profiles: list[str] | None = None,
+    qualification_path: Path | None = None,
 ) -> Path:
     """Create an immutable attempt; replay local output or record a blocked live request.
 
     A completed replay is a completed import, never completed medical coverage.
     Live operational restrictions remain unsupported, so no model process starts.
     """
+    if backend == "codex_cli":
+        from research_project.medical_review.codex_runner import run_codex_review
+
+        return run_codex_review(
+            repo_root,
+            bundle_path,
+            offline=offline,
+            allow_llm=allow_llm,
+            allow_web_search=allow_web_search,
+            authorization_path=authorization_path,
+            provider=provider,
+            model=model,
+            limits=limits,
+            resume_run=resume_run,
+            output_root=output_root,
+            profiles=profiles,
+            qualification_path=qualification_path,
+            input_path=input_path,
+        )
     started = time.monotonic()
     repo = repo_root.resolve()
     limits = _limits(limits)

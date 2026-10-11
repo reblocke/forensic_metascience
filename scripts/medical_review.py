@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Optional offline medical review, verification and reporting; live backends stay blocked."""
+"""Opt-in medical reading, offline verification and human-governed reporting."""
 
 # ruff: noqa: E402
 from __future__ import annotations
@@ -20,6 +20,8 @@ from research_project.medical_review.audit import (
     verify_review,
 )
 from research_project.medical_review.bundle import load_bundle
+from research_project.medical_review.codex_packet import prepare_packet
+from research_project.medical_review.codex_qualification import qualify_codex
 from research_project.medical_review.context import build_study_context
 from research_project.medical_review.evaluation import (
     freeze_evaluation_plan,
@@ -100,7 +102,9 @@ def parser() -> argparse.ArgumentParser:
         "run", help="Replay local output; record blocked requests for unqualified live backends."
     )
     running.add_argument("--bundle", required=True, type=Path)
-    running.add_argument("--backend", required=True, help="Only replay is supported for execution.")
+    running.add_argument(
+        "--backend", required=True, help="replay, or explicitly qualified codex_cli."
+    )
     running.add_argument(
         "--input", type=Path, help="Already-authorized local Reviewer JSON for replay."
     )
@@ -111,14 +115,54 @@ def parser() -> argparse.ArgumentParser:
     running.add_argument("--provider")
     running.add_argument("--model")
     running.add_argument("--authorization", type=Path)
+    running.add_argument("--qualification", type=Path)
     running.add_argument("--resume", type=Path, help="Prior attempt; exact dependencies required.")
     running.add_argument("--output-root", type=Path)
-    for field, default in DEFAULT_LIMITS.items():
+    for field in DEFAULT_LIMITS:
         running.add_argument(
             "--" + field.replace("_", "-"),
-            default=default,
+            default=None,
             type=float if field == "max_duration_seconds" else int,
         )
+    qualifying = commands.add_parser(
+        "qualify-codex", help="Offline actual-CLI qualification with synthetic inputs only."
+    )
+    qualifying.add_argument("--offline", action="store_true", required=True)
+    qualifying.add_argument(
+        "--catalogue",
+        required=True,
+        type=Path,
+        help="Local Codex model catalogue; no provider discovery.",
+    )
+    qualifying.add_argument(
+        "--probe-executable",
+        type=Path,
+        help="Synthetic assessment only; cannot authorize preparation or live execution.",
+    )
+    qualifying.add_argument(
+        "--probe-build-manifest",
+        type=Path,
+        help=(
+            "Pinned local source-build provenance; requires --probe-executable "
+            "and remains assessment-only."
+        ),
+    )
+    qualifying.add_argument(
+        "--runtime-executable",
+        type=Path,
+        help="Exact adopted executable for operational qualification.",
+    )
+    qualifying.add_argument(
+        "--runtime-build-manifest",
+        type=Path,
+        help="Retained provenance for the adopted executable.",
+    )
+    preparing = commands.add_parser(
+        "prepare-codex", help="Prepare an indexed offline source packet after qualification."
+    )
+    preparing.add_argument("--bundle", required=True, type=Path)
+    preparing.add_argument("--qualification", required=True, type=Path)
+    preparing.add_argument("--profile", action="append")
     verifying = commands.add_parser(
         "verify", help="Append an offline counterevidence/arithmetic pass."
     )
@@ -265,6 +309,34 @@ def main() -> int:
                 profiles=args.profile,
             )
             print(run)
+        elif args.operation == "qualify-codex":
+            receipt = qualify_codex(
+                ROOT,
+                catalogue=args.catalogue,
+                probe_executable=args.probe_executable,
+                probe_build_manifest=args.probe_build_manifest,
+                runtime_executable=args.runtime_executable,
+                runtime_build_manifest=args.runtime_build_manifest,
+            )
+            result = read_json(receipt)
+            print(
+                json.dumps(
+                    {
+                        "receipt": str(receipt),
+                        "qualified": result["qualified"],
+                        "assessment_only": result["assessment_only"],
+                        "all_checks_passed": result["all_checks_passed"],
+                        "checks": result["checks"],
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0 if result["all_checks_passed"] else 3
+        elif args.operation == "prepare-codex":
+            result = prepare_packet(
+                ROOT, args.bundle, qualification=args.qualification, profiles=args.profile
+            )
+            print(json.dumps({k: str(v) for k, v in result.items()}, sort_keys=True))
         elif args.operation == "run":
             run = run_review(
                 ROOT,
@@ -280,7 +352,12 @@ def main() -> int:
                 profiles=args.profile,
                 resume_run=args.resume,
                 output_root=args.output_root,
-                limits={field: getattr(args, field) for field in DEFAULT_LIMITS},
+                qualification_path=args.qualification,
+                limits={
+                    field: getattr(args, field)
+                    for field in DEFAULT_LIMITS
+                    if getattr(args, field) is not None
+                },
             )
             result = read_json(run / "generated/medical_review/attempt_result.json")
             print(json.dumps({"run_root": str(run), "status": result["status"]}, sort_keys=True))

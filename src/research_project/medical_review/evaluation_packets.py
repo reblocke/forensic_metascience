@@ -39,6 +39,7 @@ PROTECTED_DIRECTORIES = {
     "evaluation",
 }
 PRIVATE_SCHEMA_PREFIXES = (
+    "medical_codex_",
     "medical_evaluation_",
     "medical_execution_",
     "medical_human_",
