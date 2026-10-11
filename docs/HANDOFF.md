@@ -1,5 +1,48 @@
 # Handoff (for multi-session work)
 
+## 2026-10-11 Passing recovery candidate; adoption pending
+
+The isolated authentication-recovery candidate built successfully from the pinned
+0.161.0 source with the retained combined patch and unchanged third-party Rust
+pins. Its macOS ARM64 executable SHA-256 is
+`c0d71948258e737855dd365f2dca4d9d2fb8a8dc34465b382405deff76f75798`.
+All 20 mandatory actual CLI assessment checks passed and were recomputed from
+retained raw evidence. Success, server-error, 401, context-error and cancellation
+probes each recorded exactly one request. Default tool declarations, including
+nested namespaces, match the previously adopted runtime; the immutable Astra
+catalogue is unchanged. Operational validation rejects the passing assessment
+receipt: `assessment_only=true`, `qualified=false`. Native regression testing
+passed seven tests with no failures or ignored tests, after the new regression
+failed on the original behavior.
+
+Independent review found no actionable issues in the assessment implementation.
+[CI on implementation head cd5279c](https://github.com/reblocke/forensic_metascience/actions/runs/38161018737)
+passed 567 Python, 24 native-R and 9 report tests with zero failures/errors/skips.
+All downloaded artifact and companion/source hashes were verified. The actual
+Codex-lineage Quarto PDF was visually inspected for readable source links,
+uncertainty, incomplete coverage and human-pending status. Final documentation-head
+review and CI are pending; record their receipts in [PR #15](https://github.com/reblocke/forensic_metascience/pull/15) before the adoption decision.
+
+The candidate is not adopted. The current runtime pin remains unchanged, and
+PR #15 stays draft. The next decision is whether to adopt these exact passing
+bytes. If approved, update the explicit runtime/patch identity, obtain fresh
+operational qualification and final-head CI, then merge through the existing
+review gate. Close #14 only after containment in main is verified; synchronize
+canonical main and verify fresh merge-commit receipts. Real-study transmission,
+source-specific authorization and medical-performance qualification remain separate.
+Failed/interrupted attempts and historical receipts are preserved. Private
+candidate, provenance and assessment locations are recorded with the retained
+recovery/assessment material; no machine path or credential is committed.
+
+Reproduce the candidate assessment with operator-selected retained paths:
+
+```bash
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py \
+  qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE" \
+  --probe-executable "$MEDICAL_CODEX_CANDIDATE" \
+  --probe-build-manifest "$MEDICAL_CODEX_CANDIDATE_BUILD_MANIFEST"
+```
+
 ## 2026-10-11 Security merge and isolated runtime assessment
 
 Security PR #18 merged at `6dd60db4a9986cb1790bac12b3edd5862e09355f`, preserving

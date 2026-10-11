@@ -35,6 +35,14 @@ and a mandatory 401 probe. That actual probe observed three requests despite
 zero retry settings, so qualification of the revised adapter fails. Preparation
 and live execution remain blocked until a runtime satisfies the unchanged policy.
 Historical passing receipts cannot accept this revised implementation.
+A separately assessed authentication-recovery remedy now passes all 20 actual CLI
+checks and raw-evidence reauditing. Its macOS ARM64 executable SHA-256 is
+`c0d71948258e737855dd365f2dca4d9d2fb8a8dc34465b382405deff76f75798`.
+The 401 probe sends one request, and default tool declarations match the original
+patch. This candidate remains **assessment-only and not adopted**; its receipt
+cannot prepare sources or authorize a run. The current adopted pin is unchanged.
+Adoption of these exact bytes requires a separate decision and fresh operational
+qualification. See [the decision record](DECISIONS.md#2026-10-11-recovery-assessment-passes-exact-adoption-remains-separate).
 See [the source-assessment materials](../tools/codex-no-tools/README.md).
 
 The user selected `gpt-6-astra`, reasoning `max`, existing ChatGPT authentication,

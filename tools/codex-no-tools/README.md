@@ -50,6 +50,23 @@ the same immutable Astra catalogue. A successful candidate receipt remains
 assessment-only and cannot prepare a packet or permit live execution. Never
 replace the installed or adopted executable during this assessment.
 
+### Completed recovery assessment
+
+The combined patch built successfully with the recorded serial production build
+controls. Seven native tests passed with no failures or ignored tests. The resulting
+macOS ARM64 executable SHA-256 is
+`c0d71948258e737855dd365f2dca4d9d2fb8a8dc34465b382405deff76f75798`.
+All 20 actual CLI checks and raw-evidence reauditing passed. The success, server-error,
+401, context-error and cancellation probes each send exactly one request. Default
+tool declarations, including nested namespaces, remain identical to the original
+patched build, using the same immutable Astra catalogue.
+
+This is a passing **assessment**, not a new adopted runtime. Operational validation
+rejects its assessment-only receipt. The original binary and patch remain unchanged;
+all failed/interrupted attempts and raw evidence are retained. Use the exact candidate
+and combined-patch build manifest with the assessment arguments above. The next
+step is a separate adoption decision, followed by fresh operational qualification.
+
 ## Source baseline
 
 `baseline.json` pins official `rust-v0.161.0`, commit

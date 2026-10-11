@@ -1,5 +1,24 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-11: Recovery assessment passes; exact adoption remains separate
+
+- The reviewed combined patch built from the pinned source, preserving the original
+  native-tool ceiling, catalogue and third-party dependency pins. The candidate
+  executable SHA-256 is `c0d71948258e737855dd365f2dca4d9d2fb8a8dc34465b382405deff76f75798`.
+- Seven native regressions passed. All 20 actual CLI assessment checks passed and
+  raw-evidence reauditing agrees; the 401 probe makes one request, as do the other
+  required request-count probes. Omitted-setting controls preserve identical
+  default tool declarations, including nested namespaces.
+- This result is assessment-only and cannot prepare sources or authorize execution.
+  The original adopted identity is unchanged. Adopting this exact hash requires the
+  separate decision promised when assessment was authorized, followed by fresh
+  operational qualification and reviewed software acceptance.
+- No installed CLI, PATH, user configuration, source permission, medical criterion
+  or scientific validation status changes. Historical failed and passing receipts
+  remain preserved. Implementation-head CI passed all three lanes with zero
+  failures/errors/skips and verified artifact hashes; final-head receipts belong in
+  [PR #15](https://github.com/reblocke/forensic_metascience/pull/15).
+
 ## 2026-10-11: Assess an isolated authentication-recovery remedy
 
 - **Authorization:** The user approved assessing an isolated source patch after
