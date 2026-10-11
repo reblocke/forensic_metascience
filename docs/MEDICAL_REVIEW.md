@@ -12,10 +12,15 @@ WP1–WP2 implement lossless offline upstream import, multi-document source
 validation, structural extraction preflight, evidence-linked reconstruction,
 comparison-specific medical routing and a deterministic private report model.
 WP3 adds bounded local replay, source-specific authorization validation and
-immutable recovery attempts. Every live backend is explicitly blocked because
-filesystem/tool/egress restrictions are not yet qualified. WP4 now adds offline
-counterevidence/arithmetic passes, private human dispositions, numeric source-review
-attestations, read-only qualified R-reference handoffs and Markdown/Quarto reports.
+immutable recovery attempts. The later opt-in `codex_cli` backend has passed
+synthetic operational qualification for the exact adopted patched macOS ARM64
+runtime; each environment needs a matching qualification receipt and separate
+source-specific transmission authorization. Standard installed CLI releases remain
+unsupported. See [the current Codex operator guide](MEDICAL_REVIEW_CODEX_BACKEND.md);
+runtime qualification establishes neither source permission nor medical performance.
+WP4 adds offline counterevidence/arithmetic passes, private human dispositions,
+numeric source-review attestations, read-only qualified R-reference handoffs and
+Markdown/Quarto reports.
 WP4's requirement audit and required hosted Python/native/report gates passed at
 `83e6252`. WP5 offline evaluation tooling is implemented: paired plan validation and
 immutable freezing, operator-attested source-reference ledgers and offline
@@ -78,8 +83,11 @@ An existing bundle produces a deterministic context and check plan, plus
 structural extraction diagnostics. It remains incomplete because checks have
 not run. The four profiles are implemented planning scopes, not qualified
 clinical review capability. Import is always offline, even without
-the compatibility `--offline` flag. `run` executes only offline replay; live
-requests produce a private blocked-attempt record and exit nonzero.
+the compatibility `--offline` flag. `run --backend replay` uses existing local
+output. `run --backend codex_cli` requires the qualified adopted runtime,
+prepared packet and matching source authorization described in the Codex guide.
+Application `--offline` overrides live allow flags; unsupported or unauthorized
+live requests remain blocked.
 
 An import prints its run root. Repeating identical source bundle and exact input
 bytes and unchanged adapter code reuses the same completed run only after checking its registered artifact
@@ -307,12 +315,12 @@ automatic retries are supported; other concurrency/retry settings are refused.
 No provider fallback, quota escalation or claimed hard monetary cap exists.
 Token/cost values absent from the input remain null. No model process runs.
 
-The worker is **not a live model sandbox**. No staging directory or prompt is
-claimed to enforce filesystem/tools/network isolation for a provider CLI. Every
-live backend is currently blocked, even with otherwise valid source authorization.
-This is the ticket's explicit blocked-live engineering path; operational smoke
-testing and live sentinel isolation remain pending until a qualified backend
-implementation exists. Offline replay remains usable without credentials.
+The replay worker is **not a live model sandbox**. Offline replay remains usable
+without credentials. The separate Codex execution path requires the exact adopted
+runtime, a matching operational qualification receipt, a prepared packet and
+source-specific authorization; see [the Codex guide](MEDICAL_REVIEW_CODEX_BACKEND.md).
+Other live backends remain blocked. Synthetic isolation qualification does not
+establish real-provider behavior or medical detection performance.
 
 ### Source authorization contract
 
@@ -328,6 +336,11 @@ Provider/backend/model must match; dates require timezones and current validity.
 The private approver and rationale are required. Authentication, registry-network
 permission, publication licenses and authorization flags alone cannot enable a
 live backend. No authorization is inferred from the implementation goal.
+
+Codex requires `medical_source_authorization_v2`, which additionally binds packet
+and execution-policy hashes. Its search requests are always refused in this
+version, even with allow flags. Historical version-1 contracts remain unchanged;
+the [Codex guide](MEDICAL_REVIEW_CODEX_BACKEND.md) describes its separate approval.
 
 Application offline mode overrides every allow flag. `uv --offline` only controls
 package resolution. A blocked or failed `run` returns exit code 3 with a private

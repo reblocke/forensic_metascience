@@ -1,5 +1,54 @@
 # Handoff (for multi-session work)
 
+## 2026-10-09 Human-facing README and workflow inventory
+
+Reviewed the current scripts, Python/R interfaces, study configurations, pinned
+method/guidance contracts, reporting and evaluation documentation at `d38b40f`.
+PR #15 was verified open and ready for review at that head; no merge or study
+transmission was performed. Replaced the root README's historical implementation
+inventory with five routes, prerequisites, safe first checks, usage examples,
+expected outputs and links to detailed contracts. The README shrank from 2,985
+words / 440 lines to approximately 1,270 words / 187 lines.
+
+Clarified that numeric selection extracts baseline tables without selecting
+randomization inference; private prediction extraction creates blank templates
+that need reviewed transcriptions before calculation. Documented the exact
+qualified patched Codex runtime without treating qualification as source permission
+or medical validation. Corrected stale live-backend status in `MEDICAL_REVIEW.md`
+and `MEDICAL_REVIEW_WALKTHROUGH.md`; historical decisions and acceptance evidence
+remain intact. No code, configuration, dependencies or scientific criteria changed.
+
+Executed verification:
+
+```bash
+uv run --offline --locked pytest -q tests/test_pipeline.py::test_pipeline_writes_output_and_creates_zscore tests/test_pipeline.py::test_forensics_pipeline_help_and_dry_run_are_output_free tests/test_pipeline.py::test_private_review_help_and_dry_run_need_only_the_report
+bash scripts/run_pipeline.sh --study-id lungtime --forensics all --offline --dry-run
+bash scripts/run_pipeline.sh --study-id lungtime --forensics numeric --offline --dry-run
+bash scripts/run_manuscript_review.sh --study-id my_prediction_review --report /path/to/manuscript.pdf --review-type prediction_validation --offline --dry-run
+uv run --offline --locked python scripts/medical_review.py --help
+uv run --offline --locked python scripts/inspect_sr.py --help
+uv run --offline --locked ruff check .
+uv run --offline --locked ruff format . --check
+git diff --check
+```
+
+All three selected tests passed; dry runs reported no output creation and disabled
+registry network access. Medical CLI help and option checks also passed for
+`plan`, `import-reviewer`, `qualify-codex`, `prepare-codex`, `run`, `verify`,
+`verify-inputs`, `decide`, `render`, `evaluation-plan` and `evaluation-render`
+using `uv run --offline --locked python scripts/medical_review.py COMMAND --help`.
+All 36 local documentation links/heading anchors and code fences passed checks. Ruff
+reported all checks passed and 133 files already formatted. The first test
+invocation used a nonexistent private-review selector and ran no tests; it was
+corrected to the existing selector above. An initial file lookup named a nonexistent
+R wrapper; the actual prediction script was inspected instead.
+
+This documentation check does not rerun native R, Quarto, runtime qualification
+or real-source analysis. Their previous receipts remain dated evidence rather
+than fresh acceptance of this edit. Changes are local documentation edits;
+publication, merge, source authorization and medical performance gates remain
+separate.
+
 ## 2026-10-08 Exact patched runtime adopted and operationally qualified
 
 Implemented the approved adoption of `codex-cli-0.161.0-medical-no-tools-v1` for

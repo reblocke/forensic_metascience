@@ -89,15 +89,18 @@ workflow problems. No reassuring conclusion follows from an empty findings list.
 
 ## Next gate when review output is unavailable
 
-Every live backend remains blocked. Prepare a focused backend implementation
-plan after selecting the provider/backend/model and execution environment.
-The next [backend implementation proposal](MEDICAL_REVIEW_LIVE_BACKEND_PLAN.md)
-records the file map, sequential checks and outstanding selection/authorization
-decisions; it does not itself qualify or enable a backend.
+The opt-in Codex reading backend is now implemented and has passed synthetic
+operational qualification for the exact adopted patched runtime. Follow the
+[Codex operator guide](MEDICAL_REVIEW_CODEX_BACKEND.md) to qualify your environment,
+prepare an indexed packet and obtain separate source-specific authorization
+before one reading pass. The standard installed CLI is insufficient. The earlier
+[backend implementation proposal](MEDICAL_REVIEW_LIVE_BACKEND_PLAN.md) remains
+historical planning context. Runtime qualification is not source permission or
+medical validation.
 Before a live attempt, require:
 
 - exact source-specific transmission authorization and purpose;
-- separately approved search access, with search disabled by default;
+- disabled search for this Codex backend; future search support requires a separate decision;
 - enforceable source/workspace, tool and egress restrictions;
 - explicit session, duration, retry, resource and spending controls;
 - auditable request/output/recovery records and operational isolation tests.
