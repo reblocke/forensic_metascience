@@ -19,12 +19,12 @@ MODEL = "gpt-6-astra"
 CLI_VERSION = "codex-cli 0.161.0"
 CANDIDATE_VERSIONS = ("codex-cli 0.157.0", "codex-cli 0.160.0")
 ADOPTED_RUNTIME = {
-    "runtime_id": "codex-cli-0.161.0-medical-no-tools-v1",
+    "runtime_id": "codex-cli-0.161.0-medical-no-tools-v2",
     "classification": "locally_patched_build",
     "target": "aarch64-apple-darwin",
     "source_commit": "979011409de0a60b52f179721948e65531d26144",
-    "native_patch_sha256": "b2eea02447ba2bb4ed8d9a4ca902d5e2de0c612926209214cde8056879819086",
-    "executable_sha256": "8229baba8ad7387cbf2636b0116c8abd6d94cf87f503b327c78abc47b44c619a",
+    "native_patch_sha256": "e9da9f65663a633f7ae0652bf2055eeace9850af1bf3d66698578d8c4850256d",
+    "executable_sha256": "c0d71948258e737855dd365f2dca4d9d2fb8a8dc34465b382405deff76f75798",
 }
 CONTEXT_CONTROLS = {
     "agents.enabled": "false",

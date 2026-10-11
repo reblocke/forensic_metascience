@@ -2,48 +2,28 @@
 
 ## Current status
 
-The opt-in `codex_cli` software path is implemented. The inspected official CLI
-0.157.0 and isolated official releases
-0.161.0 and 0.160.0 remain **unsupported** for live reading. Explicit
-skill/agent/instruction controls exclude inherited
-context, but actual loopback requests still expose the native `functions`
-namespace. The supported code-mode namespace exclusion setting also leaves that
-wrapper exposed. Earlier v2 receipts recorded 18 of 19 mandatory checks for each
-release; none qualified.
-A failed qualification cannot enable
-preparation or execution through the CLI. No real study transmission is part of
-software acceptance, and no medical performance is established.
-
-The isolated 0.161.0 source assessment required a user-approved local-version-only
-lockfile normalization: upstream manifests use 0.161.0 while the original lockfile
-records 0.0.0 for workspace packages. Original bytes and all third-party pins are
-preserved. The normalized baseline now builds; a preserved actual synthetic
-request reproduces native-tool exposure. The isolated native patch now builds and
-passes all 20 mandatory actual CLI assessment checks, including rejection of 12
-unsolicited tool-call cases. Retained evidence reauditing passes; baseline and patched
-default controls retain identical tool declarations. The passing executable hash is
-`8229baba8ad7387cbf2636b0116c8abd6d94cf87f503b327c78abc47b44c619a`.
-Its historical receipt remains assessment-only and cannot prepare sources or authorize
-a run. The user subsequently adopted that exact executable as
-`codex-cli-0.161.0-medical-no-tools-v1`, a locally patched macOS ARM64 build.
-A fresh operational v4 receipt is required; it must pass all 20 checks on the current
-adapter before preparation. Separate source-specific authorization remains required
-for transmission. The installed CLI, PATH, app and user configuration remain unchanged.
-The earlier adopted-runtime qualification and synthetic preparation/blocked-run
-proof passed. A subsequent integration review added non-refreshing authentication
-and a mandatory 401 probe. That actual probe observed three requests despite
-zero retry settings, so qualification of the revised adapter fails. Preparation
-and live execution remain blocked until a runtime satisfies the unchanged policy.
-Historical passing receipts cannot accept this revised implementation.
-A separately assessed authentication-recovery remedy now passes all 20 actual CLI
-checks and raw-evidence reauditing. Its macOS ARM64 executable SHA-256 is
+The opt-in `codex_cli` backend uses the user-approved exact locally patched macOS
+ARM64 runtime `codex-cli-0.161.0-medical-no-tools-v2`, executable SHA-256
 `c0d71948258e737855dd365f2dca4d9d2fb8a8dc34465b382405deff76f75798`.
-The 401 probe sends one request, and default tool declarations match the original
-patch. This candidate remains **assessment-only and not adopted**; its receipt
-cannot prepare sources or authorize a run. The current adopted pin is unchanged.
-Adoption of these exact bytes requires a separate decision and fresh operational
-qualification. See [the decision record](DECISIONS.md#2026-10-11-recovery-assessment-passes-exact-adoption-remains-separate).
-See [the source-assessment materials](../tools/codex-no-tools/README.md).
+Its combined native-tool/authentication-recovery patch SHA-256 is
+`e9da9f65663a633f7ae0652bf2055eeace9850af1bf3d66698578d8c4850256d`.
+Fresh operational v4 qualification passed all 20 mandatory checks. Every required
+request-count probe, including a 401, sends one request. Each environment must
+qualify these exact bytes with the retained build manifest and matching catalogue;
+separate source-specific human authorization is required before transmission.
+No real study has been transmitted, and medical performance remains unqualified.
+Installed CLI, PATH, app and user configuration remain unchanged.
+
+The inspected official 0.157.0, 0.161.0 and 0.160.0 releases remain unsupported:
+actual requests exposed native tools. The previous patched v1 build passed an
+earlier qualification, but the revised 401 probe found three requests despite zero
+retry settings. Its historical receipts cannot authorize the current adapter or
+policy. Original binaries, patches, catalogues, locks and failed evidence remain
+preserved. The combined patch bypasses authentication recovery only when both
+retry limits are explicitly zero; ordinary defaults remain unchanged. Its passing
+assessment receipt remains assessment-only; a new operational receipt establishes
+current eligibility. See [the adoption decision](DECISIONS.md#2026-10-11-adopt-the-exact-recovery-runtime-and-requalify)
+and [the retained source-build materials](../tools/codex-no-tools/README.md).
 
 The user selected `gpt-6-astra`, reasoning `max`, existing ChatGPT authentication,
 one concurrent session, a 600-second generation deadline and zero automatic

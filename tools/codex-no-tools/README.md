@@ -15,8 +15,9 @@ CLI remains unchanged.
 The revised qualification includes an actual 401 response. The previously adopted
 build sends three requests on that response despite explicit zero request and
 stream retries, so its historical passing receipts cannot clear the revised gate.
-The user authorized assessment of an isolated remedy; adoption remains a separate
-decision on the exact passing executable hash.
+The user authorized assessment of an isolated remedy and subsequently approved
+adoption of its exact passing executable hash. Historical assessment receipts
+remain ineligible for operational use.
 
 `native-tools-no-auth-recovery.patch` retains the native-tool ceiling and adds a
 guard at the shared unauthorized-response handler. Only providers explicitly
@@ -35,8 +36,8 @@ test crate; it does not change source or dependency pins. Build the production C
 without that test override and qualify its actual resulting bytes.
 The build recorder accepts this additional retained patch only with an explicit
 `--native-patch` selection; arbitrary patches remain rejected. Source-build
-validation establishes assessment provenance, while the adopted-runtime checks
-continue to require the original executable and original patch hashes.
+validation establishes build provenance. The adopted-runtime checks now require
+the exact approved v2 executable and combined-patch hashes.
 
 Keep build caches, outputs and temporary test workspaces on the external working
 volume. For a memory-limited host, record `CARGO_BUILD_JOBS=1`,
@@ -61,11 +62,13 @@ All 20 actual CLI checks and raw-evidence reauditing passed. The success, server
 tool declarations, including nested namespaces, remain identical to the original
 patched build, using the same immutable Astra catalogue.
 
-This is a passing **assessment**, not a new adopted runtime. Operational validation
-rejects its assessment-only receipt. The original binary and patch remain unchanged;
-all failed/interrupted attempts and raw evidence are retained. Use the exact candidate
-and combined-patch build manifest with the assessment arguments above. The next
-step is a separate adoption decision, followed by fresh operational qualification.
+The user subsequently approved these exact bytes as
+`codex-cli-0.161.0-medical-no-tools-v2`. Fresh operational v4 qualification passed
+all 20 checks and retained-evidence validation. Operational selection requires the
+paired runtime arguments in the operator guide; the earlier assessment-only receipt
+remains rejected. The original binary and patch remain preserved, as do all
+failed/interrupted attempts and raw evidence. Source transmission requires a
+separate matching human authorization.
 
 ## Source baseline
 

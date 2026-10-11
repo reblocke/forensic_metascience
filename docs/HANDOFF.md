@@ -1,5 +1,54 @@
 # Handoff (for multi-session work)
 
+## 2026-10-11 Approved v2 adoption and fresh operational qualification
+
+The user approved adopting the exact passing recovery build and completing the
+reviewed integration merge. The backend now pins
+`codex-cli-0.161.0-medical-no-tools-v2`, executable SHA-256
+`c0d71948258e737855dd365f2dca4d9d2fb8a8dc34465b382405deff76f75798`,
+with combined-patch SHA-256
+`e9da9f65663a633f7ae0652bf2055eeace9850af1bf3d66698578d8c4850256d`.
+Original runtime/source/patch/receipts remain preserved; global CLI, PATH, app and
+operator configuration remain unchanged.
+
+Fresh operational v4 receipt `731a26c26b4741639d643e9d94be19ed` passes all 20 actual
+CLI checks and retained-evidence validation. It is a new operational receipt;
+the passing assessment receipt is still rejected. Required success/error/401/
+context/cancellation probes send one request. No real provider or study was used.
+The adoption regression failed against the old pin, then the focused suite passed
+114 tests with zero failures/errors/skips. Ruff check, Ruff format check and Git
+whitespace checks passed. The first focused command named a nonexistent test file
+and ran no tests; it is not acceptance evidence.
+Synthetic indexed preparation succeeded with the new receipt. Both an offline
+attempt with `--allow-llm` and an online-mode attempt with an unset human approval
+were blocked before any model call; their immutable failure records retain unknown
+coverage. An incorrectly named profile and out-of-bound authorization-template
+location were refused first, then corrected without weakening validation.
+Offline pipeline dry-run and 39 local documentation links passed.
+
+Final adoption review and exact-head Python/native-R/report CI are required before
+merge. Merged-main CI, artifact hash validation and receipt revalidation are
+required before consolidation is complete. Final acceptance SHAs and receipts are
+to be recorded in [PR #15](https://github.com/reblocke/forensic_metascience/pull/15)
+before declaring consolidation complete, including merged-main verification. Close #14 only after containment, preserve
+all branches/history, and fast-forward the canonical checkout to clean `main`.
+Source-specific authorization, real-study testing and medical qualification remain
+subsequent gates; runtime qualification does not grant source transmission approval.
+
+Reproduce with operator-selected retained paths:
+
+```bash
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py qualify-codex --offline --catalogue "$MEDICAL_CODEX_CATALOGUE" --runtime-executable "$MEDICAL_CODEX_ADOPTED_EXECUTABLE" --runtime-build-manifest "$MEDICAL_CODEX_BUILD_MANIFEST"
+PYTHONPATH=src uv run --offline --locked pytest -q -m 'not native_r and not report_integration'
+uv run --offline --locked ruff check .
+uv run --offline --locked ruff format . --check
+git diff --check
+```
+
+Each environment requires fresh matching qualification. Operator-selected paths
+must resolve to the exact approved bytes and retained immutable build manifest.
+The private recovery-location pointer identifies retained runtime/evidence paths.
+
 ## 2026-10-11 Passing recovery candidate; adoption pending
 
 The isolated authentication-recovery candidate built successfully from the pinned

@@ -89,10 +89,9 @@ workflow problems. No reassuring conclusion follows from an empty findings list.
 
 ## Next gate when review output is unavailable
 
-The opt-in Codex reading backend is implemented, but current operational
-qualification is blocked by repeated authentication-error requests from the
-adopted patched runtime. Historical passing receipts cannot authorize the revised
-adapter. After qualification passes, follow the
+The opt-in Codex reading backend is implemented. The approved exact patched v2
+runtime passed all 20 fresh synthetic operational checks. Historical receipts
+cannot authorize this adapter or runtime. Follow the
 [Codex operator guide](MEDICAL_REVIEW_CODEX_BACKEND.md) to qualify your environment,
 prepare an indexed packet and obtain separate source-specific authorization
 before one reading pass. The standard installed CLI is insufficient. The earlier

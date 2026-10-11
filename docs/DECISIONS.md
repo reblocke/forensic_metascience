@@ -1,5 +1,22 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-11: Adopt the exact recovery runtime and requalify
+
+- **Authorization:** The user approved adopting the assessed exact replacement,
+  requalifying and completing the reviewed integration merge.
+- **Binding:** Pin `codex-cli-0.161.0-medical-no-tools-v2` to executable SHA-256
+  `c0d71948258e737855dd365f2dca4d9d2fb8a8dc34465b382405deff76f75798`
+  and combined patch SHA-256
+  `e9da9f65663a633f7ae0652bf2055eeace9850af1bf3d66698578d8c4850256d`.
+  Source commit, catalogue, third-party pins, platform and policy limits remain fixed.
+- **Evidence:** A fresh operational v4 receipt passes all 20 actual checks; the
+  401 and other mandatory request-count probes each issue one request. Assessment
+  receipts are not promoted; prior receipts fail the changed policy binding.
+- **Boundaries:** Preserve historical binaries, patches and evidence. Leave global
+  CLI/PATH/app/configuration unchanged. Source authorization and medical qualification
+  remain separate. Final reviewed-head and merged-main CI/artifact evidence belongs
+  in [PR #15](https://github.com/reblocke/forensic_metascience/pull/15).
+
 ## 2026-10-11: Recovery assessment passes; exact adoption remains separate
 
 - The reviewed combined patch built from the pinned source, preserving the original
