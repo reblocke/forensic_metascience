@@ -1,5 +1,42 @@
 # Handoff (for multi-session work)
 
+## 2026-10-11: Dependency security consolidation
+
+A verified Git recovery bundle and file-hashed working/private archive were
+preserved on the external drive before edits. The canonical checkout is retained.
+Alerts and security-fix proposals are enabled; dependency discovery populated
+Python manifests/lockfile and GitHub Actions. Automatic merging and branch
+protection remain unchanged. The monitoring configuration suppresses routine
+version-update PRs while preserving reviewed security proposals.
+
+The focused security branch preserves the original Dependabot #16/#17 commits
+through normal merges and updates only pypdf, cryptography, Pillow, pytest and
+Pygments to the fixed versions recorded in DECISIONS. The package set is unchanged;
+all other package records and scientific R pins are byte-equivalent after parsing.
+The root project lock metadata reflects only the patched pypdf minimum. Package
+archive hashes were checked against publisher metadata and locked installation.
+
+Local verification, independent review and final-head Python/native-R/report CI
+receipts are recorded in the security PR. Merge requires zero failures/errors/skips
+and independently verified artifact hashes. After merge, verify fresh main receipts,
+populated manifests and GitHub alert dispositions rather than assuming a clean scan.
+
+PR #15 is draft and blocked on its newly tested authentication-recovery behavior;
+its review fixes and failed raw qualification evidence are preserved. That work is
+not incorporated or medically qualified by this security change. Historical feature
+PRs #9–12 are already incorporated through #13; retain their branches/history when
+closing them. Keep #14/#15 until their integration gate is actually fulfilled.
+
+Reproduction:
+
+```bash
+uv sync --locked --dev
+PYTHONPATH=src uv run --offline --locked pytest -q -m 'not native_r and not report_integration'
+uv run --offline --locked ruff check .
+uv run --offline --locked ruff format . --check
+git diff --check
+```
+
 ## 2026-10-11 Integration review corrections
 
 The independent read-only review of PR #15 at `d306f4e` identified two actionable
