@@ -63,12 +63,12 @@ def _synthetic_auth(path: Path) -> None:
     write_json(
         path / "auth.json",
         {
-            "auth_mode": "chatgpt",
+            "auth_mode": "chatgptAuthTokens",
             "OPENAI_API_KEY": None,
             "tokens": {
                 "id_token": "e30." + encoded + ".synthetic",
                 "access_token": "synthetic-only",
-                "refresh_token": "synthetic-only",
+                "refresh_token": "",
                 "account_id": "synthetic-account",
             },
             "last_refresh": datetime.now(UTC).isoformat(),
@@ -233,6 +233,8 @@ def _provider_response(mode: str, index: int) -> tuple[int, str, bytes]:
                 b'"type":"invalid_request_error","code":"context_length_exceeded"}}'
             ),
         )
+    if mode == "auth_error":
+        return 401, "application/json", b'{"error":{"message":"synthetic expired token"}}'
     return 503, "application/json", b'{"error":{"message":"synthetic failure"}}'
 
 

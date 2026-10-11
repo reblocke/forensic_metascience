@@ -52,8 +52,11 @@ def probe(prompt="SYNTHETIC_SOURCE_ONLY"):
 
 def evidence():
     good = probe()
-    probes = {mode: copy.deepcopy(good) for mode in ("success", "error", "context", "cancel")}
-    for mode in ("error", "context"):
+    probes = {
+        mode: copy.deepcopy(good)
+        for mode in ("success", "error", "auth_error", "context", "cancel")
+    }
+    for mode in ("error", "auth_error", "context"):
         probes[mode].update(exit_code=1, final=None)
     probes["cancel"].update(exit_code=None, final=None, error="TimeoutError: deadline")
     sandbox = {"network_positive": True, "network_accepted": False, "results": {}}
@@ -73,6 +76,18 @@ def evidence():
             "stderr": base64.b64encode(b"Operation not permitted").decode(),
         }
     return {"probes": probes, "sandbox": sandbox}
+
+
+@pytest.mark.parametrize("change", ["absent", "retry"])
+def test_authentication_error_requires_one_failed_request_without_recovery(change):
+    data = evidence()
+    if change == "absent":
+        del data["probes"]["auth_error"]
+    else:
+        data["probes"]["auth_error"]["requests"] *= 2
+        data["probes"]["auth_error"]["authentication"] *= 2
+    checks, _ = audit_evidence(data)
+    assert checks["one_request_on_error"] is False
 
 
 def test_invocation_explicitly_disables_instruction_and_agent_defaults(tmp_path):

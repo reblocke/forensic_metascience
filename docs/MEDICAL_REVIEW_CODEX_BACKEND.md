@@ -29,9 +29,12 @@ a run. The user subsequently adopted that exact executable as
 A fresh operational v4 receipt is required; it must pass all 20 checks on the current
 adapter before preparation. Separate source-specific authorization remains required
 for transmission. The installed CLI, PATH, app and user configuration remain unchanged.
-The adopted runtime has passed fresh operational qualification with all 20 checks;
-the synthetic preparation/blocked-run proof also passed. This establishes software
-eligibility, not permission to transmit any particular study or medical performance.
+The earlier adopted-runtime qualification and synthetic preparation/blocked-run
+proof passed. A subsequent integration review added non-refreshing authentication
+and a mandatory 401 probe. That actual probe observed three requests despite
+zero retry settings, so qualification of the revised adapter fails. Preparation
+and live execution remain blocked until a runtime satisfies the unchanged policy.
+Historical passing receipts cannot accept this revised implementation.
 See [the source-assessment materials](../tools/codex-no-tools/README.md).
 
 The user selected `gpt-6-astra`, reasoning `max`, existing ChatGPT authentication,
@@ -111,7 +114,8 @@ Checks include an allowed-read positive control and denied outside/symlink reads
 source/workspace writes and network access. A reachable unsandboxed socket is the
 network positive control. Actual wire data must show Astra/max, no top-level or
 nested tools, no inherited skill/agent/operator context and synthetic ChatGPT
-authentication. Successful completion, server errors, context-length errors and
+authentication in non-refreshing token mode. Successful completion, server errors,
+authentication errors, context-length errors and
 cancellation exercise real CLI transport. Reduced event/final/stderr caps exercise
 bounded-output failures. A deliberate unknown configuration key must fail before
 any provider request. Configuration errors are failures,
@@ -157,6 +161,8 @@ publication identities and original bundle files are retained. Exact bounded tex
 units retain parser provenance, zero-based PDF page indices and one-based physical
 PDF page locators. Text sources have no invented page numbers. Findings must quote
 whole units exactly; inexact or ambiguous citations remain unresolved.
+Every uniquely resolvable citation, including retained legacy upstream paths,
+must belong to the finding's declared study and comparison report scope.
 
 The packet allowlists source text, source/version identities, scope IDs and public
 catalogue questions/safeguards. Operator reconstruction annotations, human
@@ -198,6 +204,14 @@ instructions and a separate private authentication home. It uses strict config,
 stdin, structured output, JSON events, ephemeral execution, ignored user
 configuration/rules and no shared daemon. Authentication must be file-backed
 ChatGPT; API-key fallback is refused. Global user configuration is not modified.
+The controller creates a non-refreshing access-token snapshot for that private
+home and checks login there using the receipt's executable. The operator's refresh
+token is never copied or consumed. Access-token expiry must be known and extend
+beyond the requested generation deadline plus a 30-second startup margin;
+otherwise the attempt fails before either CLI process starts. Refresh the operator
+login separately, then request a new explicit attempt. Provider authentication
+failure must preserve the failed attempt without refresh, retry or fallback;
+the current runtime fails the one-request qualification and cannot authorize use.
 
 The source-byte cap is 64 MiB. The 512 KiB complete-input budget includes packet,
 medical instructions, output schema and a qualified 64 KiB CLI-context reserve.

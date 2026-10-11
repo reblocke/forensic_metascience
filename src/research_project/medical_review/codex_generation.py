@@ -95,6 +95,15 @@ def validate_generation(
         aliases = {s["alias"]: s for s in packet["sources"]}
         for obj in findings[association["finding_id"]]["source_objects"]:
             source = aliases.get(obj.get("path"))
+            if source is None:
+                matches = [
+                    d
+                    for d in bundle["documents"]
+                    if d["availability"] == "supplied"
+                    and obj.get("path") in d.get("upstream_paths", [])
+                ]
+                if len(matches) == 1:
+                    source = matches[0]
             if source is not None and not set(source["report_ids"]).intersection(allowed_reports):
                 raise ValueError("Codex citation refers to a different study/comparison scope.")
             # Inexact, unknown or ambiguous anchors remain explicit unresolved proposals.

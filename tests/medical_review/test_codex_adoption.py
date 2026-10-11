@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import subprocess
+import time
 
 import pytest
 
@@ -110,7 +112,25 @@ def test_launcher_uses_receipt_executable_for_login_and_generation(tmp_path, mon
     home = tmp_path / "operator"
     auth = home / ".codex/auth.json"
     auth.parent.mkdir(parents=True)
-    auth.write_text(json.dumps({"auth_mode": "chatgpt", "OPENAI_API_KEY": None, "tokens": {}}))
+    claims = (
+        base64.urlsafe_b64encode(json.dumps({"exp": time.time() + 3600}).encode())
+        .decode()
+        .rstrip("=")
+    )
+    auth.write_text(
+        json.dumps(
+            {
+                "auth_mode": "chatgpt",
+                "OPENAI_API_KEY": None,
+                "tokens": {
+                    "id_token": "synthetic-id",
+                    "access_token": f"e30.{claims}.synthetic",
+                    "refresh_token": "synthetic-refresh",
+                    "account_id": "synthetic-account",
+                },
+            }
+        )
+    )
     monkeypatch.setattr(codex_runner.Path, "home", lambda: home)
 
     def forbidden(*_, **__):

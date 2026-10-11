@@ -36,6 +36,7 @@ NATIVE_PROBES = (
 PROBE_MODES = (
     "success",
     "error",
+    "auth_error",
     "context",
     "cancel",
     "event_limit",
@@ -273,7 +274,7 @@ def audit_evidence(evidence: dict) -> tuple[dict[str, bool], list[str]]:
     errors = []
     checks.update(sandbox_checks(evidence.get("sandbox", {})))
     probes = evidence.get("probes", {})
-    required = ("success", "error", "context", "cancel")
+    required = ("success", "error", "auth_error", "context", "cancel")
     present = all(
         isinstance(probes.get(m), dict) and len(probes[m].get("requests", [])) == 1
         for m in required
@@ -353,6 +354,14 @@ def audit_evidence(evidence: dict) -> tuple[dict[str, bool], list[str]]:
             and probe.get("error") is None
             and probe.get("final") is None
         )
+    auth_error = probes.get("auth_error", {})
+    checks["one_request_on_error"] &= (
+        len(auth_error.get("requests", [])) == 1
+        and type(auth_error.get("exit_code")) is int
+        and auth_error["exit_code"] != 0
+        and auth_error.get("error") is None
+        and auth_error.get("final") is None
+    )
     cancel = probes.get("cancel", {})
     checks["cancellation"] = (
         len(cancel.get("requests", [])) == 1

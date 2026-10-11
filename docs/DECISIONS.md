@@ -1,5 +1,23 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-11: Correct citation scope and disposable authentication after review
+
+- **Review finding:** Packet aliases enforced study/comparison report scope, but
+  retained upstream paths could bypass that gate. Apply the same scope check to
+  every uniquely resolvable document path. Unknown or ambiguous citations remain
+  unresolved; historical imports and their matching rules remain unchanged.
+- **Credential ownership:** Do not copy a shared rotating refresh token into a
+  disposable runtime home. Use the pinned CLI's non-refreshing `chatgptAuthTokens`
+  mode with an empty refresh token and an access-token expiry beyond the session
+  deadline plus 30 seconds. Run login status in that isolated home. Unknown or
+  insufficient expiry fails before launch; the operator refreshes their own login
+  separately. No durable shared credential store or new interface is introduced.
+- **Acceptance:** Add regression coverage before fixes and an actual loopback
+  authentication-error probe. A 401 must end after one request, without refresh,
+  retry or fallback, alongside the existing server/context failures. All 20
+  qualification checks remain mandatory. Changed adapter/audit bytes invalidate
+  earlier receipts; preserve them and obtain fresh acceptance before merge.
+
 ## 2026-10-11: Restore dependency monitoring and consolidate main
 
 - **Evidence:** GitHub reported dependency alerts and security updates disabled;

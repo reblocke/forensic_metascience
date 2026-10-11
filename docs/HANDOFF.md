@@ -1,5 +1,47 @@
 # Handoff (for multi-session work)
 
+## 2026-10-11 Integration review corrections
+
+The independent read-only review of PR #15 at `d306f4e` identified two actionable
+defects: retained legacy citation paths could bypass study/comparison report scope,
+and a disposable managed-authentication home could discard rotated shared refresh
+credentials. Both are corrected without changing public interfaces, record schemas,
+historical import matching, source bytes or scientific criteria.
+
+Six regression cases failed before implementation, reproducing cross-study and
+cross-comparison legacy-path acceptance, managed token copying and missing expiry
+checks. Positive alias and correctly scoped legacy-path cases remained valid.
+The launcher now uses a non-refreshing access-token snapshot, excludes the operator
+refresh token and checks login in the same isolated home. Known expiry beyond the
+requested deadline plus 30 seconds is mandatory. Two additional regressions first
+failed because qualification did not require a one-request authentication-error
+probe; the actual 401 probe now participates in the existing mandatory retry check.
+
+The focused regression/adoption/qualification suite passed with zero failures,
+errors or skips. Ruff check, format check and whitespace checks passed after
+correcting one test import-order issue. The previous full local run was deliberately
+interrupted before edits and is retained as incomplete evidence. CI on `d306f4e`
+passed all three lanes, but cannot accept these new code changes. Fresh full tests,
+independent follow-up review and final-head CI are required before merge.
+Actual revised-adapter qualification failed: the new 401 probe recorded three
+requests with the same synthetic access token, while ordinary server errors
+recorded one. All 20 checks remain mandatory; the failed raw evidence is preserved.
+The pinned runtime's authentication recovery ignores its zero request/stream retry
+settings, and the inspected configuration has no disabling control. PR #15 remains
+blocked pending a separately approved runtime assessment/adoption decision;
+receipts and findings are retained in the PR. No real-source transmission occurred.
+
+Reproduce the focused checks with:
+
+```bash
+PYTHONPATH=src uv run --offline --locked pytest -q tests/medical_review/test_codex_review_regressions.py tests/medical_review/test_codex_adoption.py tests/medical_review/test_codex_qualification.py
+```
+
+Requalification and full acceptance use the commands and unchanged adopted runtime
+documented below. After these corrections or the pending pypdf security update,
+prepare fresh packets and obtain separate source authorization; older receipts
+cannot authorize changed code or dependency bytes.
+
 ## 2026-10-11 Consolidation and dependency monitoring
 
 The user approved completing PR #15, publishing the human-facing README and

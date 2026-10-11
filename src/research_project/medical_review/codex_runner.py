@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
+import math
 import shutil
 import subprocess
 import tempfile
@@ -156,18 +159,24 @@ def _launch(
         raise ValueError(
             "Codex backend requires file-backed ChatGPT authentication; API fallback refused."
         )
-    status = subprocess.run(
-        [executable, "login", "status"], capture_output=True, text=True, timeout=10, check=False
-    )
-    if status.returncode != 0 or "Logged in using ChatGPT" not in status.stdout + status.stderr:
-        raise ValueError("Codex ChatGPT authentication is unavailable.")
+    snapshot = _authentication_snapshot(auth, limits["max_duration_seconds"])
     with tempfile.TemporaryDirectory(prefix="medical-codex-session-") as directory:
         root = Path(directory)
         home, workspace = root / "runtime", root / "sources"
         home.mkdir()
         workspace.mkdir()
-        write_json(home / "auth.json", auth)
+        write_json(home / "auth.json", snapshot)
         (home / "auth.json").chmod(0o600)
+        status = subprocess.run(
+            [executable, "-c", 'cli_auth_credentials_store="file"', "login", "status"],
+            env=clean_environment(home),
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        if status.returncode != 0 or "Logged in using ChatGPT" not in status.stdout + status.stderr:
+            raise ValueError("Codex ChatGPT authentication is unavailable.")
         shutil.copyfile(catalogue, home / "models_cache.json")
         instructions, schema_path = root / "instructions.txt", root / "schema.json"
         instructions.write_text(INSTRUCTIONS, encoding="utf-8")
@@ -201,6 +210,41 @@ def _launch(
                 )
         finally:
             workspace.chmod(0o700)
+
+
+def _authentication_snapshot(auth: dict[str, Any], duration: float) -> dict[str, Any]:
+    """Never lend the operator's rotating refresh token to a disposable CLI home."""
+    tokens = auth["tokens"]
+    try:
+        access = tokens["access_token"]
+        parts = access.split(".")
+        if len(parts) != 3:
+            raise ValueError("Malformed access token.")
+        claims = parse_json(base64.urlsafe_b64decode(parts[1] + "=" * (-len(parts[1]) % 4)))
+        expires = claims["exp"]
+        if (
+            type(expires) not in (int, float)
+            or not math.isfinite(expires)
+            or expires <= time.time() + duration + 30
+            or any(
+                not isinstance(tokens.get(k), str) or not tokens[k]
+                for k in ("id_token", "account_id")
+            )
+        ):
+            raise ValueError("Unknown or insufficient access token lifetime.")
+    except (ValueError, TypeError, KeyError, AttributeError, binascii.Error) as error:
+        raise ValueError(
+            "ChatGPT access token must have a known lifetime beyond the session deadline; "
+            "refresh the operator login separately before trying again."
+        ) from error
+    return {
+        "auth_mode": "chatgptAuthTokens",
+        "OPENAI_API_KEY": None,
+        "tokens": {
+            **{k: tokens[k] for k in ("id_token", "access_token", "account_id")},
+            "refresh_token": "",
+        },
+    }
 
 
 def run_codex_review(
