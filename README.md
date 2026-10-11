@@ -118,10 +118,12 @@ qualified numerical receipts where appropriate. Human source verification and
 Local replay and explicit recovery preserve failed attempts and original outputs.
 The [medical guide](docs/MEDICAL_REVIEW.md) documents these stages and inputs.
 
-**Optional Codex reading.** The `codex_cli` backend has passed synthetic
-operational qualification for the exact locally patched macOS ARM64 runtime
-`codex-cli-0.161.0-medical-no-tools-v1`. A standard installed Codex CLI is
-insufficient. The workflow is: qualify that runtime offline → prepare an indexed
+**Optional Codex reading.** The `codex_cli` backend is implemented, but current
+operational qualification is blocked: the locally patched macOS ARM64 runtime
+`codex-cli-0.161.0-medical-no-tools-v1` repeats requests after an authentication
+failure. Historical passing receipts cannot authorize the revised adapter.
+A standard installed Codex CLI is also insufficient. After qualification passes,
+the workflow is: qualify that runtime offline → prepare an indexed
 source packet → obtain separate human authorization for those exact sources and
 transmission purpose → run one reading pass → import, verify, decide and report.
 It uses ChatGPT authentication with `gpt-6-astra` / `max`, one session, a

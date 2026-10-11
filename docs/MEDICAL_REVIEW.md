@@ -12,10 +12,12 @@ WP1–WP2 implement lossless offline upstream import, multi-document source
 validation, structural extraction preflight, evidence-linked reconstruction,
 comparison-specific medical routing and a deterministic private report model.
 WP3 adds bounded local replay, source-specific authorization validation and
-immutable recovery attempts. The later opt-in `codex_cli` backend has passed
-synthetic operational qualification for the exact adopted patched macOS ARM64
-runtime; each environment needs a matching qualification receipt and separate
-source-specific transmission authorization. Standard installed CLI releases remain
+immutable recovery attempts. The later opt-in `codex_cli` backend is implemented,
+but revised operational qualification is blocked by repeated authentication-error
+requests from the exact adopted patched macOS ARM64 runtime. Historical passing
+receipts cannot authorize the revised adapter. Each environment needs a current
+matching receipt and separate source-specific transmission authorization.
+Standard installed CLI releases remain
 unsupported. See [the current Codex operator guide](MEDICAL_REVIEW_CODEX_BACKEND.md);
 runtime qualification establishes neither source permission nor medical performance.
 WP4 adds offline counterevidence/arithmetic passes, private human dispositions,
