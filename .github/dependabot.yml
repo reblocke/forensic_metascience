@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Security proposals remain enabled; routine version-update PRs are suppressed.
+  # Every proposal requires review and fresh CI before a manual merge.
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0

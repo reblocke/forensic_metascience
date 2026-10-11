@@ -1,5 +1,30 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-11: Restore dependency monitoring and consolidate main
+
+- **Evidence:** GitHub reported dependency alerts and security updates disabled;
+  neither tracked documentation nor available history explains who disabled them
+  or why. The dependency graph initially returned no manifests. A disabled or
+  empty scan is not evidence that dependencies have no known vulnerabilities.
+- **Decision:** Enable dependency graph/alerts and security-fix PRs for the root
+  `uv` environment and GitHub Actions. Weekly Dependabot configuration sets
+  `open-pull-requests-limit: 0`, suppressing routine version-update PRs while
+  retaining security proposals. Automatic merging remains disabled. Record and
+  review every surfaced alert rather than dismissing it to clear acceptance.
+- **Coverage:** Verify discovered manifests and locked package versions after
+  activation. GitHub monitoring does not cover the custom R method archive
+  contract or the separately built patched Codex executable. Preserve those
+  pins and their independent provenance/qualification requirements. Scientific
+  pin changes, runtime adoption and new packages need their existing approvals.
+- **Consolidation:** Complete PR #15 with the human-facing workflow documentation;
+  merge only the reviewed head after fresh Python/native-R/report receipts and
+  actual offline runtime qualification. Close #14 and #9–12 only after verifying
+  their changes are incorporated. Preserve branches, tags and historical evidence.
+- **Repository policy:** The user chose to leave branch protection unchanged.
+  `main` is the leading branch, with review and CI enforced by the operator's
+  merge procedure. No direct push, force push, new scientific criterion, source
+  permission or medical-performance qualification follows from this decision.
+
 ## 2026-10-08: Adopt the exact patched runtime through fresh operational qualification
 
 - **Decision:** The user selected and approved adoption of the passing local build

@@ -182,6 +182,11 @@ uv run --offline --locked ruff format . --check
 CI separately checks Python, native R and actual Quarto HTML/PDF reports.
 Software checks are distinct from human source appraisal and medical validation.
 
+Dependabot monitors Python and GitHub Actions dependencies and proposes security
+fixes for review; merges remain manual. Routine version-update PRs are disabled.
+The pinned R method archives and separately built Codex runtime require their own
+dependency review and qualification. See [the monitoring decision](docs/DECISIONS.md#2026-10-11-restore-dependency-monitoring-and-consolidate-main).
+
 Repository code is [MIT licensed](LICENSE); publisher documents and retained
 third-party materials keep their own terms. Cite the repository and the commit
 or release used. Maintainer: Brian W. Locke ([@reblocke](https://github.com/reblocke)).
