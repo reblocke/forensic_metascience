@@ -10,6 +10,46 @@ eligibility: use the paired runtime arguments and fresh qualification described 
 [the operator workflow](../../docs/MEDICAL_REVIEW_CODEX_BACKEND.md). The global
 CLI remains unchanged.
 
+## Authentication recovery assessment
+
+The revised qualification includes an actual 401 response. The previously adopted
+build sends three requests on that response despite explicit zero request and
+stream retries, so its historical passing receipts cannot clear the revised gate.
+The user authorized assessment of an isolated remedy; adoption remains a separate
+decision on the exact passing executable hash.
+
+`native-tools-no-auth-recovery.patch` retains the native-tool ceiling and adds a
+guard at the shared unauthorized-response handler. Only providers explicitly
+setting both retry limits to zero bypass authentication recovery. Defaults and
+partially specified limits preserve upstream behavior. It introduces no new
+configuration key, dependency or catalogue change. Apply this combined patch
+instead of `native-tools.patch` to a separate normalized checkout.
+
+Run the `explicit_zero_retries_disable_authentication_recovery` and
+`provider_owned_auth_recovery_is_bounded_and_preserves_unauthorized_failures`
+native regressions, then repeat the tool regressions and actual CLI qualification.
+On a memory-limited host, add
+`--config 'profile.release.package.codex-core.opt-level=0'` to the native unit-test
+commands and record that override. This reduces optimization memory for the large
+test crate; it does not change source or dependency pins. Build the production CLI
+without that test override and qualify its actual resulting bytes.
+The build recorder accepts this additional retained patch only with an explicit
+`--native-patch` selection; arbitrary patches remain rejected. Source-build
+validation establishes assessment provenance, while the adopted-runtime checks
+continue to require the original executable and original patch hashes.
+
+Keep build caches, outputs and temporary test workspaces on the external working
+volume. For a memory-limited host, record `CARGO_BUILD_JOBS=1`,
+`CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1` and `CARGO_PROFILE_RELEASE_LTO=false` in
+the retained build log. These build controls change executable bytes and require
+fresh assessment; they do not change third-party dependency pins. Preserve failed
+or interrupted build attempts as such, without counting them as native test results.
+
+Use `qualify-codex --offline --probe-executable` and `--probe-build-manifest` with
+the same immutable Astra catalogue. A successful candidate receipt remains
+assessment-only and cannot prepare a packet or permit live execution. Never
+replace the installed or adopted executable during this assessment.
+
 ## Source baseline
 
 `baseline.json` pins official `rust-v0.161.0`, commit

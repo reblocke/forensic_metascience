@@ -97,3 +97,34 @@ def test_source_build_manifest_rejects_changed_or_uncontained_inputs(tmp_path, m
     write_json(path, manifest)
     with pytest.raises(ValueError, match="build"):
         validate_build_manifest(path, binary)
+
+
+def test_known_auth_recovery_patch_remains_assessment_only(tmp_path, monkeypatch):
+    from research_project.medical_review.codex_qualification import _validate_adopted_build
+
+    path, manifest, binary = build_manifest(tmp_path)
+    monkeypatch.setattr(
+        "research_project.medical_review.codex_source_build.PINNED_ARTIFACTS",
+        {
+            name: manifest["artifacts"][name]["sha256"]
+            for name in ("original_lock", "normalized_lock", "normalization_patch", "toolchain")
+        },
+    )
+    candidate_patch = tmp_path / "reviewed-auth-recovery-patch"
+    candidate_patch.write_bytes((tmp_path / "native_patch").read_bytes())
+    monkeypatch.setattr(
+        "research_project.medical_review.codex_source_build.AUTH_RECOVERY_PATCH",
+        candidate_patch,
+        raising=False,
+    )
+    assert validate_build_manifest(path, binary) == manifest
+    with pytest.raises(ValueError, match="adopted runtime"):
+        _validate_adopted_build(manifest)
+    # Updating a retained artifact and its digest cannot admit an arbitrary patch.
+    (tmp_path / "native_patch").write_bytes(b"unreviewed auth changes")
+    manifest["artifacts"]["native_patch"]["sha256"] = hashlib.sha256(
+        (tmp_path / "native_patch").read_bytes()
+    ).hexdigest()
+    write_json(path, manifest)
+    with pytest.raises(ValueError, match="build"):
+        validate_build_manifest(path, binary)

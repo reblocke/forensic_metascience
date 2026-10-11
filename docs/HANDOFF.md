@@ -1,5 +1,46 @@
 # Handoff (for multi-session work)
 
+## 2026-10-11 Security merge and isolated runtime assessment
+
+Security PR #18 merged at `6dd60db4a9986cb1790bac12b3edd5862e09355f`, preserving
+Dependabot #16/#17 commits. Independent review found no actionable issues. Fresh
+final-head CI passed Python, native-R and actual Quarto HTML/PDF with zero failures,
+errors or skips; archive digests and companion/source hashes were verified, and
+the reconstruction PDF pages were visually inspected. The completed graph update
+discovers all five patched versions and marks all 52 surfaced alerts fixed, with
+none open or dismissed. Each disposition is retained privately. Fresh merge-commit
+CI also passed all three lanes with zero failures/errors/skips and independently
+verified artifact hashes; exact receipts are recorded in #18. Alerts/security proposals stay enabled; automatic
+merging and branch protection are unchanged. PRs #9–12 were closed after verifying
+containment in the earlier main merge; all branches/history are preserved.
+
+PR #15 now incorporates the security merge without changing the adopted runtime.
+The user approved an isolated authentication-recovery patch assessment, while
+adoption of a new passing executable remains a separate decision. The original
+source, patch, binary, catalogue and raw failing 401 evidence are retained. New
+provenance tests accept only the additional retained assessment patch and reject
+arbitrary rehashed inputs and attempted operational promotion. The native regression failed before the guard and passes after it. Six native
+tests across the new regression, existing recovery and core tool-policy/source
+filters passed with no failures or ignored tests. Independent read-only review
+found no actionable issues and verified the original patch sections preserved.
+Candidate construction, actual 20-check assessment and fresh final-head CI remain
+pending. The focused Python suite passed 87 tests with zero failures/errors/skips;
+Ruff check, format check and whitespace checks passed.
+Use the assessment instructions in [the source-build guide](../tools/codex-no-tools/README.md).
+
+The initial native build and full local tests were interrupted after internal disk
+exhaustion and cannot count as acceptance. Task-specific Rust caches were copied
+and hash-verified on the external drive before removing their internal originals;
+the adopted binary is unchanged. The restarted native build uses serial compilation,
+one codegen unit and disabled LTO, recorded in its log. Temporary test workspaces
+also use external storage. The older integration local test run was stopped before
+synchronizing the final security dependencies; final-head CI and completed focused
+tests, rather than partial local runs, supply acceptance evidence.
+The serial optimized test crate also caused swap growth and was stopped before
+disk exhaustion, without executing the regression. Its log remains incomplete.
+Native unit tests now record a codex-core-only optimization override; the actual
+production CLI build and its 20-check assessment do not use that test override.
+
 ## 2026-10-11: Dependency security consolidation
 
 A verified Git recovery bundle and file-hashed working/private archive were

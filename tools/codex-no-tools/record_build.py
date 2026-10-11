@@ -9,6 +9,7 @@ import subprocess
 from pathlib import Path
 
 from research_project.medical_review.codex_source_build import (
+    AUTH_RECOVERY_PATCH,
     BUILD_COMMAND,
     NATIVE_PATCH,
     PINNED_SOURCE,
@@ -27,7 +28,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("source", "original", "executable", "build-log", "output", "rustc", "cargo"):
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--native-patch", type=Path, default=NATIVE_PATCH)
     args = parser.parse_args()
+    native_patch = args.native_patch.resolve(strict=True)
+    if native_patch not in {NATIVE_PATCH.resolve(), AUTH_RECOVERY_PATCH.resolve()}:
+        raise ValueError("Source build patch must be one of the retained assessment patches.")
     for source in (args.source, args.original):
         if git(source, "rev-parse", "HEAD").decode().strip() != PINNED_SOURCE["commit"]:
             raise ValueError("Source build must use the pinned upstream commit.")
@@ -38,7 +43,7 @@ def main() -> None:
     native_diff = git(
         args.source, "diff", "--no-ext-diff", "--binary", "--", ".", ":(exclude)codex-rs/Cargo.lock"
     )
-    if native_diff != NATIVE_PATCH.read_bytes():
+    if native_diff != native_patch.read_bytes():
         raise ValueError("Source changes do not match the reviewed native-tool patch.")
     output = private_path(REPO, args.output, PRIVATE_SOURCES / "runtime_candidates")
     output.mkdir()  # Write once; new attempts require a fresh output directory.
@@ -46,7 +51,7 @@ def main() -> None:
         "original_lock": args.original / "codex-rs/Cargo.lock",
         "normalized_lock": args.source / "codex-rs/Cargo.lock",
         "normalization_patch": Path(__file__).parent / "workspace-versions.patch",
-        "native_patch": NATIVE_PATCH,
+        "native_patch": native_patch,
         "toolchain": args.original / "codex-rs/rust-toolchain.toml",
         "build_log": args.build_log,
     }

@@ -1,5 +1,24 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-11: Assess an isolated authentication-recovery remedy
+
+- **Authorization:** The user approved assessing an isolated source patch after
+  the adopted runtime made three requests on a synthetic 401. This authorizes
+  construction and assessment, not adoption of a new hash or real transmission.
+- **Scope:** Preserve the original native-tool patch, source, catalogue, locks,
+  executable and failed evidence. Add a separate combined assessment patch whose
+  unauthorized-response handler bypasses recovery only when both provider retry
+  limits are explicitly zero. Preserve ordinary and partially configured behavior.
+- **Provenance:** Accept only the two retained source patches for build assessment;
+  arbitrary rehashed patches remain invalid. The operational runtime and patch
+  hashes stay unchanged. All 20 actual CLI checks and raw-evidence validation
+  remain mandatory before recommending an exact candidate for adoption.
+- **Build controls:** Keep the isolated compiler/cache/build work on the external
+  drive. Record serial compilation, codegen units and LTO controls rather than
+  treating differing build settings as the same executable. The initial build
+  and local tests interrupted by internal disk exhaustion are incomplete evidence,
+  not native regression results or software acceptance.
+
 ## 2026-10-11: Restore dependency monitoring and repair surfaced vulnerabilities
 
 - GitHub confirmed alerts/security proposals disabled, with no documented rationale.

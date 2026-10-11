@@ -31,6 +31,7 @@ BUILD_COMMAND = [
     "codex",
 ]
 NATIVE_PATCH = Path(__file__).resolve().parents[3] / "tools/codex-no-tools/native-tools.patch"
+AUTH_RECOVERY_PATCH = NATIVE_PATCH.with_name("native-tools-no-auth-recovery.patch")
 BUILD_ARTIFACTS = {*PINNED_ARTIFACTS, "native_patch", "build_log", "source_ledger"}
 
 
@@ -78,7 +79,11 @@ def validate_build_manifest(path: Path, executable: Path) -> dict:
                 or name in PINNED_ARTIFACTS
                 and record["sha256"] != PINNED_ARTIFACTS[name]
                 or name == "native_patch"
-                and record["sha256"] != hashlib.sha256(NATIVE_PATCH.read_bytes()).hexdigest()
+                and record["sha256"]
+                not in {
+                    hashlib.sha256(patch.read_bytes()).hexdigest()
+                    for patch in (NATIVE_PATCH, AUTH_RECOVERY_PATCH)
+                }
             ):
                 raise ValueError("Codex source build artifacts are uncontained or changed.")
     except (KeyError, TypeError, AttributeError, OSError) as error:
