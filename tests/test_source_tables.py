@@ -133,6 +133,16 @@ def test_repeated_visible_identity_is_rejected():
         read_html_tables(html + html)
 
 
+def test_malformed_interval_is_preserved_without_invented_bounds(tmp_path):
+    _, spec = fixture(tmp_path)
+    spec["tables"][0]["raw_rows"][3][2] = "5 (3-−7)"
+    result = parse_mapped_table(spec, "T1")
+    row = result[result.raw_value == "5 (3-−7)"].iloc[0]
+    assert row.parse_status == "invalid_interval"
+    assert row.value == 5
+    assert pd.isna(row.range_low) and pd.isna(row.range_high)
+
+
 def test_docx_vertical_merge_retains_header_and_column_identity(tmp_path):
     from zipfile import ZipFile
 

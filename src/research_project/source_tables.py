@@ -216,6 +216,7 @@ def parse_mapped_table(spec: dict, table_id: str) -> pd.DataFrame:
         p, p_raw, p_cmp = parse_p_value(cells[pcol] if pcol is not None else "")
         for arm, group in groups.items():
             value = cells[mapping[arm]]
+            parse_status = "missing" if not value.strip() else "parsed"
             analysis_n = table.get("analysis_denominators", {}).get(str(index), {}).get(arm)
             if analysis_n is not None and (type(analysis_n) is not int or analysis_n <= 0):
                 raise ValueError("Analysis denominator must be a positive integer")
@@ -244,6 +245,13 @@ def parse_mapped_table(spec: dict, table_id: str) -> pd.DataFrame:
                 row["statistic_kind"] = "count"
             else:
                 center, low, high = parse_median_range(value)
+                if kind.startswith("median") and value.strip():
+                    if center is None or low is None or high is None:
+                        parse_status = "unparsed_interval"
+                    elif low > high or not low <= center <= high:
+                        # Preserve the printed cell; do not silently repair malformed bounds.
+                        parse_status = "invalid_interval"
+                        low, high = None, None
                 row = _build_continuous_row(**common, value=center, low=low, high=high)
                 row["statistic_kind"] = "median" if kind.startswith("median") else "unknown"
                 if kind == "mean_sd":
@@ -262,8 +270,10 @@ def parse_mapped_table(spec: dict, table_id: str) -> pd.DataFrame:
                     )
                 elif kind == "unknown":
                     row.update(var_type="unknown", value=None, range_low=None, range_high=None)
+                    parse_status = "unknown_statistic"
             row.update(
                 randomized_n=group.n,
+                parse_status=parse_status,
                 analysis_n=analysis_n,
                 statistic_label=kind,
                 units=table.get("units", {}).get(str(index), "unknown"),
