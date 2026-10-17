@@ -16,6 +16,7 @@ from research_project.numeric_integrity import (
     build_scrutiny_input,
     build_statcheck_stub,
 )
+from research_project.source_tables import load_table_input, parse_mapped_table
 
 
 def parse_args() -> argparse.Namespace:
@@ -23,6 +24,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--table1", type=Path, required=True)
     parser.add_argument("--report-pdf", type=Path, required=False)
     parser.add_argument("--source-pdf-path", type=Path)
+    parser.add_argument("--table-input", type=Path)
     parser.add_argument("--study-id", type=str, default="lungtime")
     parser.add_argument("--source-pdf", type=str, required=True)
     parser.add_argument("--out", type=Path, required=True)
@@ -69,7 +71,20 @@ def main() -> None:
     if not table1_path.exists():
         raise FileNotFoundError(f"Missing baseline table input: {table1_path}")
 
-    table1_long = pd.read_csv(table1_path)
+    spec = None
+    if args.table_input:
+        spec = load_table_input(args.table_input, Path(__file__).resolve().parents[1])
+        table1_long = parse_mapped_table(spec, spec["baseline_table_id"])
+    else:
+        table1_long = pd.read_csv(
+            table1_path,
+            dtype={
+                "raw_value": "string",
+                "raw_statistic_value": "string",
+                "reported_percent_raw": "string",
+                "reported_p_raw": "string",
+            },
+        )
     numeric_table = build_numeric_table(table1_long)
     scrutiny_input = build_scrutiny_input(table1_long)
     statcheck_stub = build_statcheck_stub(table1_long)
@@ -91,7 +106,25 @@ def main() -> None:
     statcheck_stub.to_csv(statcheck_path, index=False)
     statcheck_text_path.write_text(extract_pdf_text(args.report_pdf), encoding="utf-8")
     source_versions = []
-    if args.source_pdf_path:
+    baseline_source_name = args.source_pdf
+    if spec is not None:
+        baseline = next(t for t in spec["tables"] if t["table_id"] == spec["baseline_table_id"])
+        for source in spec["sources"]:
+            name = Path(source["path"]).name
+            source_versions.append(
+                {
+                    "source_id": source["source_id"],
+                    "source_version_id": source["source_version_id"],
+                    "source_name": name,
+                    "content_sha256": source["sha256"],
+                    "source_role": "source_table",
+                    "extraction_method": "source_table_input_v1",
+                    "extraction_version": "1",
+                }
+            )
+            if source["source_id"] == baseline["source_id"]:
+                baseline_source_name = name
+    elif args.source_pdf_path:
         source_versions.append(
             _source_version(args.source_pdf_path, "baseline_table", args.study_id)
         )
@@ -109,7 +142,7 @@ def main() -> None:
         [
             {
                 "study_id": args.study_id,
-                "source_pdf": args.source_pdf,
+                "source_pdf": baseline_source_name,
                 "table1_source": str(table1_path),
                 "report_pdf": str(args.report_pdf) if args.report_pdf else "",
                 "extract_confidence": "high",

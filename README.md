@@ -191,3 +191,6 @@ dependency review and qualification. See [the monitoring decision](docs/DECISION
 Repository code is [MIT licensed](LICENSE); publisher documents and retained
 third-party materials keep their own terms. Cite the repository and the commit
 or release used. Maintainer: Brian W. Locke ([@reblocke](https://github.com/reblocke)).
+
+For optional original-source table mapping and conditional R reconciliation, see
+[the source-table input contract](docs/SOURCE_TABLE_RECONCILIATION.md).

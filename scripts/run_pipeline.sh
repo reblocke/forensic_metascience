@@ -198,6 +198,12 @@ REGISTRY_AS_OF_DATE="${REGISTRY_AS_OF_DATE:-}"
 PUBLICATION_URL="${PUBLICATION_URL:-}"
 PUBLICATION_DOI="${PUBLICATION_DOI:-}"
 PUBLICATION_PMID="${PUBLICATION_PMID:-}"
+TABLE_INPUT_REL_PATH="${TABLE_INPUT_REL_PATH:-}"
+SUMMARY_RECONCILIATION_REL_PATH="${SUMMARY_RECONCILIATION_REL_PATH:-}"
+TABLE_INPUT_ARGS=()
+if [ -n "$TABLE_INPUT_REL_PATH" ]; then
+  TABLE_INPUT_ARGS=(--table-input "$REPO_ROOT/$TABLE_INPUT_REL_PATH")
+fi
 
 REPORT_PDF="$REPO_ROOT/$REPORT_REL_PATH"
 PROTOCOL_PDF="$REPO_ROOT/$PROTOCOL_REL_PATH"
@@ -218,6 +224,12 @@ OUTPUT_ROOT="${OUTPUT_ROOT:-$REPO_ROOT/data/processed/forensics_runs}"
 OUTPUT_ROOT="$(PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/forensics_run.py validate-output \
   --repo-root "$REPO_ROOT" --output-root "$OUTPUT_ROOT")"
 REQUIRED_SOURCES=()
+if { has_category randomization || has_category numeric; } && [ -n "$TABLE_INPUT_REL_PATH" ]; then
+  REQUIRED_SOURCES+=("$REPO_ROOT/$TABLE_INPUT_REL_PATH")
+fi
+if has_category numeric && [ -n "$SUMMARY_RECONCILIATION_REL_PATH" ]; then
+  REQUIRED_SOURCES+=("$REPO_ROOT/$SUMMARY_RECONCILIATION_REL_PATH")
+fi
 if has_category randomization; then
   REQUIRED_SOURCES+=("$REPORT_PDF" "$PROTOCOL_PDF" "$BASELINE_PDF")
 fi
@@ -266,6 +278,12 @@ if [ -n "$REGISTRY_HISTORY_REL_PATH" ]; then
   RUN_INIT_ARGS+=(--input "$REPO_ROOT/$REGISTRY_HISTORY_REL_PATH")
 fi
 RUN_INPUTS=()
+if { has_category randomization || has_category numeric; } && [ -n "$TABLE_INPUT_REL_PATH" ]; then
+  RUN_INPUTS+=("$REPO_ROOT/$TABLE_INPUT_REL_PATH")
+fi
+if has_category numeric && [ -n "$SUMMARY_RECONCILIATION_REL_PATH" ]; then
+  RUN_INPUTS+=("$REPO_ROOT/$SUMMARY_RECONCILIATION_REL_PATH")
+fi
 if has_category randomization; then
   RUN_INPUTS+=("$REPORT_PDF" "$PROTOCOL_PDF" "$BASELINE_PDF")
 elif has_category numeric; then
@@ -390,6 +408,7 @@ run_baseline_extraction() {
     --report "$REPORT_PDF" --baseline-pdf "$BASELINE_PDF"
     --baseline-table-label "$BASELINE_TABLE_LABEL" --out "$RANDOMIZATION_DATA_DIR"
     --trial-id "$TRIAL_ID"
+    "${TABLE_INPUT_ARGS[@]}"
   )
   if [ "$baseline_only" = true ]; then
     BASELINE_ARGS+=(--baseline-only)
@@ -416,12 +435,14 @@ run_numeric_category() {
     --source-pdf-path "$BASELINE_PDF" \
     --study-id "$STUDY_ID" \
     --source-pdf "$(basename "$BASELINE_PDF")" \
+    "${TABLE_INPUT_ARGS[@]}" \
     --out "$NUMERIC_DATA_DIR"
 
   PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/extract_numeric_summary_tables.py \
     --report "$REPORT_PDF" \
     --trial-id "$TRIAL_ID" \
     --source-pdf "$(basename "$REPORT_PDF")" \
+    "${TABLE_INPUT_ARGS[@]}" \
     --out "$NUMERIC_DATA_DIR"
 
   PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/build_numeric_inputs.py \
@@ -438,6 +459,17 @@ run_numeric_category() {
     "$NUMERIC_REPORT_DIR/numeric_standardized_results.csv" \
     "$NUMERIC_REPORT_DIR/numeric_standardized_results_v2.csv" \
     "$NUMERIC_DATA_DIR/metadata/source_evidence.json" "$NUMERIC_REPORT_DIR/numeric_summary.csv"
+  if [ -n "$SUMMARY_RECONCILIATION_REL_PATH" ]; then
+    stage_begin summary_reconciliation
+    PYTHONPATH="$REPO_ROOT/src" "${UV_PYTHON[@]}" scripts/run_summary_reconciliation.py \
+      --input "$REPO_ROOT/$SUMMARY_RECONCILIATION_REL_PATH" \
+      --out "$PROCESSED_ROOT/reconciliation"
+    stage_complete summary_reconciliation \
+      "$PROCESSED_ROOT/reconciliation/reconciliation_results.json" \
+      "$PROCESSED_ROOT/reconciliation/reconciliation_results.csv" \
+      "$PROCESSED_ROOT/reconciliation/native_results.rds" \
+      "$PROCESSED_ROOT/reconciliation/run_provenance.json"
+  fi
   if [ "$RENDER_REPORTS" = true ]; then
     stage_begin numeric_report
     render_study_report "notebooks/lungtime_numeric_audit.qmd" "numeric" \

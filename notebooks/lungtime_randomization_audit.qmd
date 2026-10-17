@@ -82,6 +82,10 @@ meta_path <- if (nzchar(processed_root)) {
 }
 if (file.exists(meta_path)) {
   metadata <- read.csv(meta_path, check.names = FALSE)
+  # Display-only substitution; retain original extracted evidence in the CSV.
+  metadata[] <- lapply(metadata, function(x) {
+    if (is.character(x)) gsub("[[:cntrl:]]", "[control character]", x) else x
+  })
   knitr::kable(metadata)
 } else {
   cat("Metadata file not found at:", meta_path)
