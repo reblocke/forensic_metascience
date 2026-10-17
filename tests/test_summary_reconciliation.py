@@ -37,6 +37,13 @@ base$estimator <- "firth"
 stopifnot(reconcile_request(c(list(request_id="firth", check="or_margins"),
  base))$n_evaluated == 0L)
 base$estimator <- "cross_product"
+base$predictor_coding <- "unknown"
+stopifnot(reconcile_request(c(list(request_id="coding", check="or_margins"),
+ base))$n_evaluated == 0L)
+base$predictor_coding <- "binary"
+missing <- base; missing$D <- NULL
+stopifnot(reconcile_request(c(list(request_id="margins", check="or_margins"),
+ missing))$n_evaluated == 0L)
 base$m <- 10
 base$reported <- list(or="1.68", lower="1.12", upper="2.52")
 b <- reconcile_request(c(list(request_id="bound", check="wald_bound"), base))
@@ -69,6 +76,10 @@ u <- enumerate_or(4,0,0)
 stopifnot(u[[1]]$state=="undefined")
 bad <- tryCatch({enumerate_or(10,11,3); FALSE}, error=function(e) TRUE)
 stopifnot(bad)
+zero <- reconcile_request(list(request_id="zero", check="binary_contrast",
+ events=c(0,0),denominators=c(10,10),assumption_status="conditional",
+ weighting="unweighted"))
+stopifnot(zero$details$rr_state == "undefined", is.nan(zero$details$rr))
 cat("native reconciliation controls passed\n")
 """
     result = subprocess.run([r, "--vanilla", "-e", code], cwd=ROOT, capture_output=True, text=True)
@@ -172,3 +183,20 @@ def test_cli_preserves_native_tests_and_serializes_plain_json(tmp_path):
     assert row["qualified_method_result"] is False
     assert row["details"]["native_pearson"]["method"]
     assert (tmp_path / "native_results.rds").is_file()
+    assert not list(tmp_path.glob("*receipt*"))
+    assert not list(tmp_path.glob("*assessment*"))
+
+
+def test_execution_refuses_public_or_existing_output_before_reading_input(tmp_path):
+    from research_project.summary_reconciliation import run_reconciliation
+
+    absent = tmp_path / "missing-input.json"
+    public = tmp_path / "reports" / "public"
+    with pytest.raises(ValueError, match="data/processed"):
+        run_reconciliation(absent, public, tmp_path)
+    assert not public.exists()
+    existing = tmp_path / "data" / "processed" / "existing"
+    existing.mkdir(parents=True)
+    with pytest.raises(FileExistsError):
+        run_reconciliation(absent, existing, tmp_path)
+    assert not list(existing.iterdir())
