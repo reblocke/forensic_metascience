@@ -10,6 +10,7 @@ from pathlib import Path
 import pandas as pd
 
 from research_project.randomization import clean_cell, normalize_variable_name, parse_group_header
+from research_project.source_tables import load_table_input, summary_rows
 
 SUMMARY_COLUMNS = [
     "trial_id",
@@ -94,6 +95,7 @@ def _extract_group_columns(header_row: list[str]) -> list[tuple[int, str, int]]:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--table-input", type=Path)
     parser.add_argument("--trial-id", type=str, default="lungtime_c01_s41591_025_04181")
     parser.add_argument("--source-pdf", type=str, required=True)
     parser.add_argument("--out", type=Path, required=True)
@@ -108,6 +110,14 @@ def main() -> None:
     out_inputs_dir = args.out / "inputs"
     out_inputs_dir.mkdir(parents=True, exist_ok=True)
     output_path = out_inputs_dir / "numeric_summary_long.csv"
+
+    if args.table_input:
+        spec = load_table_input(args.table_input, Path(__file__).resolve().parents[1])
+        if spec["trial_id"] != args.trial_id:
+            raise ValueError("Source-table trial identity mismatch")
+        summary_rows(spec).to_csv(output_path, index=False)
+        print(f"Wrote {output_path}")
+        return
 
     pdfplumber = _import_pdfplumber()
     if pdfplumber is None:

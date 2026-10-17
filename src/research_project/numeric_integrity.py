@@ -101,12 +101,15 @@ def attach_source_evidence(
             source_ids.append(None)
             evidence_ids.append(None)
             continue
-        parser_version = str(row.get("method_revision", NUMERIC_METHOD_REVISION))
+        parser_version = str(
+            version.get("extraction_version", row.get("method_revision", NUMERIC_METHOD_REVISION))
+        )
+        parser_id = version.get("extraction_method", "numeric_pdf_table_extraction")
         selected_id = evidence_id(
             version["source_version_id"],
             locator,
             raw_value,
-            "numeric_pdf_table_extraction",
+            parser_id,
             parser_version,
         )
         source_ids.append(version["source_version_id"])
@@ -121,7 +124,7 @@ def attach_source_evidence(
                 "content_sha256": version["content_sha256"],
                 "locator": locator,
                 "raw_value": raw_value,
-                "extraction_method": "numeric_pdf_table_extraction",
+                "extraction_method": parser_id,
                 "extraction_version": parser_version,
                 "trial_id": str(row.get("trial_id", "")),
             }

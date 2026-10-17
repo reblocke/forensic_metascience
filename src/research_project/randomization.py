@@ -61,6 +61,7 @@ def parse_group_header(header_cell: str) -> GroupInfo:
     if not math.isfinite(n_value) or n_value <= 0 or not n_value.is_integer():
         raise ValueError(f"Group size must be a finite positive integer: {cleaned!r}")
     label = re.sub(r"\(.*?\)", "", cleaned)
+    label = re.sub(r"\bn\s*=\s*[^\s)]+", "", label, flags=re.IGNORECASE)
     label = re.sub(r"\b(group|arm)\b", "", label, flags=re.IGNORECASE)
     label = re.sub(r"\s+", " ", label).strip()
     return GroupInfo(label=label, n=int(n_value))
@@ -288,6 +289,8 @@ def _parse_standard_table1(
     header = [clean_cell(value) for value in table[0]]
     if len(header) < 4:
         raise ValueError("Table must contain at least 4 columns.")
+    if any(re.search(r"\b(total|overall)\b", cell, re.I) for cell in header[1:3]):
+        raise ValueError("Total columns require an explicit source-table column mapping.")
 
     group_a = parse_group_header(header[1])
     group_b = parse_group_header(header[2])

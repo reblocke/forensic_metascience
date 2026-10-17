@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 from pathlib import Path
 
 import pandas as pd
 
 from research_project.randomization import parse_table1_long
+from research_project.registration_forensics import derive_registration_claims
+from research_project.source_tables import load_table_input, parse_mapped_table
 
 
 def _import_pdf_libraries() -> tuple[object, object]:
@@ -102,8 +105,9 @@ def _derive_metadata(
         raise ValueError(f"Expected exactly 2 groups in baseline table, found: {groups}")
     arm_a_rows = table1_long[table1_long["group"] == groups[0]]
     arm_b_rows = table1_long[table1_long["group"] == groups[1]]
-    n_a = int(arm_a_rows["n_group"].dropna().iloc[0])
-    n_b = int(arm_b_rows["n_group"].dropna().iloc[0])
+    count_column = "randomized_n" if "randomized_n" in table1_long else "n_group"
+    n_a = int(arm_a_rows[count_column].dropna().iloc[0])
+    n_b = int(arm_b_rows[count_column].dropna().iloc[0])
 
     method_text, report_methods_page = _first_sentence_with_any_phrase(
         report_page_texts,
@@ -126,7 +130,22 @@ def _derive_metadata(
         ["open-label", "masked", "blinded", "not masked"],
     )
 
-    allocation_ratio = "1:1" if n_a == n_b else f"{n_a}:{n_b}"
+    claims = derive_registration_claims(
+        trial_id=trial_id,
+        report_page_texts=report_page_texts,
+        protocol_page_texts=protocol_page_texts,
+    )
+    ratio = claims[claims["claim"] == "allocation_ratio"].iloc[0]
+    values = {
+        ratio[f"{source}_value"] for source in ("report", "protocol") if ratio[f"{source}_value"]
+    }
+    negated = any(
+        pd.notna(ratio[f"{source}_negated"]) and bool(ratio[f"{source}_negated"])
+        for source in ("report", "protocol")
+    )
+    allocation_ratio = next(iter(values)) if len(values) == 1 and not negated else ""
+    if not re.fullmatch(r"[1-9][0-9]*:[1-9][0-9]*", allocation_ratio):
+        allocation_ratio = ""
 
     metadata = pd.DataFrame(
         [
@@ -137,6 +156,11 @@ def _derive_metadata(
                 "n_a": n_a,
                 "n_b": n_b,
                 "allocation_ratio": allocation_ratio,
+                "planned_allocation_ratio": allocation_ratio,
+                "observed_randomized_n_a": n_a,
+                "observed_randomized_n_b": n_b,
+                "analysis_denominators": "row-specific; not inferred from randomized counts",
+                "allocation_ratio_evidence": ratio["report_evidence"] or ratio["protocol_evidence"],
                 "randomization_method": method_text or protocol_randomization_text,
                 "allocation_concealment": concealment_text,
                 "stratification": stratification_text,
@@ -160,6 +184,7 @@ def parse_args() -> argparse.Namespace:
         help="Extract Table 1 rows only; skip protocol-dependent randomization metadata.",
     )
     parser.add_argument("--baseline-pdf", type=Path, required=False)
+    parser.add_argument("--table-input", type=Path)
     parser.add_argument("--baseline-table-label", type=str, required=False, default="")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--trial-id", type=str, default="lungtime_c01_s41591_025_04181")
@@ -182,12 +207,19 @@ def main() -> None:
         raise FileNotFoundError(f"Missing baseline PDF: {baseline_pdf}")
 
     pdfplumber_module, pdf_reader_cls = _import_pdf_libraries()
-    source_page, table1 = _find_table1(
-        pdfplumber_module,
-        baseline_pdf,
-        table_label=args.baseline_table_label,
-    )
-    table1_long = parse_table1_long(table=table1, trial_id=trial_id, source_page=source_page)
+    table_spec = None
+    if args.table_input:
+        table_spec = load_table_input(args.table_input, Path(__file__).resolve().parents[1])
+        if table_spec["trial_id"] != trial_id:
+            raise ValueError("Source-table trial identity does not match configured trial")
+        table1_long = parse_mapped_table(table_spec, table_spec["baseline_table_id"])
+    else:
+        source_page, table1 = _find_table1(
+            pdfplumber_module,
+            baseline_pdf,
+            table_label=args.baseline_table_label,
+        )
+        table1_long = parse_table1_long(table=table1, trial_id=trial_id, source_page=source_page)
 
     if args.baseline_only:
         metadata = pd.DataFrame(
@@ -222,6 +254,10 @@ def main() -> None:
     metadata_path = out_dir / "randomization_metadata.csv"
     table1_long.to_csv(table1_path, index=False)
     metadata.to_csv(metadata_path, index=False)
+    if table_spec is not None:
+        (out_dir / "source_table_input.json").write_text(
+            json.dumps(table_spec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
 
     print(f"Wrote {table1_path}")
     print(f"Wrote {metadata_path}")

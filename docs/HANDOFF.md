@@ -1,5 +1,52 @@
 # Handoff (for multi-session work)
 
+## 2026-10-17: Source-ingestion and reconciliation pilot
+
+Branch codex/dlag224-workflow-pilot starts at upstream 2ecc23c in an isolated
+managed worktree; the original checkout and its untracked work are preserved.
+See issue #19 and [the input contract](SOURCE_TABLE_RECONCILIATION.md).
+
+Implemented optional table and reconciliation configuration, original-source
+hash/cell validation, explicit arm mapping with optional P values, source-supported
+planned allocation metadata, and pure R conditional calculations with native RDS,
+JSON/CSV and provenance. Synthetic regressions cover source tampering, merged
+headers, four/five-column layouts, missingness/precision, OR boundaries/method
+gates and exact/binary numerical controls. Native metadata report display handles
+control characters without changing retained extracted evidence.
+
+The private pilot executed every existing category and the additional adapter in
+a fresh ignored run, and rendered all category PDFs. Eligibility restrictions
+remain active. Source-only material is staged, but the exact adopted reader
+runtime/build manifest has not been located on this host; fresh qualification,
+packet-specific authorization and one reader attempt remain outstanding. All
+INSPECT-SR responses remain pending. No medical-performance validation is claimed.
+
+Setup and required verification commands (export the project Python path and
+operator-selected isolated library first):
+
+    export PYTHONPATH=src
+    export R_LIBS_USER="$PWD/data/private/dlag224_execution/r-library"
+    uv sync --locked --dev
+    bash scripts/install_inspect_sr_r_methods.sh
+    uv run --offline --locked pytest -q -m 'not native_r and not report_integration'
+    FORENSICS_REQUIRE_R_INTEGRATION=1 uv run --offline --locked pytest -q -m native_r
+    FORENSICS_REQUIRE_REPORT_INTEGRATION=1 uv run --offline --locked pytest -q -m report_integration
+    uv run --offline --locked ruff check .
+    uv run --offline --locked ruff format . --check
+    git diff --check
+
+Use a fresh run ID after staging the privately retained source paths:
+
+    bash scripts/run_pipeline.sh --study-id dlag224 --forensics all --offline --output-root data/processed/private_reviews/forensics_runs --run-id NEW_ID --dry-run
+    bash scripts/run_pipeline.sh --study-id dlag224 --forensics all --offline --output-root data/processed/private_reviews/forensics_runs --run-id NEW_ID --render-reports
+
+The isolated R preflight passed; focused verification and all actual category
+calculations/renders completed. Full-lane acceptance is tracked on the draft PR.
+Private execution handoff and manifests retain exact test outcomes, failed
+attempts, package versions, source/code hashes and appraisal/report locations.
+No private artifacts belong in the PR or public CI.
+
+
 ## 2026-10-11 Approved v2 adoption and fresh operational qualification
 
 The user approved adopting the exact passing recovery build and completing the

@@ -1,5 +1,25 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-17: Explicit source tables and conditional summary reconciliation
+
+- The approved workflow pilot adds opt-in, hash-bound HTML/DOCX table input.
+  Total is reconciliation-only, P-value columns are optional, and the same
+  validated mapping feeds baseline and numeric preparation.
+- Planned allocation comes from concordant source claims. Observed randomized
+  counts and available-case denominators are separate; the legacy allocation_ratio
+  field now aliases the planned ratio. No randomization-design gate is relaxed.
+- A narrow base-R adapter enumerates crude OR tables, bounds conventional Wald
+  uncertainty, reconciles declared Wald methods, runs full and collapsed exact
+  contingency tests, and checks arithmetic against printed rounding intervals.
+  It uses existing dependencies and preserves native and standardized outputs.
+- Candidate calculations cannot produce human judgments or qualified INSPECT-SR
+  receipts. Unknown coding/methods and zero eligible units remain unresolved.
+- Source bytes, findings, operational authorization and logs remain ignored.
+  The reader still requires the exact adopted runtime, fresh qualification and
+  later approval of the concrete source packet. No CLI substitution is permitted.
+- Contracts and limitations: [source table reconciliation](SOURCE_TABLE_RECONCILIATION.md).
+
+
 ## 2026-10-11: Adopt the exact recovery runtime and requalify
 
 - **Authorization:** The user approved adopting the assessed exact replacement,
