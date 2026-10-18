@@ -666,3 +666,39 @@ def test_codex_generation_import_lineage_renders_html_pdf(
     preserve_synthetic_artifact(
         "medical-codex-report-model.json", report / "processed/medical_review/report_model.json"
     )
+
+
+@pytest.mark.report_integration
+def test_offline_codex_excerpt_recovery_renders(workspace, monkeypatch):
+    from pypdf import PdfReader
+    from support.codex_fixtures import execute_fixture, prepared_fixture
+
+    from research_project.medical_review.codex_recovery import import_codex
+
+    if not shutil.which("quarto"):
+        if os.environ.get("FORENSICS_REQUIRE_REPORT_INTEGRATION") == "1":
+            pytest.fail("Quarto required for offline recovery acceptance.")
+        pytest.skip("Quarto unavailable")
+    repo, *_ = workspace
+    _, _, _, envelope, _, packet = prepared_fixture(workspace, monkeypatch)
+    envelope["review"]["findings"][0]["source_objects"][0]["text_quote"] = packet["sources"][0][
+        "units"
+    ][0]["quote"][:10]
+    parent, *_ = execute_fixture(workspace, monkeypatch, envelope=envelope)
+    source = import_codex(repo, parent)
+    (repo / "notebooks").mkdir()
+    shutil.copy(
+        Path(__file__).resolve().parents[2] / "notebooks/medical_manuscript_review.qmd",
+        repo / "notebooks",
+    )
+    report = render_review(repo, source, html=True, pdf=True)
+    html = (report / "reports/medical_review/review.html").read_text()
+    pdf = " ".join(
+        page.extract_text() or ""
+        for page in PdfReader(report / "reports/medical_review/review.pdf").pages
+    )
+    for text in (html, pdf):
+        assert "exact_excerpt" in text
+        assert "offline_recovery" in text
+        assert "pending" in text
+    assert load_dossier(repo, report)["reading_execution"]["new_model_calls"] == 0

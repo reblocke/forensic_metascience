@@ -1,5 +1,60 @@
 # Handoff (for multi-session work)
 
+## 2026-10-17: Citation recovery implementation
+
+The new `import-codex --from-run <run> --offline` entrypoint validates completed saved responses and constructs a separate versioned import. Source-object ID remapping, exact excerpt spans and multiple comparison associations retain original content and provenance. The pending auth snapshot and 1800-second limit changes are included. Private pilot execution and appraisal receipts stay in ignored directories. See MEDICAL_REVIEW_CODEX_BACKEND.md for the contract. Focused citation, recovery, legacy and backend regressions pass, as do Ruff and whitespace checks. The adopted native runtime passed all 20 offline qualification checks against this adapter. An existing 0.1-second synthetic timeout fixture failed under concurrent load but passed alone; its startup allowance is now 0.5 seconds, still preceding the delayed child marker. Production timeouts are unchanged by that fixture repair.
+
+Required final-candidate checks (set `PYTHONPATH=src` and the operator-selected `R_LIBS_USER` first):
+
+```bash
+uv run --offline --locked pytest -q -m 'not native_r and not report_integration'
+FORENSICS_REQUIRE_R_INTEGRATION=1 uv run --offline --locked pytest -q -m native_r
+FORENSICS_REQUIRE_REPORT_INTEGRATION=1 uv run --offline --locked pytest -q -m report_integration
+uv run --offline --locked ruff check .
+uv run --offline --locked ruff format . --check
+git diff --check
+```
+
+The three complete acceptance lanes must pass on the exact PR candidate before merge. The private execution handoff retains local failures/interruptions, final CI receipts, qualification hashes, import/report locations and merge identity. No model call is part of recovery, and operational checks do not establish medical performance or human review. The private appraisal was rerendered after recovery; its scientific interpretation remains a separate assistant assessment.
+
+## 2026-10-17: Reader deadline extension
+
+User authorized a general 1800-second generation deadline and one additional attempt. Updated the policy, policy-derived default/ceiling validation, boundary regressions and backend documentation. The new tests first failed against the 600-second implementation. Fresh qualification and a newly policy-bound packet/authorization are required before execution. Preserve earlier attempts; no automatic retry or fallback.
+
+Verification passed: `PYTHONPATH=src uv run --offline --locked pytest -q tests/medical_review/test_codex_backend.py tests/medical_review/test_codex_review_regressions.py tests/medical_review/test_codex_execution.py tests/medical_review/test_codex_qualification.py tests/medical_review/test_codex_adoption.py`; `uv run --offline --locked ruff check .`; `uv run --offline --locked ruff format . --check`; `git diff --check`. Fresh operational qualification passed all 20 checks. The private packet was regenerated and its source-packet bytes matched the earlier packet exactly. The newly authorized attempt uses 1800 seconds; its outcome belongs in private run records, not public documentation.
+
+
+## 2026-10-17: Non-refreshing credential snapshot correction
+
+`codex_runner._authentication_snapshot` now includes the timezone-aware
+`last_refresh` metadata required by the adopted CLI's token loader. Previously,
+login status could succeed while the generation request lacked a bearer header.
+The qualification fixture already included the field, masking the production
+snapshot mismatch. The operator authentication file and empty copied refresh
+token are preserved. No retry, fallback, model or scientific setting changes.
+
+The launcher regression failed with `KeyError: 'last_refresh'` before the fix.
+An actual adopted-CLI loopback comparison reproduced the missing header and its
+restoration with synthetic credentials; private receipts retain that comparison.
+Revalidate runtime qualification and prepare a newly bound packet before future
+use. Historical source approvals do not authorize an extra reading attempt.
+
+Focused verification commands:
+
+```bash
+PYTHONPATH=src uv run --offline --locked pytest -q tests/medical_review/test_codex_review_regressions.py tests/medical_review/test_codex_execution.py tests/medical_review/test_codex_backend.py tests/medical_review/test_codex_qualification.py
+uv run --offline --locked ruff check .
+uv run --offline --locked ruff format . --check
+git diff --check
+```
+
+All commands above passed after the fix. The corrected production helper also
+passed the actual adopted-CLI loopback bearer-header check, and fresh operational
+qualification passed all 20 mandatory checks. This is local verification, not
+hosted CI or a successful live medical reading. The newly qualification-bound
+packet retained identical source-packet bytes; execution still requires its
+corresponding explicit source authorization.
+
 ## 2026-10-17: Source-ingestion and reconciliation pilot
 
 Branch codex/dlag224-workflow-pilot starts at upstream 2ecc23c in an isolated

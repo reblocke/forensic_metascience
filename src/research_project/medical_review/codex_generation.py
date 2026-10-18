@@ -8,6 +8,7 @@ from typing import Any
 
 from research_project.medical_review.bundle import resolve_source_object
 from research_project.medical_review.codex_backend import MODEL
+from research_project.medical_review.codex_citations import normalize_citations, resolve_citation
 from research_project.medical_review.importer import validate_upstream
 from research_project.medical_review.records import UPSTREAM_SCHEMA_HASH, content_hash, read_json
 
@@ -49,6 +50,8 @@ def validate_generation(
     envelope: Any,
     bundle: dict[str, Any],
     packet: dict[str, Any],
+    *,
+    version: int = 1,
 ) -> None:
     if (
         not isinstance(envelope, dict)
@@ -57,20 +60,32 @@ def validate_generation(
     ):
         raise ValueError("Unsupported Codex generation envelope; authority fields refused.")
     review = envelope["review"]
-    validate_upstream(review, repo, UPSTREAM_SCHEMA_HASH)
+    if version not in (1, 2):
+        raise ValueError("Unsupported citation transformation version.")
+    checked = normalize_citations(review, content_hash(envelope))[0] if version == 2 else review
+    validate_upstream(checked, repo, UPSTREAM_SCHEMA_HASH)
     if review["paper_id"] != bundle.get("upstream_paper_id"):
         raise ValueError("Codex generation paper identity mismatch.")
     associations = envelope["associations"]
     findings = {f["id"]: f for f in review["findings"]}
     if not isinstance(associations, list) or any(not isinstance(a, dict) for a in associations):
         raise ValueError("Codex finding associations must be explicit records.")
-    if len(associations) != len(findings) or {a.get("finding_id") for a in associations} != set(
-        findings
-    ):
+    if (version == 1 and len(associations) != len(findings)) or {
+        a.get("finding_id") for a in associations
+    } != set(findings):
         raise ValueError("Codex finding associations must account for each finding exactly once.")
     scopes = {(c["study_id"], c.get("comparison_id"), c["check_id"]) for c in packet["checks"]}
     studies = {s["study_id"] for s in bundle["studies"]}
     comparisons = {(c["study_id"], c["comparison_id"]) for c in bundle.get("comparisons", [])}
+    if version == 2:
+        keys = [
+            (a.get("finding_id"), a.get("study_id"), a.get("comparison_id")) for a in associations
+        ]
+        if len(set(keys)) != len(keys):
+            raise ValueError("Duplicate finding scope association.")
+        for fid in findings:
+            if len({a.get("study_id") for a in associations if a.get("finding_id") == fid}) != 1:
+                raise ValueError("A finding cannot silently combine different studies.")
     for association in associations:
         if set(association) != {"finding_id", "study_id", "comparison_id", "check_ids"}:
             raise ValueError("Unsupported Codex association fields.")
@@ -94,6 +109,8 @@ def validate_generation(
                 allowed_reports &= set(row["report_ids"])
         aliases = {s["alias"]: s for s in packet["sources"]}
         for obj in findings[association["finding_id"]]["source_objects"]:
+            if version == 2:
+                resolve_citation(bundle, packet, obj, study, comparison)
             source = aliases.get(obj.get("path"))
             if source is None:
                 matches = [
@@ -109,9 +126,13 @@ def validate_generation(
             # Inexact, unknown or ambiguous anchors remain explicit unresolved proposals.
 
 
-def derived_payload(envelope: dict[str, Any]) -> dict[str, Any]:
+def derived_payload(envelope: dict[str, Any], *, version: int = 1) -> dict[str, Any]:
     """Namespace model-local finding identities; original envelope remains byte-exact."""
     review = copy.deepcopy(envelope["review"])
+    if version == 2:
+        review = normalize_citations(review, content_hash(envelope))[0]
+    elif version != 1:
+        raise ValueError("Unsupported citation transformation version.")
     prefix = "codex-" + content_hash(envelope)[:24] + "-"
     for finding in review["findings"]:
         finding["id"] = prefix + finding["id"]
@@ -127,6 +148,7 @@ def reading_proposals(
     envelope_sha256: str,
     packet_sha256: str,
     runtime: dict[str, Any],
+    version: int = 1,
 ) -> list[dict[str, Any]]:
     """A new overlay bound to the original import; historical proposals stay unchanged."""
     prefix = "codex-" + content_hash(envelope)[:24] + "-"
@@ -135,6 +157,11 @@ def reading_proposals(
     result = copy.deepcopy(proposals)
     for proposal in result:
         association = associations[proposal["original_finding_id"]]
+        scoped = [
+            a
+            for a in envelope["associations"]
+            if prefix + a["finding_id"] == proposal["original_finding_id"]
+        ]
         proposal["study_id"] = association["study_id"]
         proposal["comparison_id"] = association["comparison_id"]
         proposal["check_ids"] = association["check_ids"]
@@ -149,6 +176,23 @@ def reading_proposals(
             )
             if comparison.get("report_ids"):
                 proposal["report_ids"] = comparison["report_ids"]
+        if version == 2:
+            proposal["scope_associations"] = copy.deepcopy(scoped)
+            proposal["comparison_id"] = scoped[0]["comparison_id"] if len(scoped) == 1 else None
+            proposal["check_ids"] = sorted({c for a in scoped for c in a["check_ids"]})
+            reports = set()
+            for a in scoped:
+                allowed = {
+                    r["report_id"] for r in bundle["reports"] if a["study_id"] in r["study_ids"]
+                }
+                if a["comparison_id"] is not None:
+                    comparison = next(
+                        c for c in bundle["comparisons"] if c["comparison_id"] == a["comparison_id"]
+                    )
+                    if comparison.get("report_ids"):
+                        allowed &= set(comparison["report_ids"])
+                reports |= allowed
+            proposal["report_ids"] = sorted(reports)
         proposal["origin"] = {
             **proposal["origin"],
             "type": "codex_reading",
@@ -161,6 +205,27 @@ def reading_proposals(
             "output_upstream_revision": None,
         }
         proposal["evidence_links"] = []
+        if version == 2:
+            original = next(
+                f
+                for f in envelope["review"]["findings"]
+                if prefix + f["id"] == proposal["original_finding_id"]
+            )
+            derived = proposal["original"]["source_objects"]
+            for obj, normalized in zip(original["source_objects"], derived, strict=True):
+                links = [
+                    resolve_citation(bundle, packet, obj, a["study_id"], a["comparison_id"])
+                    for a in scoped
+                ]
+                link = links[0]
+                if any(candidate["resolution"] != "exact" for candidate in links):
+                    link = next(
+                        candidate for candidate in links if candidate["resolution"] != "exact"
+                    )
+                link["original_source_object_id"] = obj["id"]
+                link["source_object_id"] = normalized["id"]
+                proposal["evidence_links"].append(link)
+            continue
         for obj in proposal["original"]["source_objects"]:
             link = resolve_source_object(bundle, obj)
             if link.get("evidence_id") not in indexed_ids:

@@ -328,6 +328,14 @@ def validate_packet(repo: Path, bundle_path: Path) -> dict[str, Any]:
         "paper_id"
     ) != bundle.get("upstream_paper_id"):
         raise ValueError("Codex packet identity mismatch.")
+    validate_packet_content(repo, bundle, packet)
+    if _prompt_bytes(repo, raw) > execution_policy()["max_prompt_bytes"]:
+        raise ValueError("Codex packet prompt byte limit exceeded.")
+    return {"bundle": bundle, "packet": packet, "raw": raw}
+
+
+def validate_packet_content(repo: Path, bundle: dict[str, Any], packet: dict[str, Any]) -> None:
+    """Re-extract bound source units without treating historical policy as current."""
     plan = build_review_plan(
         bundle,
         build_study_context(bundle, bundle.get("context_fields")),
@@ -389,6 +397,3 @@ def validate_packet(repo: Path, bundle_path: Path) -> dict[str, Any]:
         }
     ):
         raise ValueError("Codex packet allowlist, source units or scope changed.")
-    if _prompt_bytes(repo, raw) > execution_policy()["max_prompt_bytes"]:
-        raise ValueError("Codex packet prompt byte limit exceeded.")
-    return {"bundle": bundle, "packet": packet, "raw": raw}

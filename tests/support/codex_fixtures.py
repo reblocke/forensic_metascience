@@ -11,6 +11,7 @@ from research_project.medical_review.codex_backend import execution_policy
 from research_project.medical_review.codex_packet import prepare_packet
 from research_project.medical_review.codex_process import bounded_process
 from research_project.medical_review.codex_qualification import CHECKS
+from research_project.medical_review.records import content_hash
 from research_project.medical_review.runner import run_review
 from support.medical_review_fixtures import write_json
 
@@ -40,8 +41,8 @@ def prepared_fixture(workspace, monkeypatch, *, comparisons=False):
             "synthetic_transport_substitution": True,
             "executable_path": "/synthetic/transport-substitution/codex",
         },
-        "receipt_sha256": "synthetic-test-only",
     }
+    qualification["receipt_sha256"] = content_hash(qualification)
     qpath = write_json(
         repo / "data/private/medical_reviews/runtime_qualifications/synthetic/qualification.json",
         qualification,
@@ -118,8 +119,9 @@ def execute_fixture(workspace, monkeypatch, *, envelope=None, comparisons=False)
         final = generated / "raw/generation.json"
         final.parent.mkdir(parents=True)
         script = (
-            "import pathlib,sys; "
+            "import pathlib,sys,json; "
             "pathlib.Path(sys.argv[2]).write_bytes(pathlib.Path(sys.argv[1]).read_bytes());"
+            "print(json.dumps({'type':'item.completed','item':{'type':'agent_message','text':pathlib.Path(sys.argv[1]).read_text()}}));"
             'print(\'{"type":"turn.completed","usage":{"input_tokens":1,"output_tokens":1}}\')'
         )
         assert (

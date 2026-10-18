@@ -17,7 +17,7 @@ def test_policy_pins_model_reasoning_and_zero_retries():
     policy = execution_policy()
     assert policy["model"] == MODEL == "gpt-6-astra"
     assert policy["reasoning"] == "max"
-    assert policy["max_duration_seconds"] == 600
+    assert policy["max_duration_seconds"] == 1800
     assert policy["request_max_retries"] == policy["stream_max_retries"] == 0
     assert policy["max_sessions"] == 1
 
@@ -69,7 +69,8 @@ def test_process_timeout_preserves_partial_output_and_kills_children(tmp_path):
             "p=subprocess.Popen([sys.executable,'-c',"
             "\"import time,pathlib; time.sleep(1); pathlib.Path('escaped').touch()\"]); "
             "print('partial',flush=True);time.sleep(20)",
-            duration=0.1,
+            # Allow interpreter startup under full-suite load, still before the marker.
+            duration=0.5,
         )
     assert (tmp_path / "output/events.jsonl").read_text() == "partial\n"
     # Child termination is observable: its delayed marker must never appear.
@@ -262,3 +263,13 @@ def test_live_group_permission_failure_is_not_silently_accepted(monkeypatch):
     monkeypatch.setattr("os.killpg", kill)
     with pytest.raises(PermissionError):
         _terminate(Live())
+
+
+def test_reader_duration_defaults_to_policy_and_enforces_ceiling():
+    from research_project.medical_review.codex_runner import _limits_codex
+
+    assert _limits_codex(None)["max_duration_seconds"] == 1800
+    assert _limits_codex({"max_duration_seconds": 1800})["max_duration_seconds"] == 1800
+    assert _limits_codex({"max_duration_seconds": 600})["max_duration_seconds"] == 600
+    with pytest.raises(ValueError, match="fixed execution policy"):
+        _limits_codex({"max_duration_seconds": 1801})

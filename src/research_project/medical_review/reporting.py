@@ -78,6 +78,12 @@ def _evidence_link_lines(model: dict[str, Any], proposal: dict[str, Any]) -> lis
             and row.get("page_index") is not None
         ):
             href += f"#page={row['page_index'] + 1}"
+        if link.get("match_kind"):
+            lines.append(
+                f"Citation match: {link['match_kind']}; UTF-8 bytes "
+                f"[{link['start_byte']}, {link['end_byte']}) within the source unit. "
+                "Text match only; source meaning and human review remain separate.\n"
+            )
         lines.append(
             f"**Source for cited evidence:** [Open original source]({href}) "
             f"— {_escaped(row['locator'])}\n"
@@ -102,6 +108,12 @@ def _groups(proposals: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "repair",
             )
         }
+        if "scope_associations" in proposal:
+            key["scope_associations"] = proposal["scope_associations"]
+            key["citation_spans"] = [
+                {k: link.get(k) for k in ("evidence_id", "quote_sha256", "start_byte", "end_byte")}
+                for link in links
+            ]
         key["evidence_ids"] = sorted(
             {link.get("evidence_id") for link in links if link.get("evidence_id")}
         )
@@ -312,6 +324,11 @@ def _markdown(model: dict[str, Any]) -> str:
                     [
                         *_evidence_link_lines(model, proposal),
                         *_record_lines(status),
+                        *(
+                            _record_lines({"scope_associations": proposal["scope_associations"]})
+                            if "scope_associations" in proposal
+                            else []
+                        ),
                         *_record_lines(
                             {"source_reported_category": proposal["original"]["category"]}
                         ),

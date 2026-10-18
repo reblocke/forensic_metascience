@@ -23,6 +23,7 @@ from research_project.medical_review.codex_backend import (
     codex_command,
     execution_policy,
 )
+from research_project.medical_review.codex_citations import normalize_citations
 from research_project.medical_review.codex_generation import (
     derived_payload,
     observed_metadata,
@@ -69,13 +70,16 @@ def load_reading_layer(repo, run, manifest, result, dossier):
     ):
         raise ValueError("Codex reading attempt binding changed.")
     lineage = read_json(artifact("generated/medical_review/reading_lineage.json"))
+    version = {"medical_codex_lineage_v1": 1, "medical_codex_lineage_v2": 2}.get(
+        lineage.get("schema_version")
+    )
     raw = artifact("generated/medical_review/raw/generation.json").read_bytes()
     envelope = parse_json(raw)
     bundle = dossier["bundle"]
     packet = lineage["packet"]
     packet_bytes = artifact("generated/medical_review/streams/stdin.txt").read_bytes()
     if (
-        lineage.get("schema_version") != "medical_codex_lineage_v1"
+        version is None
         or lineage.get("original_reviewer_executed") is not False
         or lineage["generation_sha256"] != hashlib.sha256(raw).hexdigest()
         or lineage["import_manifest_sha256"] != content_hash(dossier["manifest"])
@@ -87,10 +91,16 @@ def load_reading_layer(repo, run, manifest, result, dossier):
         )
     ):
         raise ValueError("Codex reading generation/import provenance changed.")
-    validate_generation(repo, envelope, bundle, packet)
+    validate_generation(repo, envelope, bundle, packet, version=version)
+    if (
+        version == 2
+        and lineage.get("citation_transform")
+        != normalize_citations(envelope["review"], content_hash(envelope))[1]
+    ):
+        raise ValueError("Citation transformation ledger changed.")
     imported_raw = (dossier["run_root"] / "generated/medical_review/raw/reviewer.json").read_bytes()
     if (
-        derived_payload(envelope) != parse_json(imported_raw)
+        derived_payload(envelope, version=version) != parse_json(imported_raw)
         or hashlib.sha256(imported_raw).hexdigest() != lineage["derived_payload_sha256"]
     ):
         raise ValueError("Codex derived import transformation changed.")
@@ -102,6 +112,7 @@ def load_reading_layer(repo, run, manifest, result, dossier):
         envelope_sha256=lineage["generation_sha256"],
         packet_sha256=lineage["packet_sha256"],
         runtime=lineage["runtime_observed"],
+        version=version,
     )
     if read_json(artifact("processed/medical_review/proposals.json")) != expected:
         raise ValueError("Codex scoped proposal layer changed.")
@@ -124,10 +135,10 @@ def load_reading_layer(repo, run, manifest, result, dossier):
 
 
 def _limits_codex(supplied: dict[str, Any] | None) -> dict[str, Any]:
-    limits = _limits({"max_duration_seconds": 600, **(supplied or {})})
     policy = execution_policy()
+    limits = _limits({"max_duration_seconds": policy["max_duration_seconds"], **(supplied or {})})
     if (
-        limits["max_duration_seconds"] > 600
+        limits["max_duration_seconds"] > policy["max_duration_seconds"]
         or limits["max_source_bytes"] > policy["max_source_bytes"]
     ):
         raise ValueError("Codex limits cannot exceed the fixed execution policy.")
@@ -240,6 +251,9 @@ def _authentication_snapshot(auth: dict[str, Any], duration: float) -> dict[str,
     return {
         "auth_mode": "chatgptAuthTokens",
         "OPENAI_API_KEY": None,
+        # Required by the native token loader, even in non-refreshing token mode.
+        # This dates the snapshot; it does not refresh the operator's credentials.
+        "last_refresh": datetime.now(UTC).isoformat(),
         "tokens": {
             **{k: tokens[k] for k in ("id_token", "access_token", "account_id")},
             "refresh_token": "",
@@ -450,12 +464,12 @@ def run_codex_review(
                     raise ValueError("Codex generation exceeds its final JSON byte limit.")
                 envelope_bytes = (generated / "raw/generation.json").read_bytes()
                 envelope = parse_json(envelope_bytes)
-                validate_generation(repo, envelope, bundle, preparation["packet"])
+                validate_generation(repo, envelope, bundle, preparation["packet"], version=2)
                 if load_bundle(repo, bundle_path)[1] != digest:
                     raise ValueError("Codex source bundle changed during generation.")
                 validate_packet(repo, bundle_path)
                 validate_qualification(repo, qualification_path)
-                payload = derived_payload(envelope)
+                payload = derived_payload(envelope, version=2)
                 incoming = private_path(
                     repo,
                     PRIVATE_SOURCES
@@ -481,12 +495,16 @@ def run_codex_review(
                         envelope_sha256=hashlib.sha256(envelope_bytes).hexdigest(),
                         packet_sha256=dependencies["packet_sha256"],
                         runtime=runtime,
+                        version=2,
                     ),
                 )
                 write_json(
                     generated / "reading_lineage.json",
                     {
-                        "schema_version": "medical_codex_lineage_v1",
+                        "schema_version": "medical_codex_lineage_v2",
+                        "citation_transform": normalize_citations(
+                            envelope["review"], content_hash(envelope)
+                        )[1],
                         "generation_sha256": hashlib.sha256(envelope_bytes).hexdigest(),
                         "derived_payload_sha256": hashlib.sha256(
                             (imported / "generated/medical_review/raw/reviewer.json").read_bytes()

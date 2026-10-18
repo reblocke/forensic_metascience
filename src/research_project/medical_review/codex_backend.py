@@ -90,7 +90,7 @@ def execution_policy() -> dict[str, Any]:
         "model": MODEL,
         "reasoning": "max",
         "authentication": "chatgpt",
-        "max_duration_seconds": 600,
+        "max_duration_seconds": 1800,
         "max_sessions": 1,
         "request_max_retries": 0,
         "stream_max_retries": 0,
