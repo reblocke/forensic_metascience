@@ -44,6 +44,9 @@ def test_exact_excerpt_unicode_and_ambiguity(workspace, monkeypatch):
     assert link["resolution"] == "exact"
     assert link["match_kind"] == "exact_excerpt"
     assert link["start_byte"] == 3 and link["end_byte"] == 9
+    obj["url"] = "https://example.invalid/unbound-source"
+    assert resolve_citation(bundle, packet, obj, "synthetic", None)["resolution"] == "unresolved"
+    obj["url"] = None
     unit["quote"] = "aaa"
     obj["text_quote"] = "aa"
     assert resolve_citation(bundle, packet, obj, "synthetic", None)["resolution"] == "unresolved"

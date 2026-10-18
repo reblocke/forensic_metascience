@@ -97,6 +97,9 @@ def resolve_citation(bundle, packet, obj, study, comparison):
         if r["report_id"] in source["report_ids"]
     ):
         return {**unresolved, "reason": "Unreviewed multi-study report mapping."}
+    # Packet v1 has no URL locator binding; do not silently ignore a supplied one.
+    if obj.get("url") is not None:
+        return {**unresolved, "reason": "URL locator is not bound in the prepared packet."}
     quote = obj.get("text_quote")
     text = unit["quote"]
     if not isinstance(quote, str) or not quote:

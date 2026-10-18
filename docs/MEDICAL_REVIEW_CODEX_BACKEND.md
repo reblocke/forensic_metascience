@@ -319,3 +319,6 @@ not supply source permission, numerical qualification or medical performance.
 Rollback by disabling this opt-in backend or reverting its adoption changes. Preserve
 all qualification receipts, packets, attempts and dispositions; never select an
 unsupported official CLI as a fallback. No global CLI installation was changed.
+
+Packet v1 does not bind URL locators. A citation supplying a non-null URL remains
+unresolved even if its other fields match; that locator is never silently ignored.
