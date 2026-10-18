@@ -86,6 +86,11 @@ def parser() -> argparse.ArgumentParser:
     )
     plan.add_argument("--dry-run", action="store_true")
     plan.add_argument("--offline", action="store_true")
+    recovery = commands.add_parser(
+        "import-codex", help="Recover a completed saved Codex response without a model call."
+    )
+    recovery.add_argument("--from-run", required=True, type=Path)
+    recovery.add_argument("--offline", action="store_true", required=True)
     importing = commands.add_parser(
         "import-reviewer", help="Losslessly import authorized local JSON."
     )
@@ -298,6 +303,10 @@ def main() -> int:
                     },
                 }
             print(json.dumps(result, sort_keys=True))
+        elif args.operation == "import-codex":
+            from research_project.medical_review.codex_recovery import import_codex
+
+            print(import_codex(ROOT, args.from_run))
         elif args.operation == "import-reviewer":
             run = import_reviewer(
                 ROOT,

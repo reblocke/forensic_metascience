@@ -1,5 +1,29 @@
 # Decisions (architecture + scientific choices)
 
+## 2026-10-17: Versioned offline citation recovery
+
+Use a finding-scoped citation namespace and an immutable transformation ledger rather than weakening the generic importer. Version-2 reading permits exact unique excerpts with source hashes and byte offsets; version-1 behavior stays unchanged. Retain multiple valid comparison associations on one proposal within a study. Offline recovery binds the completed source run and creates new private lineage without reauthorizing, regenerating, overwriting failures, or promoting human/numerical authority.
+
+## 2026-10-17: Extend the controlled reader generation deadline
+
+The user explicitly requested tripling the general deadline and authorized one additional attempt. The Codex policy default and ceiling are now 1800 seconds (30 minutes), previously 600. Limit validation reads the policy directly to avoid divergent defaults and ceilings. Smaller explicit limits remain supported. Astra/max, one session, zero retries, no tools/search and no fallback are unchanged. Policy/code hash changes require fresh operational qualification, packet preparation and an authorization bound to the changed policy; historical receipts remain immutable. A longer deadline is not a completion or medical-performance guarantee.
+
+
+## 2026-10-17: Retain native token-loader metadata in credential snapshots
+
+- The adopted CLI requires a non-null `last_refresh` to retrieve bearer token
+  data even in `chatgptAuthTokens` mode. Local login status alone does not test
+  this path. The production snapshot omitted that field while the qualification
+  fixture supplied it, so synthetic qualification did not expose the mismatch.
+- Date each disposable snapshot with a timezone-aware timestamp. This is native
+  loader metadata, not a credential refresh: the operator file remains unchanged,
+  the copied refresh token stays empty, and retry/fallback restrictions remain.
+- A synthetic loopback reproduction with the adopted executable observed no
+  Authorization header without the timestamp and the exact synthetic bearer
+  with it. No study source or real credential was used in that reproduction.
+- Code-bound qualification and packet preparation must be renewed after this
+  fix. Prior receipts, failed attempts and source authorizations are not rewritten.
+
 ## 2026-10-17: Explicit source tables and conditional summary reconciliation
 
 - The approved workflow pilot adds opt-in, hash-bound HTML/DOCX table input.

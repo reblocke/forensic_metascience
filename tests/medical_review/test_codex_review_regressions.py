@@ -4,6 +4,7 @@ import base64
 import json
 import subprocess
 import time
+from datetime import datetime
 
 import pytest
 
@@ -95,6 +96,10 @@ def test_launcher_uses_nonrefreshing_snapshot_and_isolated_login(tmp_path, monke
         snapshot = json.loads((home / "auth.json").read_text())
         assert snapshot["auth_mode"] == "chatgptAuthTokens"
         assert snapshot["tokens"]["refresh_token"] == ""
+        # The adopted CLI's get_token_data requires this even in token-only mode.
+        timestamp = datetime.fromisoformat(snapshot["last_refresh"])
+        assert timestamp.tzinfo is not None
+        assert abs(timestamp.timestamp() - time.time()) < 10
         assert "OPERATOR_REFRESH_CANARY" not in (home / "auth.json").read_text()
         return subprocess.CompletedProcess(command, 0, "Logged in using ChatGPT", "")
 

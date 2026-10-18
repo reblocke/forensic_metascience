@@ -141,6 +141,11 @@ def load_dossier(repo_root: Path, run_path: Path, *, _depth: int = 0) -> dict[st
             recorded_artifact(repo, run, manifest, f"processed/medical_review/{name}.json")
         )
 
+    if settings.get("medical_codex_recovery_key"):
+        from research_project.medical_review.codex_recovery import load_recovery_layer
+
+        return load_recovery_layer(repo, run, manifest, depth=_depth)
+
     if settings.get("medical_consolidation_key"):
         parents = []
         for row in settings["source_runs"]:

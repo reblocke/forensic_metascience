@@ -11,7 +11,8 @@ Fresh operational v4 qualification passed all 20 mandatory checks. Every require
 request-count probe, including a 401, sends one request. Each environment must
 qualify these exact bytes with the retained build manifest and matching catalogue;
 separate source-specific human authorization is required before transmission.
-No real study has been transmitted, and medical performance remains unqualified.
+Study execution outcomes are retained in private attempt records; operational
+qualification does not establish medical performance.
 Installed CLI, PATH, app and user configuration remain unchanged.
 
 The inspected official 0.157.0, 0.161.0 and 0.160.0 releases remain unsupported:
@@ -26,7 +27,7 @@ current eligibility. See [the adoption decision](DECISIONS.md#2026-10-11-adopt-t
 and [the retained source-build materials](../tools/codex-no-tools/README.md).
 
 The user selected `gpt-6-astra`, reasoning `max`, existing ChatGPT authentication,
-one concurrent session, a 600-second generation deadline and zero automatic
+one concurrent session, an 1800-second generation deadline and zero automatic
 request/stream retries. There is no provider/model fallback, search or specialist
 session orchestration. This workflow does not execute the original Reviewer;
 that comparator remains a separate fidelity gate.
@@ -147,8 +148,10 @@ The deterministic preparation directory contains a new indexed bundle revision,
 packet, extracted artifacts and authorization template. Existing source bytes,
 publication identities and original bundle files are retained. Exact bounded text
 units retain parser provenance, zero-based PDF page indices and one-based physical
-PDF page locators. Text sources have no invented page numbers. Findings must quote
-whole units exactly; inexact or ambiguous citations remain unresolved.
+PDF page locators. Text sources have no invented page numbers. Version-2 reading lineage accepts whole units or literal excerpts that occur exactly
+once within one identified unit. Matching records source/version hashes and UTF-8
+byte offsets; ambiguous or inexact citations remain unresolved. Historical
+version-1 lineage retains whole-unit matching.
 Every uniquely resolvable citation, including retained legacy upstream paths,
 must belong to the finding's declared study and comparison report scope.
 
@@ -228,8 +231,12 @@ is no guaranteed monetary spending cap.
 The original generation envelope/events remain registered and byte-preserved.
 The envelope uses the pinned upstream finding vocabulary with explicit study,
 comparison and check associations. Unknown authority fields fail validation.
-A deterministic derived payload namespaces model-local finding IDs before the
-existing importer runs. Transformation hashes and import-manifest bindings are
+A deterministic version-2 derived payload namespaces model-local finding IDs and
+finding-local citation IDs before the existing importer runs. Claim-evidence links
+are remapped, and the original citation objects remain in a transformation ledger.
+Duplicate citation IDs within a finding and dangling references still fail. A
+finding may retain several explicit comparison associations within one study;
+these remain attached to one proposal, not counted as independent findings. Transformation hashes and import-manifest bindings are
 registered; no upstream generating revision is asserted.
 
 A separate scoped reading layer references the immutable import. Dossier loading
@@ -244,6 +251,32 @@ layer and require independent source/locator attestations. Markdown and actual
 Quarto HTML/PDF reports retain source links, uncertainty and separate requested
 versus observed Codex provenance. These outputs cannot become qualified numerical
 receipts or official INSPECT-SR judgments through generation/import.
+
+## Recover a completed response offline
+
+```bash
+PYTHONPATH=src uv run --offline --locked python scripts/medical_review.py \
+  import-codex --from-run "$MEDICAL_SAVED_RUN" --offline
+```
+
+This operation never reads login credentials, invokes a provider, or retries generation.
+It verifies the named run's registered artifacts, request/result and historical
+approval/qualification bindings, immutable sources, packet re-extraction, and a
+completed stream agreeing with the saved JSON. Historical receipts are provenance,
+not current live qualification. A timeout or incomplete stream cannot be recovered.
+
+Recovery creates a separate private run with versioned transformation and parent
+manifest hashes. The failed parent and original generation stay unchanged. Exact
+repetition reuses only a validated recovery; changed code produces a new recovery
+identity. Dossier loading reconstructs citations, associations and import lineage.
+
+Exact excerpts require a unique packet unit and one literal match, including
+Unicode and overlapping-occurrence checks. Unit and quotation hashes plus zero-based
+UTF-8 byte offsets (exclusive end) distinguish excerpts from whole-unit matches.
+All supplied locators must agree; all declared comparison scopes are checked.
+Missing/ambiguous citations remain unresolved. This is textual resolution, not
+visual/source-semantic verification, numerical qualification or human review.
+The generic upstream importer and version-1 reading behavior remain unchanged.
 
 ## Acceptance and rollback
 
@@ -286,3 +319,6 @@ not supply source permission, numerical qualification or medical performance.
 Rollback by disabling this opt-in backend or reverting its adoption changes. Preserve
 all qualification receipts, packets, attempts and dispositions; never select an
 unsupported official CLI as a fallback. No global CLI installation was changed.
+
+Packet v1 does not bind URL locators. A citation supplying a non-null URL remains
+unresolved even if its other fields match; that locator is never silently ignored.
